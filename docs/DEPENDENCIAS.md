@@ -1,4 +1,4 @@
-# Dependências da v0.1
+# Dependências da v0.2
 
 SDK de validação: .NET 10.0.403 x64, isolado no workspace. Ferramentas locais não são versionadas.
 Versões diretas em `Directory.Packages.props`; resolução exata e hashes nos `packages.lock.json`.
@@ -9,6 +9,7 @@ O restore de desenvolvimento e CI usa `--locked-mode`.
 | CommunityToolkit.Mvvm | 8.4.0 | [CommunityToolkit](https://github.com/CommunityToolkit/dotnet), MIT |
 | Microsoft.Extensions.DependencyInjection / Abstractions | 10.0.0 | [dotnet/runtime](https://github.com/dotnet/runtime), MIT |
 | Microsoft.Data.Sqlite / Core | 10.0.0 | [dotnet/efcore](https://github.com/dotnet/efcore), MIT |
+| System.Management | 10.0.0 | [dotnet/runtime](https://github.com/dotnet/runtime), MIT |
 | SQLitePCLRaw.bundle/config/core/provider_e_sqlite3 | 3.0.5 | [SQLitePCL.raw](https://github.com/ericsink/SQLitePCL.raw), Apache-2.0 |
 | SQLite (binário nativo `e_sqlite3`) | 3.53.4 | [Pacote SQLite](https://www.nuget.org/packages/SQLite/3.53.4), arquivo LICENSE: Public Domain |
 | Microsoft.NET.Test.Sdk | 17.14.1 | [microsoft/vstest](https://github.com/microsoft/vstest), MIT |
@@ -19,7 +20,7 @@ Metadados de licença conferidos nos pacotes restaurados; não substituem revis�
 Transitivos de testes (incluindo TestPlatform, CodeCoverage e Newtonsoft.Json) constam dos lockfiles.
 Dependências de testes não integram o aplicativo distribuído.
 
-## Correção aplicada durante esta entrega
+## Correção aplicada na v0.1 e mantida na v0.2
 
 O restore inicial de Microsoft.Data.Sqlite 10.0.0 resolveu o bundle nativo antigo 2.1.11 e
 falhou com NU1903: [GHSA-2m69-gcr7-jv3q / CVE-2025-6965](https://github.com/advisories/GHSA-2m69-gcr7-jv3q).
@@ -34,5 +35,9 @@ Antes de distribuir, incluir os avisos/licenças necessários, revisar dependên
 executar a matriz Windows e assinar os artefatos conforme planejamento. NuGet audit é uma verificação
 pontual de advisories conhecidos, não uma garantia de ausência de vulnerabilidades.
 
-ScottPlot.WPF, LibreHardwareMonitorLib, System.Management, APIs de eventos e PDFsharp/MigraDoc
+ScottPlot.WPF, LibreHardwareMonitorLib, APIs de eventos e PDFsharp/MigraDoc
 continuam candidatos aprovados, ainda sem versões congeladas ou prova de conceito nesta etapa.
+
+System.Management 10.0.0 foi fixado e exercitado em consultas de inventário somente de leitura.
+Sensores/drivers, compatibilidade ampla e qualidade de cada metadado continuam sujeitos às provas
+de conceito previstas. A auditoria da v0.2 incluiu os transitivos dessa nova referência.

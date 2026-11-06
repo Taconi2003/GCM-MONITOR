@@ -1,106 +1,121 @@
 # GCM Monitor — Gimenes Coleta e Monitoramento
 
-Aplicativo Windows de diagnóstico e monitoramento para técnicos de informática.
-**v0.1.0: estrutura executável e demonstração sintética. Não usar para diagnosticar clientes.**
+**v0.2.0 — coleta básica passiva para Windows x64.** Agora utiliza dados reais de CPU,
+memória, processos, discos e inventário do computador. Versão de desenvolvimento;
+ainda não liberada para diagnóstico de clientes.
 
-A [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md) é a fonte de escopo.
-Esta entrega implementa somente a primeira etapa da seção 14. Não executa coleta real,
-estresse, ping, atualizações, reparos, instalação de drivers ou alterações no Windows.
+Fonte de escopo: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md),
+seção 14. A especificação original permanece preservada. A v0.2 dá continuidade à v0.1.
 
-## Requisitos de desenvolvimento
+## O que está disponível
 
-- Windows x64 com ambiente gráfico; plataforma principal planejada: Windows 11.
-- SDK **.NET 10.0.403 x64**, fixado em `global.json`. O SDK .NET 8 não compila esta solução.
-- Git e acesso ao NuGet no primeiro restore.
-- PowerShell 7 recomendado. Visual Studio com suporte a .NET 10/WPF é opcional.
+- Cinco telas: **Início, Monitoramento, Resultados, Histórico e Configurações**.
+- WPF/XAML, MVVM, injeção de dependências e tema escuro azul-marinho/azul/ciano.
+- Inventário por consultas de leitura do Windows: edição/build/arquitetura, boot/uptime,
+  CPU/núcleos/processadores lógicos, RAM/módulos e discos físicos associados aos volumes.
+- CPU por deltas de `GetSystemTimes`, RAM física disponível/ocupada, comprometimento,
+  cache do sistema e contadores de paginação quando acessíveis.
+- Tráfego de leitura/gravação por disco físico em **MB/s decimais**, sem teste de escrita.
+  Capacidade e espaço livre são apresentados respeitando a diferença entre disco e volume.
+- Top 10 de CPU acumulada e RAM média ponderada no tempo (working set), com pico,
+  período observado e processos encerrados. Identidade por **PID + início do processo**.
+- Motor separado por sessão, seleção de módulos/discos, relógio real, gráficos limitados,
+  cancelamento passivo e consolidação parcial.
+- SQLite WAL com transações, amostras normalizadas, módulos, estatísticas, transições,
+  ocorrências, agregados de processos, notas e recuperação de sessões interrompidas.
 
-O SDK pode ser instalado pelo [distribuidor oficial da Microsoft](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
-Um SDK isolado em `.tools/dotnet/` também é reconhecido pelos scripts, sem alterar o PATH global.
-`.tools/` contém apenas ferramentas e cache locais e não integra a distribuição.
+O catálogo mantém os 11 módulos aprovados. Nesta etapa estão disponíveis **M01, M02, M03
+(inventário/espaço/tráfego; SMART indisponível) e M08**. Os demais aparecem como indisponíveis,
+previstos para v0.3. GPU, temperatura, RPM, SMART, bateria e Wi-Fi não recebem valores simulados.
 
-## Compilar, testar e abrir
+**Estresse continua separado, desligado e bloqueado.** Não há gerador de carga,
+alteração de energia, atualização, reparo, instalação de driver ou leitura de conteúdo de processos.
+PDF, preferências definitivas e Inno Setup pertencem às próximas etapas aprovadas.
 
-Na raiz do repositório:
+## Compilar e abrir
+
+Requisitos: Windows x64, SDK **.NET 10.0.403 x64** (`global.json`), Git e acesso ao NuGet no
+primeiro restore. O SDK .NET 8 não compila esta solução. PowerShell 7 é recomendado.
+Um SDK isolado em `.tools/dotnet/` é reconhecido pelos scripts; também pode ser usado o
+[SDK instalado da Microsoft](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
 
 ```powershell
 .\scripts\dev.ps1 Restore
-.\scripts\dev.ps1 Build
-.\scripts\dev.ps1 Test
-.\scripts\dev.ps1 Run
+.\scripts\dev.ps1 Build -Configuration Release
+.\scripts\dev.ps1 Test -Configuration Release
+.\scripts\dev.ps1 Run -Configuration Release
 ```
 
-Os scripts isolam os caches em `.tools/`, usam restore travado e falham quando o comando retorna erro.
-Para compilar/testar Release, acrescente `-Configuration Release` a Build e Test.
-Também é possível usar `dotnet restore GcmMonitor.sln --locked-mode`,
-`dotnet build GcmMonitor.sln --no-restore` e `dotnet test GcmMonitor.sln --no-build`.
-Ao abrir diretamente o executável de desenvolvimento, o runtime .NET Desktop 10 precisa estar
-instalado ou `DOTNET_ROOT` precisa apontar ao SDK isolado. O script Run já configura isso.
+Os scripts isolam cache em `.tools/`, fazem restore travado e propagam falhas.
+O build copia o motor e suas dependências para `engine/` ao lado do aplicativo.
+O script Run configura o runtime local; ao abrir o `.exe` diretamente, é necessário
+runtime .NET Desktop 10 instalado ou `DOTNET_ROOT` apontando ao SDK isolado.
+Não copie somente o `.exe`. Esta saída é de desenvolvimento, **não uma edição portátil**.
 
-O build copia o motor e suas dependências para a subpasta `engine/` do aplicativo.
-Não copie apenas o `.exe`: o conjunto de saída é necessário. Isso é execução de desenvolvimento,
-**não uma edição portátil nem um instalador de distribuição**.
+## Utilizar a v0.2
 
-## Revisar a demonstração
+1. Aguarde o inventário no **Início**. Somente fontes disponíveis são selecionadas por padrão.
+2. Escolha módulos, discos e uma das durações aprovadas: **5 min, 30 min, 1 h ou 4 h**.
+   As durações são reais; nenhuma aceleração é aplicada na execução normal.
+3. Inicie a coleta. CPU/RAM/discos têm cadência de referência de 2 s; processos, 5 s.
+   O programa registra o timestamp efetivo e não promete amostras exatas sob atrasos.
+4. Navegue sem perder a sessão. O Início mostra a execução ativa e impede iniciar outra.
+   **Cancelar diagnóstico** interrompe a coleta e preserva resultados parciais.
+5. Em **Resultados**, revise estatísticas, fontes, limitações e rankings; salve observações.
+   Ausência de achados não equivale a integridade física comprovada.
+6. Em **Histórico**, filtre por computador/data `dd/MM/aaaa`/estado, abra resultados e exclua
+   apenas sessões finalizadas com confirmação. A consulta atual carrega as 100 mais recentes;
+   paginação e retenção automática ainda não estão implementadas.
 
-1. Em **Início**, escolha entre os 11 módulos e uma das quatro durações aprovadas.
-   Seleção vazia e armazenamento sem disco selecionado são rejeitados.
-2. Clique em **Iniciar diagnóstico**. A ação reproduz dados fictícios durante cerca de 10 segundos,
-   com **relógio simulado acelerado**; não executa um diagnóstico real de 5 minutos a 4 horas.
-   Sessões somente com consultas pontuais terminam assim que a reprodução acaba.
-3. Navegue sem interromper a sessão. O Início informa a sessão ativa e impede uma segunda execução.
-   **Cancelar diagnóstico** preserva o estado parcial demonstrativo.
-4. Em **Resultados**, expanda módulos e salve observações associadas à sessão fictícia.
-   Indisponibilidade de sensores não é representada por zero nem por um estado saudável.
-5. Em **Histórico**, filtre por computador, data `dd/MM/aaaa` e estado; abra resultados e exclua
-   sessões finalizadas com confirmação. Se o histórico estiver vazio, **Carregar exemplos fictícios**
-   cria quatro cenários: concluído, cancelado, interrompido e erro.
-6. Em **Configurações**, confira os controles fixos e as preferências ilustrativas.
-   Avisos informativos e pasta de PDF são editáveis somente durante esta execução; ainda não são persistidos.
+Cada gráfico apresenta no máximo 32 pontos por série; o snapshot da UI limita o total a 512.
+As amostras completas e estatísticas do período observado permanecem no banco.
+Lacunas não são preenchidas com zero ou valores artificiais. As médias não interpolam
+intervalos acima de 15 s; atrasos/suspensão são registrados como ocorrência.
 
-Tema exclusivamente escuro, navegação lateral com exatamente cinco telas e PT-BR fixo.
-Estresse está separado, desligado e bloqueado inclusive após **Habilitar todos**.
-Nenhum código de geração de carga existe nesta versão. Não há pausa nem tela Diagnóstico.
+## Testes e evidências
 
-![Início da v0.1 — dados exclusivamente sintéticos](docs/interface/v0.1-inicio.png)
+A suíte combina fixtures determinísticas com **leituras passivas curtas do Windows**.
+Também encerra um motor criado pelo próprio teste para validar recuperação; não encerra
+aplicativos de terceiros. Não executa estresse.
 
-## Estrutura
+O ensaio real completo de cinco minutos é separado da suíte rápida:
 
-| Projeto | Responsabilidade nesta etapa |
-|---|---|
-| `GcmMonitor.App` | WPF/XAML, tema, composição por DI, diálogos e cliente do motor |
-| `GcmMonitor.Presentation` | MVVM testável: navegação, seleção, estados e comandos |
-| `GcmMonitor.Core` | Entidades, estados, catálogo, validação e contratos versionados |
-| `GcmMonitor.Collector` | Fontes determinísticas e cenários **somente sintéticos** |
-| `GcmMonitor.Engine` | Processo de sessão demonstrativa; validação, reprodução e persistência |
-| `GcmMonitor.Persistence` | Fundação SQLite: snapshots, transições, notas e exclusão protegida |
-| `GcmMonitor.StressSupervisor` | Executável reservado que recusa execução; não gera carga |
-| `GcmMonitor.UnitTests` | Contratos e regras da apresentação |
-| `GcmMonitor.IntegrationTests` | SQLite real, processos reais com dados sintéticos e renderização WPF |
+```powershell
+$env:GCM_RUN_LONG_PASSIVE_VALIDATION = '1'
+# Usar o dotnet do SDK 10 selecionado; os caches/runtime devem estar configurados como em scripts/dev.ps1.
+dotnet test tests/GcmMonitor.IntegrationTests -c Release --no-build --no-restore `
+  --filter 'FullyQualifiedName~FullFiveMinutePassiveSession' --logger trx
+```
 
-O auxiliar privilegiado é opcional na especificação e não é necessário nesta etapa.
-Veja [arquitetura e limites](docs/arquitetura/V0.1.md),
-[dependências e licenças](docs/DEPENDENCIAS.md),
-[evidências e limitações](docs/testes/RELATORIO_V0.1.md) e
-[distribuição futura](installer/InnoSetup/README.md).
+Sem a variável, esse caso aparece explicitamente como ignorado; não é contado como aprovado.
+O relatório registra separadamente os ensaios executados. TRX/capturas ficam em `.artifacts/`
+e não são versionados. Capturas automatizadas usam apenas fixtures, claramente identificadas.
+O CI publica somente TRX, capturas sintéticas e resumos sanitizados, nunca bancos reais.
 
-## Dados e privacidade
+Veja [relatório v0.2](docs/testes/RELATORIO_V0.2.md),
+[arquitetura v0.2](docs/arquitetura/V0.2.md) e [dependências/licenças](docs/DEPENDENCIAS.md).
 
-Banco exclusivamente demonstrativo: `%LOCALAPPDATA%\GCM Monitor\Data\demo-v0.1.db`.
-Ele é separado do futuro `gcm-monitor.db`, para não misturar fixtures com diagnósticos reais.
-Transações curtas, WAL, sincronização FULL, snapshots e diário de transições; notas separadas
-não são sobrescritas pela atualização do motor. Gráficos limitam a janela a 32 pontos por série.
-O histórico consulta até 100 sessões por vez; paginação e retenção automática ficam para as etapas seguintes.
+## Dados e limites
 
-Bancos, auxiliares WAL/SHM, PDFs, logs, dumps, builds e caches são ignorados pelo Git.
-Não inclua dados de clientes neste repositório público. Limpar histórico remove apenas registros
-terminais do banco demonstrativo; não percorre pastas externas nem apaga relatórios exportados.
+Banco real por usuário: `%LOCALAPPDATA%\GCM Monitor\Data\gcm-monitor.db`.
+O banco `demo-v0.1.db` da entrega anterior não é importado nem misturado automaticamente.
+Fixtures permanecem reservadas aos testes. Dados reais e sintéticos são rejeitados quando
+misturados na mesma sessão. Não inclua bancos, notas, nomes de máquinas/processos reais,
+relatórios ou capturas reais no repositório público.
 
-## Próximas etapas
+- CPU representa **tempo ocupado**, podendo diferir da utilidade com ajuste de frequência
+  mostrada pelo Gerenciador de Tarefas. Acima de 64 processadores lógicos, a leitura agregada
+  fica indisponível até validação de grupos de processadores.
+- RAM física, cache e comprometimento são contadores diferentes; GiB usa base 1024.
+  Paginação não comprova defeito de RAM.
+- Discos/volumes complexos e metadados de tipo/barramento podem ficar indisponíveis.
+  Tipo desconhecido não é inferido pelo nome do modelo. SMART não acessado não significa saudável.
+- Processos protegidos podem não fornecer identidade/contadores; o ranking sinaliza cobertura parcial.
+- Houve validação passiva local; **não há validação ampla em hardware real**, precisão certificada,
+  ensaio real de quatro horas ou aprovação da matriz completa de Windows/sensores.
+- Preferências de avisos/pasta são ilustrativas e valem apenas nesta execução. PDF desabilitado.
+- Não há instalador nesta etapa. A futura distribuição é instalada, self-contained, por usuário,
+  com Inno Setup; ver [contrato de distribuição](installer/InnoSetup/README.md).
 
-- **v0.2:** fontes reais de CPU/RAM/processos/discos, persistência normalizada e cancelamento passivo.
-- **v0.3:** diagnósticos avançados e prova de capacidade por hardware/API.
-- **v0.4:** supervisão isolada e validação em laboratório; estresse continuará bloqueado até aprovação dos P0.
-- **v1.0:** PDF final, configurações definitivas, histórico completo, Inno Setup e matriz de liberação.
-
-**Não validado em hardware real.** A aprovação de testes desta estrutura não aprova sensores,
-precisão de medições, compatibilidade ampla, segurança de estresse ou distribuição em clientes.
+Próxima etapa do plano: v0.3 (diagnósticos avançados). Estresse somente na v0.4 após os P0
+de segurança; PDF/distribuição e matriz de liberação completa na v1.0.

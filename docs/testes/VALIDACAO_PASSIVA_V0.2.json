@@ -1,0 +1,12 @@
+{
+  "Version": "0.2.0",
+  "EndedUtc": "2026-11-06T20:18:51.6919731+00:00",
+  "Result": "Passed",
+  "ActualSeconds": 300.5586654,
+  "PersistedMeasurements": 1898,
+  "MaxUiSamples": 416,
+  "Messages": 206,
+  "ProcessRankings": 16,
+  "StressExecuted": false,
+  "IdentifiersExcluded": true
+}

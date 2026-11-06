@@ -1,0 +1,11 @@
+{
+  "Version": "0.2.0",
+  "NativeSource": "GetSystemTimes",
+  "Reference": "PDH Processor(_Total) % Processor Time",
+  "Samples": 4,
+  "MeanAbsoluteDifferencePercentagePoints": 0.7696958604443904,
+  "MaximumAbsoluteDifferencePercentagePoints": 1.339022517384823,
+  "AccuracyToleranceApproved": false,
+  "StressExecuted": false,
+  "IdentifiersExcluded": true
+}
