@@ -1,4 +1,4 @@
-name: Build e testes v0.1
+name: Build e testes GCM Monitor
 on:
   push:
     branches: [main, 'feat/**']
@@ -28,5 +28,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: testes-e-telas-demonstrativas
-          path: .artifacts/
+          path: |
+            .artifacts/TestResults/
+            .artifacts/ui/
+            .artifacts/validation/*.json
           retention-days: 14
