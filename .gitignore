@@ -426,3 +426,17 @@ FodyWeavers.xsd
 
 # Official VS Code C# Dev Kit Extension exclusion
 #*.lscache
+
+# GCM Monitor: ferramentas locais e dados privados
+.tools/
+.artifacts/
+TestResults/
+*.db
+*.db-*
+*.sqlite*
+*.pdf
+*.dmp
+*.log
+.env*
+!*.example
+
