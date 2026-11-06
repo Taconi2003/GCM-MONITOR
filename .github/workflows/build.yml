@@ -1,0 +1,32 @@
+name: Build e testes v0.1
+on:
+  push:
+    branches: [main, 'feat/**']
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restaurar versões travadas
+        shell: pwsh
+        run: ./scripts/dev.ps1 Restore
+      - name: Compilar Release
+        shell: pwsh
+        run: ./scripts/dev.ps1 Build -Configuration Release
+      - name: Testar somente dados sintéticos
+        shell: pwsh
+        run: ./scripts/dev.ps1 Test -Configuration Release
+      - name: Guardar evidências sintéticas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testes-e-telas-demonstrativas
+          path: .artifacts/
+          retention-days: 14

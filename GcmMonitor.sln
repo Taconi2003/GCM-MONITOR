@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -18,6 +18,12 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcmMonitor.Engine", "src\GcmMonitor.Engine\GcmMonitor.Engine.csproj", "{99270D1C-55F9-4A45-9F5B-FE3D9A4B30A4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcmMonitor.StressSupervisor", "src\GcmMonitor.StressSupervisor\GcmMonitor.StressSupervisor.csproj", "{9DCE7C4E-C1E2-4F14-B3F0-3EEA61319028}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcmMonitor.UnitTests", "tests\GcmMonitor.UnitTests\GcmMonitor.UnitTests.csproj", "{1D7C8F16-F421-431E-AF6A-A8855F006054}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcmMonitor.IntegrationTests", "tests\GcmMonitor.IntegrationTests\GcmMonitor.IntegrationTests.csproj", "{F65E29EA-C8AA-48EA-8570-063EFF13C470}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -83,6 +89,22 @@ Global
 		{9DCE7C4E-C1E2-4F14-B3F0-3EEA61319028}.Release|Any CPU.Build.0 = Release|Any CPU
 		{9DCE7C4E-C1E2-4F14-B3F0-3EEA61319028}.Release|x64.ActiveCfg = Release|Any CPU
 		{9DCE7C4E-C1E2-4F14-B3F0-3EEA61319028}.Release|x64.Build.0 = Release|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Debug|x64.Build.0 = Debug|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Release|x64.ActiveCfg = Release|Any CPU
+		{1D7C8F16-F421-431E-AF6A-A8855F006054}.Release|x64.Build.0 = Release|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Debug|x64.Build.0 = Debug|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Release|x64.ActiveCfg = Release|Any CPU
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -95,5 +117,7 @@ Global
 		{6E0E808C-51DB-434D-8827-B8EC35549070} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{99270D1C-55F9-4A45-9F5B-FE3D9A4B30A4} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{9DCE7C4E-C1E2-4F14-B3F0-3EEA61319028} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{1D7C8F16-F421-431E-AF6A-A8855F006054} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{F65E29EA-C8AA-48EA-8570-063EFF13C470} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

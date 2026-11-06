@@ -1,0 +1,101 @@
+using System.Diagnostics;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Threading;
+using GcmMonitor.App;
+using GcmMonitor.Collector;
+using GcmMonitor.Core;
+using GcmMonitor.Persistence;
+using GcmMonitor.Presentation;
+
+namespace GcmMonitor.IntegrationTests;
+
+public sealed class WpfViewTests
+{
+    [Fact]
+    public async Task FiveViewsRenderAtTwoWindowSizesWithoutBindingErrors()
+    {
+        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var thread = new Thread(() =>
+        {
+            var bindingErrors = new BindingErrorListener();
+            PresentationTraceSources.DataBindingSource.Listeners.Add(bindingErrors);
+            PresentationTraceSources.DataBindingSource.Switch.Level = SourceLevels.Error;
+            string folder = Path.Combine(Path.GetTempPath(), "GcmMonitor.Tests", Guid.NewGuid().ToString("N"));
+            System.Windows.Application? application = null;
+            try
+            {
+                application = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+                application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/GcmMonitor.App;component/Themes/Dark.xaml", UriKind.Relative) });
+                var vm = new ShellViewModel(new NoEngine(), new SqliteSessionRepository(Path.Combine(folder, "demo.db")), new NoDialogs());
+                vm.InitializeAsync().GetAwaiter().GetResult();
+                var window = new MainWindow(vm, new NoEngine());
+                var surface = (FrameworkElement)window.Content;
+                surface.DataContext = vm;
+                var artifacts = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "ui"); Directory.CreateDirectory(artifacts);
+                void Render(Screen screen, Size size, string scenario)
+                {
+                    vm.CurrentScreen = screen; window.Width = size.Width; window.Height = size.Height;
+                    surface.Measure(size); surface.Arrange(new Rect(size)); surface.UpdateLayout();
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
+                    var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+                    bitmap.Render(surface);
+                    var pixel = new byte[4]; bitmap.CopyPixels(new Int32Rect(1, 1, 1, 1), pixel, 4, 0);
+                    Assert.True(pixel[3] > 0, "A renderização deve conter pixels visíveis.");
+                    var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
+                    using var file = File.Create(Path.Combine(artifacts, $"{screen}-{size.Width}-{scenario}.png")); encoder.Save(file);
+                }
+                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) })
+                    foreach (var screen in Enum.GetValues<Screen>()) Render(screen, size, "empty");
+                vm.LoadExamplesCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+                foreach (var row in vm.History.ToArray())
+                {
+                    vm.OpenHistoryCommand.Execute(row);
+                    foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, row.Session.State.ToString());
+                }
+                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.History, size, "examples");
+                vm.StartCommand.ExecuteAsync(null).GetAwaiter().GetResult();
+                Assert.NotEmpty(vm.MetricCards);
+                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Monitoring, size, "series");
+                window.Close(); Assert.Empty(bindingErrors.Errors);
+                completion.SetResult();
+            }
+            catch (Exception ex) { completion.SetException(ex); }
+            finally
+            {
+                PresentationTraceSources.DataBindingSource.Listeners.Remove(bindingErrors);
+                application?.Shutdown();
+                if (Directory.Exists(folder)) Directory.Delete(folder, true);
+                Dispatcher.CurrentDispatcher.InvokeShutdown();
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA); thread.Start();
+        await completion.Task.WaitAsync(TimeSpan.FromSeconds(40));
+    }
+    private sealed class BindingErrorListener : TraceListener
+    {
+        public List<string> Errors { get; } = [];
+        public override void Write(string? message) { if (!string.IsNullOrWhiteSpace(message)) Errors.Add(message); }
+        public override void WriteLine(string? message) => Write(message);
+    }
+    private sealed class NoDialogs : IUserDialogs
+    {
+        public bool Confirm(string title, string message) => false;
+        public string? ChooseReportFolder(string current) => null;
+    }
+    private sealed class NoEngine : IDiagnosticEngineClient
+    {
+        public async IAsyncEnumerable<DiagnosticSession> RunAsync(DiagnosticOptions options, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            var session = DemoFixtures.Archived(SessionState.Completed, DateTimeOffset.UtcNow.AddMinutes(-30));
+            var samples = new List<Measurement>();
+            foreach (var module in new[] { ModuleId.Cpu, ModuleId.Memory, ModuleId.Storage })
+                for (int sample = 0; sample < 6; sample++) samples.AddRange(await new DemoCollector(module).CollectAsync(session.StartedAt.AddMinutes(sample * 5), sample, cancellationToken));
+            yield return session with { Measurements = samples.ToArray() };
+        }
+        public Task CancelAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+}
