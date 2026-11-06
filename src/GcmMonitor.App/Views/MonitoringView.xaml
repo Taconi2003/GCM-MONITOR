@@ -1,0 +1,69 @@
+<UserControl x:Class="GcmMonitor.App.Views.MonitoringView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:GcmMonitor.App.Controls">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Margin="0,12,12,0">
+      <DockPanel>
+        <Button DockPanel.Dock="Right" Content="Cancelar diagnóstico" Command="{Binding CancelCommand}" Style="{StaticResource DangerButton}" Margin="12,0,0,0" />
+        <Button DockPanel.Dock="Right" Content="Ver resultados" Command="{Binding OpenResultsCommand}" />
+        <StackPanel>
+          <TextBlock Text="Estresse desativado" FontWeight="SemiBold" />
+          <TextBlock Text="Nenhuma carga de CPU é criada pela demonstração." Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
+        </StackPanel>
+      </DockPanel>
+    </Border>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <DockPanel>
+              <TextBlock Text="{Binding Progress, StringFormat={}{0:0}%}" DockPanel.Dock="Right" FontSize="28" Foreground="{StaticResource CyanBrush}" />
+              <StackPanel>
+                <TextBlock Text="{Binding SessionStatus}" FontSize="19" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding Clock}" Style="{StaticResource Muted}" Margin="0,8,0,0" />
+              </StackPanel>
+            </DockPanel>
+            <ProgressBar Maximum="100" Value="{Binding Progress, Mode=OneWay}" Margin="0,20,0,0" />
+            <TextBlock Text="Progresso temporal simulado; não representa proporção de módulos concluídos." Style="{StaticResource Muted}" FontSize="11" Margin="0,10,0,0" />
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Visibility="{Binding HasNoMetrics, Converter={StaticResource BoolVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Sem gráficos disponíveis" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Aguardando duas amostras sintéticas de um módulo selecionado. Sensores indisponíveis não produzem pontos, nem valores zero. GPU e temperatura de GPU não foram coletadas neste cenário." Style="{StaticResource Muted}" />
+          </StackPanel>
+        </Border>
+        <ItemsControl ItemsSource="{Binding MetricCards}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border Style="{StaticResource Card}" Width="320">
+                <StackPanel>
+                  <DockPanel>
+                    <TextBlock Text="{Binding Unit}" DockPanel.Dock="Right" Foreground="{StaticResource CyanBrush}" />
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                  </DockPanel>
+                  <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <TextBlock Text="{Binding Value}" FontSize="32" Foreground="{StaticResource CyanBrush}" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding Unit}" VerticalAlignment="Bottom" Margin="6,0,0,7" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Component}" Style="{StaticResource Muted}" FontSize="11" />
+                  <local:DemoChart Values="{Binding Values}" Labels="{Binding Labels}" Unit="{Binding Unit}" Height="140" Margin="0,12,0,8" />
+                  <TextBlock Text="{Binding Source}" Foreground="{StaticResource MutedBrush}" FontSize="10" />
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Border Style="{StaticResource Card}">
+          <StackPanel>
+            <TextBlock Text="Etapa atual" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="{Binding Stage}" Style="{StaticResource Muted}" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

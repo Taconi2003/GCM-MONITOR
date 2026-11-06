@@ -1,0 +1,107 @@
+<Window x:Class="GcmMonitor.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="clr-namespace:GcmMonitor.Presentation;assembly=GcmMonitor.Presentation" xmlns:views="clr-namespace:GcmMonitor.App.Views" Title="GCM Monitor — Gimenes Coleta e Monitoramento · v0.1" Width="1440" Height="960" MinWidth="1000" MinHeight="700" WindowStartupLocation="CenterScreen" Language="pt-BR">
+  <Grid Background="{StaticResource BackgroundBrush}">
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="224" />
+      <ColumnDefinition Width="*" />
+    </Grid.ColumnDefinitions>
+    <Border Background="#0B1628" BorderBrush="#23374E" BorderThickness="0,0,1,0">
+      <DockPanel Margin="18,28,18,20">
+        <StackPanel DockPanel.Dock="Top" Margin="10,0,0,35">
+          <Border Width="44" Height="40" HorizontalAlignment="Left" Background="#113C5A" BorderBrush="#2CBCD9" BorderThickness="1" CornerRadius="8" Margin="0,0,0,12">
+            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="23" Foreground="{StaticResource CyanBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <TextBlock Text="GCM Monitor" FontSize="23" FontWeight="Bold" />
+          <TextBlock Text="Gimenes Coleta e&#xA;Monitoramento" Style="{StaticResource Muted}" FontSize="11" Margin="0,7,0,0" />
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Bottom" Margin="12,20,0,0">
+          <TextBlock Text="v0.1 · Estrutura" Foreground="{StaticResource CyanBrush}" />
+          <TextBlock Text="Demonstração · Windows x64" Style="{StaticResource Muted}" FontSize="10" Margin="0,6,0,0" />
+        </StackPanel>
+        <ListBox ItemsSource="{Binding Navigation}" SelectedValuePath="Screen" SelectedValue="{Binding CurrentScreen, Mode=TwoWay}" VerticalAlignment="Top" AutomationProperties.Name="Navegação principal">
+          <ListBox.ItemTemplate>
+            <DataTemplate>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{Binding Icon}" FontFamily="Segoe MDL2 Assets" Width="28" Foreground="{StaticResource CyanBrush}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+    <Grid Grid.Column="1" Margin="30,24,20,16">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <DockPanel Margin="0,0,10,20">
+        <Border DockPanel.Dock="Right" Background="#12374B" CornerRadius="5" Padding="10,6" VerticalAlignment="Top">
+          <TextBlock Text="DADOS DEMONSTRATIVOS" Foreground="{StaticResource CyanBrush}" FontSize="10" FontWeight="Bold" />
+        </Border>
+        <StackPanel>
+          <TextBlock Text="{Binding Title}" FontSize="29" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" Margin="0,5,0,0" />
+        </StackPanel>
+      </DockPanel>
+      <Border Grid.Row="1" Background="#102B3C" BorderBrush="#23536B" BorderThickness="1" CornerRadius="7" Padding="14,10" Margin="0,0,10,20">
+        <TextBlock Text="MODO DEMONSTRAÇÃO · Dados sintéticos. Nenhuma medição real, teste de estresse ou alteração do Windows. O relógio da reprodução é acelerado." Foreground="#9DDAE9" FontSize="12" />
+      </Border>
+      <ContentControl Grid.Row="2" Content="{Binding}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+        <ContentControl.Style>
+          <Style TargetType="ContentControl">
+            <Setter Property="ContentTemplate">
+              <Setter.Value>
+                <DataTemplate>
+                  <views:HomeView />
+                </DataTemplate>
+              </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding CurrentScreen}" Value="{x:Static vm:Screen.Monitoring}">
+                <Setter Property="ContentTemplate">
+                  <Setter.Value>
+                    <DataTemplate>
+                      <views:MonitoringView />
+                    </DataTemplate>
+                  </Setter.Value>
+                </Setter>
+              </DataTrigger>
+              <DataTrigger Binding="{Binding CurrentScreen}" Value="{x:Static vm:Screen.Results}">
+                <Setter Property="ContentTemplate">
+                  <Setter.Value>
+                    <DataTemplate>
+                      <views:ResultsView />
+                    </DataTemplate>
+                  </Setter.Value>
+                </Setter>
+              </DataTrigger>
+              <DataTrigger Binding="{Binding CurrentScreen}" Value="{x:Static vm:Screen.History}">
+                <Setter Property="ContentTemplate">
+                  <Setter.Value>
+                    <DataTemplate>
+                      <views:HistoryView />
+                    </DataTemplate>
+                  </Setter.Value>
+                </Setter>
+              </DataTrigger>
+              <DataTrigger Binding="{Binding CurrentScreen}" Value="{x:Static vm:Screen.Settings}">
+                <Setter Property="ContentTemplate">
+                  <Setter.Value>
+                    <DataTemplate>
+                      <views:SettingsView />
+                    </DataTemplate>
+                  </Setter.Value>
+                </Setter>
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </ContentControl.Style>
+      </ContentControl>
+      <Border Grid.Row="3" BorderBrush="#23374E" BorderThickness="0,1,0,0" Padding="0,12,10,0" Margin="0,8,0,0">
+        <TextBlock Text="{Binding Message}" Style="{StaticResource Muted}" AutomationProperties.LiveSetting="Polite" FontSize="12" MinHeight="20" />
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

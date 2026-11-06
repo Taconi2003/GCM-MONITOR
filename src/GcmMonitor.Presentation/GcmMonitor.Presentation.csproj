@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../GcmMonitor.Core/GcmMonitor.Core.csproj" />
+    <ProjectReference Include="../GcmMonitor.Collector/GcmMonitor.Collector.csproj" />
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+</Project>

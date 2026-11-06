@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../GcmMonitor.Presentation/GcmMonitor.Presentation.csproj" />
+    <ProjectReference Include="../GcmMonitor.Persistence/GcmMonitor.Persistence.csproj" />
+    <ProjectReference Include="../GcmMonitor.Engine/GcmMonitor.Engine.csproj" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+  <Target Name="CopyDemoEngine" AfterTargets="Build">
+    <ItemGroup>
+      <EngineFiles Include="../GcmMonitor.Engine/bin/$(Configuration)/net10.0/**/*" Exclude="../GcmMonitor.Engine/bin/$(Configuration)/net10.0/**/*.pdb" />
+    </ItemGroup>
+    <Copy SourceFiles="@(EngineFiles)" DestinationFiles="@(EngineFiles-&gt;'$(OutDir)engine/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

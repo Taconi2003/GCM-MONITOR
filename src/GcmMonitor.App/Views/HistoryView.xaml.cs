@@ -1,0 +1,4 @@
+using System.Windows.Controls;
+namespace GcmMonitor.App.Views;
+
+public partial class HistoryView : UserControl { public HistoryView() => InitializeComponent(); }
