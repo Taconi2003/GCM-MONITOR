@@ -1,7 +1,7 @@
 # Relatório de entrega — GCM Monitor v0.1.0
 
 Data: **06/11/2026**, fuso **America/Sao_Paulo**.
-Código validado: `2cc2169` (mesmas fontes executadas no build final; commits posteriores apenas documentais).
+Código validado: `2cc2169` (mesmas fontes de produto e testes do build final; commits posteriores de documentação/metadados).
 Fonte obrigatória: Especificação Mestre v1.0, lida integralmente e preservada em `docs/`.
 O acesso de leitura/escrita ao repositório `Taconi2003/GCM-MONITOR` foi confirmado antes das alterações.
 
