@@ -6,7 +6,7 @@
         <Button DockPanel.Dock="Right" Content="Ver resultados" Command="{Binding OpenResultsCommand}" />
         <StackPanel>
           <TextBlock Text="Estresse desativado" FontWeight="SemiBold" />
-          <TextBlock Text="Nenhuma carga de CPU é criada pela demonstração." Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
+          <TextBlock Text="Nenhuma carga de estresse é criada pelo GCM Monitor." Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
         </StackPanel>
       </DockPanel>
     </Border>
@@ -22,13 +22,13 @@
               </StackPanel>
             </DockPanel>
             <ProgressBar Maximum="100" Value="{Binding Progress, Mode=OneWay}" Margin="0,20,0,0" />
-            <TextBlock Text="Progresso temporal simulado; não representa proporção de módulos concluídos." Style="{StaticResource Muted}" FontSize="11" Margin="0,10,0,0" />
+            <TextBlock Text="Progresso por tempo da sessão; não representa proporção de módulos concluídos." Style="{StaticResource Muted}" FontSize="11" Margin="0,10,0,0" />
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}" Visibility="{Binding HasNoMetrics, Converter={StaticResource BoolVisibility}}">
           <StackPanel>
             <TextBlock Text="Sem gráficos disponíveis" Style="{StaticResource SectionTitle}" />
-            <TextBlock Text="Aguardando duas amostras sintéticas de um módulo selecionado. Sensores indisponíveis não produzem pontos, nem valores zero. GPU e temperatura de GPU não foram coletadas neste cenário." Style="{StaticResource Muted}" />
+            <TextBlock Text="Aguardando duas amostras válidas de um módulo selecionado. Sensores indisponíveis não produzem pontos ou valores zero. GPU e temperaturas não são coletadas na v0.2." Style="{StaticResource Muted}" />
           </StackPanel>
         </Border>
         <ItemsControl ItemsSource="{Binding MetricCards}">
@@ -50,7 +50,7 @@
                     <TextBlock Text="{Binding Unit}" VerticalAlignment="Bottom" Margin="6,0,0,7" />
                   </StackPanel>
                   <TextBlock Text="{Binding Component}" Style="{StaticResource Muted}" FontSize="11" />
-                  <local:DemoChart Values="{Binding Values}" Labels="{Binding Labels}" Unit="{Binding Unit}" Height="140" Margin="0,12,0,8" />
+                  <local:MetricChart Values="{Binding Values}" Labels="{Binding Labels}" Unit="{Binding Unit}" AxisLabel="{Binding AxisLabel}" Height="140" Margin="0,12,0,8" />
                   <TextBlock Text="{Binding Source}" Foreground="{StaticResource MutedBrush}" FontSize="10" />
                 </StackPanel>
               </Border>

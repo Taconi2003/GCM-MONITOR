@@ -15,11 +15,23 @@ public sealed partial class ShellViewModel : ObservableObject
     private DiagnosticSession? activeSession;
     private DiagnosticSession? resultSession;
 
-    public ShellViewModel(IDiagnosticEngineClient engine, ISessionRepository repository, IUserDialogs dialogs)
+    private readonly IInventoryProvider? inventoryProvider;
+    public bool IsDemoMode => inventoryProvider is null;
+    public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · v0.2";
+    public string DataBanner => IsDemoMode ? "MODO DEMONSTRAÇÃO · Dados sintéticos. Nenhuma medição real, teste de estresse ou alteração do Windows. O relógio da reprodução é acelerado." :
+        "COLETA PASSIVA · CPU, RAM, processos e discos por fontes de leitura do Windows. Estresse bloqueado. Diagnósticos avançados indisponíveis na v0.2.";
+    public ShellViewModel(IDiagnosticEngineClient engine, ISessionRepository repository, IUserDialogs dialogs, IInventoryProvider? inventoryProvider = null)
     {
         this.engine = engine; this.repository = repository; this.dialogs = dialogs;
+        this.inventoryProvider = inventoryProvider;
         Modules = new(ModuleCatalog.All.Select(x => new ModuleSelection(x)));
         foreach (var module in Modules) module.PropertyChanged += SelectionChanged;
+        if (!IsDemoMode)
+        {
+            Disks.Clear(); Hardware.Clear();
+            foreach (var name in new[] { "Computador", "CPU", "RAM", "GPU", "Armazenamento" })
+                Hardware.Add(new("\uE770", name, "Aguardando inventário", "Nenhum valor demonstrativo é utilizado nesta execução."));
+        }
     }
 
     public IReadOnlyList<NavigationItem> Navigation { get; } = new[]
@@ -31,14 +43,14 @@ public sealed partial class ShellViewModel : ObservableObject
     public ObservableCollection<ModuleSelection> Modules { get; }
     public ObservableCollection<DiskSelection> Disks { get; } = [new("demo-disk-0", "Disco 0 · SSD NVMe · 512 GB (fictício)"), new("demo-disk-1", "Disco 1 · HDD SATA · 1 TB (fictício)")];
     public IReadOnlyList<DurationOption> Durations { get; } = new[] { new DurationOption(5, "5 minutos"), new DurationOption(30, "30 minutos"), new DurationOption(60, "1 hora"), new DurationOption(240, "4 horas") };
-    public IReadOnlyList<SummaryCard> Hardware { get; } = new[]
+    public ObservableCollection<SummaryCard> Hardware { get; } = new(new[]
     {
         new SummaryCard("\uE770", "Computador", "DEMO-GCM01", "Windows 11 Pro · fictício\nÚltimo boot: exemplo\nUptime: 2 h (simulado)"),
         new SummaryCard("\uE9D9", "CPU", "CPU demonstrativa", "8 núcleos · 16 threads\nSem consulta ao processador"),
         new SummaryCard("\uE950", "RAM", "16 GB", "2 × 8 GB · fictícios\nSem leitura de memória"),
         new SummaryCard("\uE7F4", "GPU", "GPU demonstrativa", "Integrada · VRAM indisponível\nSem leitura de sensores"),
         new SummaryCard("\uEDA2", "Armazenamento", "SSD + HDD fictícios", "SSD: 512 GB · 196 GB livres\nHDD: 1 TB · 720 GB livres\nSMART não coletado")
-    };
+    });
 
     [ObservableProperty] private Screen currentScreen = Screen.Home;
     [ObservableProperty] private string message = "";
@@ -60,22 +72,23 @@ public sealed partial class ShellViewModel : ObservableObject
     private IReadOnlyList<DiagnosticSession> storedHistory = [];
     public IReadOnlyList<string> HistoryStatuses { get; } = new[] { "Todos", "Concluída", "Cancelada", "Interrompida", "Erro" };
     public int SelectedModuleCount => Modules.Count(x => x.IsSelected);
-    public bool BatteryEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Battery).IsSelected;
-    public bool WifiEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Wifi).IsSelected;
+    public bool BatteryEnabled => !IsActive && IsDemoMode && Modules.Single(x => x.Definition.Id == ModuleId.Battery).IsSelected;
+    public bool WifiEnabled => !IsActive && IsDemoMode && Modules.Single(x => x.Definition.Id == ModuleId.Wifi).IsSelected;
     public bool StorageEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Storage).IsSelected;
     public bool CanConfigure => IsReady && !IsActive;
     public string Title => Navigation.Single(x => x.Screen == CurrentScreen).Title;
     public string Subtitle => CurrentScreen switch
     {
         Screen.Home => "Visão geral do computador, seleção e execução do diagnóstico",
-        Screen.Monitoring => "Acompanhe a reprodução demonstrativa da sessão",
+        Screen.Monitoring => IsDemoMode ? "Acompanhe a reprodução demonstrativa da sessão" : "Diagnóstico em execução — coletando e analisando dados.",
         Screen.Results => "Resumo e análise do diagnóstico realizado.",
         Screen.History => "Diagnósticos realizados neste computador.",
         _ => "Preferências e gerenciamento do GCM Monitor"
     };
-    public string SessionStatus => activeSession is null ? "Nenhuma sessão iniciada" : Labels.Session(activeSession.State) + " · demonstração";
-    public string Stage => activeSession?.Transitions.LastOrDefault()?.Reason ?? "Selecione módulos no Início para iniciar uma demonstração.";
-    public string Clock => activeSession is null ? "— / —" : $"{activeSession.EffectiveDuration:hh\\:mm\\:ss} / {TimeSpan.FromMinutes(activeSession.Options.MonitoringMinutes):hh\\:mm\\:ss} · tempo simulado";
+    public string SessionStatus => activeSession is null ? "Nenhuma sessão iniciada" : Labels.Session(activeSession.State) + (activeSession.IsDemo ? " · demonstração" : " · coleta passiva");
+    public string Stage => (activeSession?.Transitions.LastOrDefault()?.Reason ?? "Selecione módulos disponíveis no Início para iniciar uma sessão.") +
+        (activeSession?.Issues.LastOrDefault() is { } issue ? "\nÚltima ocorrência da coleta: " + issue.Message : "");
+    public string Clock => activeSession is null ? "— / —" : $"{activeSession.EffectiveDuration:hh\\:mm\\:ss} / {TimeSpan.FromMinutes(activeSession.Options.MonitoringMinutes):hh\\:mm\\:ss}" + (activeSession.IsDemo ? " · tempo simulado" : " · tempo efetivo");
     public double Progress => activeSession is null ? 0 : Math.Clamp(activeSession.EffectiveDuration.TotalMinutes / activeSession.Options.MonitoringMinutes * 100, 0, 100);
     public bool HasSession => activeSession is not null;
     public bool HasResults => resultSession is not null;
@@ -83,21 +96,27 @@ public sealed partial class ShellViewModel : ObservableObject
     public bool HasNoMetrics => MetricCards.Count == 0;
     public bool HasNoHistory => History.Count == 0;
     public string ResultStatus => resultSession is null ? IsActive ? "Sessão ativa: resultados ainda não consolidados." : "Nenhum resultado selecionado." :
-        $"{Labels.Session(resultSession.State)} · {(resultSession.State == SessionState.Completed ? "Resumo demonstrativo" : "Relatório parcial demonstrativo")}";
-    public string ResultSummary => resultSession is null ? "Inicie uma demonstração no Início ou abra uma sessão pelo Histórico." :
-        $"{resultSession.ComputerName} · {resultSession.StartedAt.ToLocalTime():dd/MM/yyyy HH:mm} → {resultSession.EndedAt?.ToLocalTime():HH:mm}\n{resultSession.EffectiveDuration.TotalMinutes:0.#} min simulados · {resultSession.Modules.Length} módulos · Estresse desativado\n{resultSession.IntegrityNote}";
+        $"{Labels.Session(resultSession.State)} · {(resultSession.State == SessionState.Completed ? "Resumo da sessão" : "Relatório parcial")}" + (resultSession.IsDemo ? " demonstrativo" : "");
+    public string ResultSummary => resultSession is null ? "Inicie uma sessão no Início ou abra um resultado pelo Histórico." :
+        $"{resultSession.ComputerName} · {resultSession.StartedAt.ToLocalTime():dd/MM/yyyy HH:mm} → {resultSession.EndedAt?.ToLocalTime():HH:mm}\n{resultSession.EffectiveDuration.TotalMinutes:0.#} min {(resultSession.IsDemo ? "simulados" : "efetivos")} · {resultSession.Modules.Length} módulos · Estresse desativado\n{resultSession.IntegrityNote}";
     public int NormalCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Normal) ?? 0;
     public int AttentionCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Attention) ?? 0;
     public int FailureCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Failure) ?? 0;
     public int UnavailableCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Unavailable) ?? 0;
-    public string StorageSummary => $"{storedHistory.Count} sessões demonstrativas carregadas (limite de 100). Retenção: manter até exclusão manual.";
+    public string StorageSummary => $"{storedHistory.Count} sessões carregadas (limite de 100). Retenção: manter até exclusão manual.";
     public string InstallationPath => AppContext.BaseDirectory;
     public string CollectionIssues => resultSession is null ? "Nenhuma coleta realizada." :
         string.Join("\n", resultSession.Modules.Where(x => x.State is ModuleState.Unavailable or ModuleState.Error or ModuleState.Partial)
-            .Select(x => $"{Labels.Module(x.State)} · {ModuleCatalog.All.Single(m => m.Id == x.Id).Name}: {x.Summary}")) is { Length: > 0 } issues ? issues : "Nenhuma falha de coletor simulada nesta sessão.";
+            .Select(x => $"{Labels.Module(x.State)} · {ModuleCatalog.All.Single(m => m.Id == x.Id).Name}: {x.Summary}")
+            .Concat(resultSession.Issues.Select(x => $"{x.Timestamp.ToLocalTime():HH:mm:ss} · {x.Message}"))
+            .Concat(resultSession.Inventory?.Limitations ?? [])) is { Length: > 0 } issues ? issues : "Nenhuma falha de coleta registrada nesta sessão.";
     public ObservableCollection<MetricCard> MetricCards { get; } = [];
     public ObservableCollection<ModuleResult> ModuleResults { get; } = [];
     public ObservableCollection<Finding> MainFindings { get; } = [];
+    public ObservableCollection<ProcessRow> CpuProcesses { get; } = [];
+    public ObservableCollection<ProcessRow> MemoryProcesses { get; } = [];
+    public ObservableCollection<MetricCard> ResultMetricCards { get; } = [];
+    public bool HasProcessRankings => CpuProcesses.Count + MemoryProcesses.Count > 0;
 
     public async Task InitializeAsync()
     {
@@ -106,10 +125,13 @@ public sealed partial class ShellViewModel : ObservableObject
             await repository.InitializeAsync();
             await repository.RecoverInterruptedAsync();
             await RefreshHistoryAsync();
+            if (storedHistory.Any(x => !x.IsTerminal))
+            { Message = "Há uma sessão anterior com motor ativo ou identidade ainda não verificável. Aguarde o encerramento e reabra o GCM Monitor; outra sessão não será iniciada."; return; }
+            if (inventoryProvider is not null) ApplyInventory(await inventoryProvider.ReadAsync());
             IsReady = true;
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or System.Data.Common.DbException or UnauthorizedAccessException)
-        { Message = "Não foi possível abrir o banco demonstrativo. Verifique o acesso à pasta de dados. " + ex.Message; }
+        { Message = "Não foi possível inicializar o inventário ou banco. Verifique o acesso à pasta de dados. " + ex.Message; }
     }
 
     private void SelectionChanged(object? sender, PropertyChangedEventArgs args)
@@ -134,7 +156,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand] private void Navigate(NavigationItem? item) { if (item is not null) CurrentScreen = item.Screen; }
     [RelayCommand] private void OpenMonitoring() => CurrentScreen = Screen.Monitoring;
     [RelayCommand] private void OpenResults() => CurrentScreen = Screen.Results;
-    [RelayCommand] private void EnableAll() { if (!CanConfigure) return; foreach (var m in Modules) m.IsSelected = true; }
+    [RelayCommand] private void EnableAll() { if (!CanConfigure) return; foreach (var m in Modules) m.IsSelected = m.IsAvailable; }
     [RelayCommand] private void DisableAll() { if (!CanConfigure) return; foreach (var m in Modules) m.IsSelected = false; }
     [RelayCommand]
     private void RestoreDefaults()
@@ -143,7 +165,7 @@ public sealed partial class ShellViewModel : ObservableObject
         // A especificação não define um subconjunto recomendado: padrão demonstrativo = 11 módulos.
         EnableAll(); MonitoringDuration = Durations[1]; StressDuration = Durations[0]; DetailedBattery = DetailedWifi = false;
         foreach (var disk in Disks) disk.IsSelected = true;
-        Message = "Padrão demonstrativo restaurado: 11 módulos; estresse permanece desativado.";
+        Message = "Seleção dos módulos disponíveis restaurada; estresse permanece desativado.";
     }
 
     public DiagnosticOptions CreateOptions() => new()
@@ -167,7 +189,7 @@ public sealed partial class ShellViewModel : ObservableObject
             var options = CreateOptions(); options.Validate();
             activeSession = null;
             UpdateMonitoring();
-            IsActive = true; Message = "Reprodução acelerada de dados sintéticos. Nenhum diagnóstico real em execução.";
+            IsActive = true; Message = IsDemoMode ? "Reprodução acelerada de dados sintéticos. Nenhum diagnóstico real em execução." : "Coleta passiva real em andamento. O Windows e seus componentes não serão modificados.";
             resultSession = null; NotifyResults(); CurrentScreen = Screen.Monitoring;
             await foreach (var snapshot in engine.RunAsync(options))
             {
@@ -177,40 +199,31 @@ public sealed partial class ShellViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or InvalidOperationException or System.Data.Common.DbException or OperationCanceledException or System.ComponentModel.Win32Exception or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
-            Message = "A demonstração não pôde continuar: " + ex.Message;
+            Message = "A sessão não pôde continuar: " + ex.Message;
             if (activeSession is { IsTerminal: false })
             {
-                activeSession = activeSession.TransitionTo(SessionState.Interrupted, "Falha de comunicação ou persistência da demonstração.", DateTimeOffset.UtcNow);
+                activeSession = activeSession.TransitionTo(SessionState.Interrupted, "Falha de comunicação ou persistência da sessão.", DateTimeOffset.UtcNow);
                 UpdateMonitoring(); ShowResult(activeSession);
             }
         }
         finally
         {
             IsActive = false;
-            try { await RefreshHistoryAsync(); } catch (Exception ex) when (ex is System.Data.Common.DbException or IOException) { Message = "Falha ao atualizar o histórico demonstrativo: " + ex.Message; }
+            try { await RefreshHistoryAsync(); } catch (Exception ex) when (ex is System.Data.Common.DbException or IOException) { Message = "Falha ao atualizar o histórico: " + ex.Message; }
         }
     }
 
     [RelayCommand(CanExecute = nameof(IsActive))]
     private async Task CancelAsync()
     {
-        try { await engine.CancelAsync(); Message = "Cancelamento solicitado ao motor demonstrativo."; }
-        catch (Exception ex) when (ex is IOException or OperationCanceledException) { Message = "Canal indisponível. O motor demonstrativo será encerrado."; }
+        try { await engine.CancelAsync(); Message = "Cancelamento solicitado ao motor de coleta."; }
+        catch (Exception ex) when (ex is IOException or OperationCanceledException) { Message = "Canal indisponível. O motor de sessão será encerrado."; }
     }
 
     private void UpdateMonitoring()
     {
         foreach (var name in new[] { nameof(SessionStatus), nameof(Stage), nameof(Clock), nameof(Progress), nameof(HasSession) }) OnPropertyChanged(name);
-        MetricCards.Clear();
-        foreach (var group in (activeSession?.Measurements ?? []).Where(x => x.Quality == DataQuality.Valid && x.Value.HasValue).GroupBy(x => (x.Metric, x.Component)))
-        {
-            var measurements = group.TakeLast(32).ToArray();
-            if (measurements.Length < 2) continue;
-            var last = measurements[^1];
-            MetricCards.Add(new(last.Metric, last.Value!.Value.ToString("0.#"), last.Unit, last.Component,
-                "SINTÉTICO · " + last.Timestamp.ToLocalTime().ToString("HH:mm:ss"),
-                measurements.Select(x => x.Timestamp.ToLocalTime().ToString("HH:mm:ss")).ToArray(), measurements.Select(x => x.Value!.Value).ToArray()));
-        }
+        FillCharts(activeSession, MetricCards);
         OnPropertyChanged(nameof(HasNoMetrics));
     }
 
@@ -218,15 +231,18 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         resultSession = session; TechnicianNotes = session.Notes; CurrentScreen = Screen.Results;
         ModuleResults.Clear(); MainFindings.Clear();
+        FillCharts(session, ResultMetricCards); FillProcessRankings(session);
         foreach (var run in session.Modules)
         {
             var def = ModuleCatalog.All.Single(x => x.Id == run.Id);
             var finding = session.Findings.FirstOrDefault(x => x.Module == run.Id);
-            ModuleResults.Add(new(def.Code, def.Name, Labels.Module(run.State), run.Summary, finding?.Evidence ?? "Sem evidência consolidada.",
-                finding?.Interpretation ?? "Dados parciais.", finding?.Recommendation ?? "Revisar limitações.",
-                run.State == ModuleState.Completed ? "#42D6B0" : run.State == ModuleState.Error ? "#FF8292" : "#FFC76A"));
+            ModuleResults.Add(new(def.Code, def.Name, Labels.Module(run.State), run.Summary, finding?.Evidence ?? $"{run.ReadingCount} leituras · {run.Source} · início {run.StartedAt?.ToLocalTime():HH:mm:ss} · fim {run.EndedAt?.ToLocalTime():HH:mm:ss}",
+                finding?.Interpretation ?? "Medições observacionais, sem conclusão automática de saúde física.", finding?.Recommendation ?? "Comparar mesma métrica, unidade e intervalo com fontes equivalentes do Windows.",
+                run.State == ModuleState.Completed ? "#42D6B0" : run.State == ModuleState.Error ? "#FF8292" : "#FFC76A",
+                string.Join("\n", session.Statistics.Where(x => x.Module == run.Id).Select(x =>
+                    $"{x.Metric} · {x.Component}: mínimo {x.Minimum:0.##}; média ponderada {(x.TimeWeightedMean.HasValue ? x.TimeWeightedMean.Value.ToString("0.##") : "insuficiente")}; pico {x.Maximum:0.##} {x.Unit} · {x.ValidSamples} leituras · cobertura {x.ObservedSeconds:0.#} s\nFonte: {session.Measurements.FirstOrDefault(m => m.Module == x.Module && m.Metric == x.Metric && m.Component == x.Component)?.Source ?? run.Source}"))));
         }
-        foreach (var finding in session.Findings.Where(x => x.Severity != FindingSeverity.Normal)) MainFindings.Add(finding);
+        foreach (var finding in session.Findings.Where(x => x.Severity != FindingSeverity.Normal).OrderByDescending(x => x.Severity == FindingSeverity.Failure).ThenByDescending(x => x.Severity == FindingSeverity.Attention)) MainFindings.Add(finding);
         NotifyResults();
     }
 
@@ -238,6 +254,7 @@ public sealed partial class ShellViewModel : ObservableObject
     [RelayCommand]
     private async Task LoadExamplesAsync()
     {
+        if (!IsDemoMode) return;
         if (IsActive) { Message = "Aguarde o fim da demonstração ativa."; return; }
         try
         {
@@ -265,7 +282,13 @@ public sealed partial class ShellViewModel : ObservableObject
             History.Add(new(s));
         OnPropertyChanged(nameof(HasNoHistory));
     }
-    [RelayCommand] private void OpenHistory(HistoryRow? row) { row ??= SelectedHistory; if (row is not null) ShowResult(row.Session); else Message = "Selecione uma sessão do histórico."; }
+    [RelayCommand]
+    private void OpenHistory(HistoryRow? row)
+    {
+        row ??= SelectedHistory;
+        if (row is not null && row.Session.IsTerminal) ShowResult(row.Session);
+        else Message = row is null ? "Selecione uma sessão do histórico." : "A sessão ainda está ativa; não há resultado consolidado.";
+    }
     [RelayCommand]
     private async Task SaveNotesAsync()
     {
@@ -273,7 +296,7 @@ public sealed partial class ShellViewModel : ObservableObject
         try
         {
             await repository.SaveNotesAsync(resultSession.Id, TechnicianNotes);
-            resultSession = resultSession with { Notes = TechnicianNotes }; await RefreshHistoryAsync(); Message = "Observações salvas na sessão demonstrativa.";
+            resultSession = resultSession with { Notes = TechnicianNotes }; await RefreshHistoryAsync(); Message = "Observações salvas na sessão.";
         }
         catch (Exception ex) when (ex is IOException or System.Data.Common.DbException or KeyNotFoundException or ArgumentException) { Message = "Não foi possível salvar observações: " + ex.Message; }
     }
@@ -282,18 +305,18 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         row ??= SelectedHistory;
         if (row is null || !row.Session.IsTerminal) { Message = "Selecione uma sessão finalizada."; return; }
-        if (!dialogs.Confirm("Excluir sessão", "Excluir somente a sessão demonstrativa selecionada? PDFs externos serão preservados.")) return;
+        if (!dialogs.Confirm("Excluir sessão", "Excluir somente a sessão selecionada? PDFs externos serão preservados.")) return;
         try { await repository.DeleteAsync(row.Session.Id); ClearResultIfDeleted(row.Session.Id); await RefreshHistoryAsync(); }
         catch (Exception ex) when (ex is IOException or System.Data.Common.DbException) { Message = "Falha ao excluir a sessão: " + ex.Message; }
     }
     [RelayCommand]
     private async Task ClearHistoryAsync()
     {
-        if (!dialogs.Confirm("Limpar histórico", "Excluir as sessões demonstrativas finalizadas? Sessões ativas e arquivos externos serão preservados.")) return;
+        if (!dialogs.Confirm("Limpar histórico", "Excluir as sessões finalizadas? Sessões ativas e arquivos externos serão preservados.")) return;
         try
         {
             await repository.ClearTerminalAsync(); if (resultSession?.IsTerminal == true) ClearResultIfDeleted(resultSession.Id);
-            await RefreshHistoryAsync(); Message = "Histórico demonstrativo limpo. Sessões ativas e arquivos externos preservados.";
+            await RefreshHistoryAsync(); Message = "Histórico limpo. Sessões ativas e arquivos externos preservados.";
         }
         catch (Exception ex) when (ex is IOException or System.Data.Common.DbException) { Message = "Falha ao limpar histórico: " + ex.Message; }
     }

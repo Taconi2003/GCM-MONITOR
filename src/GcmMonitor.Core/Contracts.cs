@@ -19,6 +19,8 @@ public interface ISessionRepository
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<int> ClearTerminalAsync(CancellationToken cancellationToken = default);
     Task<int> RecoverInterruptedAsync(CancellationToken cancellationToken = default);
+    Task SaveBatchAsync(DiagnosticSession session, CollectionBatch batch, CancellationToken cancellationToken = default);
+    Task<ProcessAggregate[]> ReadProcessRankingsAsync(Guid id, CancellationToken cancellationToken = default);
 }
 
 public interface IDiagnosticEngineClient : IAsyncDisposable
@@ -35,8 +37,8 @@ public interface IStressSupervisor
 
 public static class EngineProtocol
 {
-    public const int Version = 1;
-    public const int MaxMessageLength = 256 * 1024;
+    public const int Version = 2;
+    public const int MaxMessageLength = 1024 * 1024;
     public static JsonSerializerOptions Json { get; } = new() { PropertyNameCaseInsensitive = false };
     public static void Validate(int version, Guid sessionId, Guid expectedId)
     {
@@ -45,6 +47,6 @@ public static class EngineProtocol
     }
 }
 
-public sealed record StartSessionMessage(int Version, Guid SessionId, DiagnosticOptions Options);
+public sealed record StartSessionMessage(int Version, Guid SessionId, DiagnosticOptions Options, CollectionMode Mode = CollectionMode.Passive);
 public sealed record EngineMessage(int Version, Guid SessionId, long Sequence, DiagnosticSession Session);
 public sealed record EngineCommand(int Version, Guid SessionId, string Command);

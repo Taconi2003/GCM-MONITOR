@@ -47,11 +47,12 @@ public sealed record DiagnosticOptions
             throw new ArgumentException("Selecione ao menos um módulo válido, sem duplicatas.");
         if (!DiagnosticDurations.Minutes.Contains(MonitoringMinutes) || !DiagnosticDurations.Minutes.Contains(StressMinutes))
             throw new ArgumentException("As durações permitidas são 5 min, 30 min, 1 h e 4 h.");
-        if (StressEnabled) throw new ArgumentException("Estresse bloqueado na v0.1: supervisão ainda não validada.");
+        if (StressEnabled) throw new ArgumentException("Estresse bloqueado: supervisão ainda não validada.");
         if (DetailedBattery && !Modules.Contains(ModuleId.Battery) || DetailedWifi && !Modules.Contains(ModuleId.Wifi))
             throw new ArgumentException("A análise detalhada requer o respectivo módulo.");
-        if (DiskIds is null || Modules.Contains(ModuleId.Storage) && (DiskIds.Length == 0 || DiskIds.Any(x => x is not ("demo-disk-0" or "demo-disk-1"))))
-            throw new ArgumentException("Selecione ao menos um disco demonstrativo válido.");
+        if (DiskIds is null || DiskIds.Distinct().Count() != DiskIds.Length || Modules.Contains(ModuleId.Storage) &&
+            (DiskIds.Length == 0 || DiskIds.Any(string.IsNullOrWhiteSpace)))
+            throw new ArgumentException("Selecione ao menos um disco físico válido, sem duplicatas.");
     }
 }
 
@@ -69,7 +70,8 @@ public sealed record Measurement(ModuleId Module, string Metric, string Componen
     }
 }
 
-public sealed record ModuleRun(ModuleId Id, ModuleState State, string Source, string Summary, int ReadingCount = 0);
+public sealed record ModuleRun(ModuleId Id, ModuleState State, string Source, string Summary, int ReadingCount = 0,
+    DateTimeOffset? StartedAt = null, DateTimeOffset? EndedAt = null, string? Limitation = null);
 public sealed record Finding(ModuleId Module, FindingSeverity Severity, string Observation, string Evidence,
     string Interpretation, string Recommendation, bool IsCollectorIssue = false);
 public sealed record SessionTransition(SessionState From, SessionState To, DateTimeOffset Timestamp, string Reason);
@@ -78,7 +80,7 @@ public sealed record DiagnosticSession
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string ComputerName { get; init; } = "DEMO-GCM01";
-    public string AppVersion { get; init; } = "0.1.0";
+    public string AppVersion { get; init; } = "0.2.0";
     public bool IsDemo { get; init; } = true;
     public DiagnosticOptions Options { get; init; } = new();
     public SessionState State { get; init; } = SessionState.NotStarted;
@@ -91,6 +93,12 @@ public sealed record DiagnosticSession
     public SessionTransition[] Transitions { get; init; } = [];
     public string Notes { get; init; } = "";
     public string IntegrityNote { get; init; } = "Dados sintéticos; nenhuma medição deste computador.";
+    public ComputerInventory? Inventory { get; init; }
+    public MetricStatistics[] Statistics { get; init; } = [];
+    public ProcessAggregate[] Processes { get; init; } = [];
+    public CollectionIssue[] Issues { get; init; } = [];
+    public int? EngineProcessId { get; init; }
+    public DateTimeOffset? EngineProcessStartedAt { get; init; }
     public bool IsTerminal => State is SessionState.Completed or SessionState.Cancelled or SessionState.Interrupted or SessionState.Error;
 
     public DiagnosticSession TransitionTo(SessionState next, string reason, DateTimeOffset timestamp)

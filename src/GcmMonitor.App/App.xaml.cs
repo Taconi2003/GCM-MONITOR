@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Windows;
 using GcmMonitor.Core;
+using GcmMonitor.Collector;
 using GcmMonitor.Persistence;
 using GcmMonitor.Presentation;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,16 +18,19 @@ public partial class App : Application
         base.OnStartup(e);
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("pt-BR");
-        instanceMutex = new Mutex(true, "Local\\GcmMonitor.Demo.v0.1", out bool created);
+        string userScope = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData).ToUpperInvariant())));
+        instanceMutex = new Mutex(true, "Global\\GcmMonitor." + userScope, out bool created);
         if (!created)
         {
-            MessageBox.Show("A demonstração do GCM Monitor já está aberta nesta sessão do Windows.", "GCM Monitor");
+            MessageBox.Show("O GCM Monitor já está aberto nesta sessão do Windows.", "GCM Monitor");
             Shutdown(); return;
         }
-        var data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCM Monitor", "Data", "demo-v0.1.db");
+        var data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCM Monitor", "Data", "gcm-monitor.db");
         var collection = new ServiceCollection();
         collection.AddSingleton<ISessionRepository>(new SqliteSessionRepository(data));
-        collection.AddSingleton<IDiagnosticEngineClient>(new DemoEngineClient(Path.Combine(AppContext.BaseDirectory, "engine", "GcmMonitor.Engine.exe"), data));
+        collection.AddSingleton<IInventoryProvider, WindowsInventoryProvider>();
+        collection.AddSingleton<IDiagnosticEngineClient>(new SessionEngineClient(Path.Combine(AppContext.BaseDirectory, "engine", "GcmMonitor.Engine.exe"), data));
         collection.AddSingleton<IUserDialogs, UserDialogs>();
         collection.AddSingleton<ShellViewModel>(); collection.AddSingleton<MainWindow>();
         services = collection.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });

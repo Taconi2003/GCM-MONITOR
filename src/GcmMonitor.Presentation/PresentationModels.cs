@@ -15,12 +15,17 @@ public sealed record DurationOption(int Minutes, string Label)
 public sealed record SummaryCard(string Icon, string Title, string Value, string Detail)
 {
     public bool IsStorage => Title == "Armazenamento";
+    public VolumeUsage[] Volumes { get; init; } = [];
 }
+public sealed record VolumeUsage(string Label, double PercentUsed);
 
 public sealed partial class ModuleSelection(ModuleDefinition definition) : ObservableObject
 {
     public ModuleDefinition Definition { get; } = definition;
     [ObservableProperty] private bool isSelected = true;
+    [ObservableProperty] private bool isAvailable = true;
+    public string Availability => IsAvailable ? "Disponível" : "Indisponível na v0.2 · previsto para v0.3";
+    partial void OnIsAvailableChanged(bool value) => OnPropertyChanged(nameof(Availability));
 }
 
 public sealed partial class DiskSelection(string id, string label) : ObservableObject
@@ -30,13 +35,17 @@ public sealed partial class DiskSelection(string id, string label) : ObservableO
     [ObservableProperty] private bool isSelected = true;
 }
 
-public sealed record ModuleResult(string Code, string Name, string State, string Summary, string Evidence, string Interpretation, string Recommendation, string Color);
-public sealed record MetricCard(string Name, string Value, string Unit, string Component, string Source, string[] Labels, double[] Values);
+public sealed record ModuleResult(string Code, string Name, string State, string Summary, string Evidence, string Interpretation, string Recommendation, string Color, string Statistics = "");
+public sealed record MetricCard(string Name, string Value, string Unit, string Component, string Source, string[] Labels, double[] Values, bool IsDemo = true)
+{
+    public string AxisLabel => IsDemo ? "tempo simulado" : "horário local";
+}
+public sealed record ProcessRow(string Identity, string Values);
 public sealed record HistoryRow(DiagnosticSession Session)
 {
     public string Date => Session.StartedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
-    public string Computer => Session.ComputerName + " · demonstração";
-    public string Duration => $"{Session.EffectiveDuration.TotalMinutes:0.#} min (simulados)";
+    public string Computer => Session.ComputerName + (Session.IsDemo ? " · demonstração" : "");
+    public string Duration => $"{Session.EffectiveDuration.TotalMinutes:0.#} min" + (Session.IsDemo ? " (simulados)" : "");
     public string State => Labels.Session(Session.State);
 }
 

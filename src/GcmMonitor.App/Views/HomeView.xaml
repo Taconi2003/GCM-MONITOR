@@ -15,12 +15,16 @@
                 <TextBlock Text="{Binding Title}" Style="{StaticResource Muted}" FontSize="11" />
                 <TextBlock Text="{Binding Value}" FontWeight="SemiBold" Margin="0,5,0,7" />
                 <TextBlock Text="{Binding Detail}" Style="{StaticResource Muted}" FontSize="10" LineHeight="17" />
-                <StackPanel Visibility="{Binding IsStorage, Converter={StaticResource BoolVisibility}}" Margin="0,8,0,0">
-                  <TextBlock Text="SSD · 62% ocupado" FontSize="9" Foreground="{StaticResource MutedBrush}" />
-                  <ProgressBar Value="62" Maximum="100" Height="3" Margin="0,4,0,7" />
-                  <TextBlock Text="HDD · 28% ocupado" FontSize="9" Foreground="{StaticResource MutedBrush}" />
-                  <ProgressBar Value="28" Maximum="100" Height="3" Margin="0,4,0,0" />
-                </StackPanel>
+                <ItemsControl ItemsSource="{Binding Volumes}" Margin="0,8,0,0">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel>
+                        <TextBlock Text="{Binding Label}" FontSize="9" Foreground="{StaticResource MutedBrush}" />
+                        <ProgressBar Value="{Binding PercentUsed, Mode=OneWay}" Maximum="100" Height="3" Margin="0,4,0,7" />
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
               </StackPanel>
             </Border>
           </DataTemplate>
@@ -28,7 +32,7 @@
       </ItemsControl>
       <Border Style="{StaticResource Card}" Visibility="{Binding IsActive, Converter={StaticResource BoolVisibility}}" BorderBrush="#277FAD">
         <StackPanel>
-          <TextBlock Text="Uma demonstração está em andamento" Style="{StaticResource SectionTitle}" />
+          <TextBlock Text="Uma sessão está em andamento" Style="{StaticResource SectionTitle}" />
           <TextBlock Text="{Binding Clock}" Style="{StaticResource Muted}" Margin="0,0,0,12" />
           <ProgressBar Value="{Binding Progress, Mode=OneWay}" Maximum="100" Margin="0,0,0,14" />
           <WrapPanel>
@@ -57,18 +61,21 @@
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
                   <Border BorderBrush="#20344C" BorderThickness="0,0,0,1" Padding="0,3">
-                    <CheckBox IsChecked="{Binding IsSelected}" AutomationProperties.Name="{Binding Definition.Name}">
-                      <Grid>
-                        <Grid.ColumnDefinitions>
-                          <ColumnDefinition Width="28" />
-                          <ColumnDefinition Width="*" />
-                          <ColumnDefinition Width="34" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{Binding Definition.Icon}" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource CyanBrush}" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="{Binding Definition.Name}" TextWrapping="Wrap" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="{Binding Definition.Code}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="6,2,0,0" VerticalAlignment="Center" />
-                      </Grid>
-                    </CheckBox>
+                    <StackPanel>
+                      <CheckBox IsChecked="{Binding IsSelected}" IsEnabled="{Binding IsAvailable}" ToolTip="{Binding Availability}" AutomationProperties.Name="{Binding Definition.Name}">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="28" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="34" />
+                          </Grid.ColumnDefinitions>
+                          <TextBlock Text="{Binding Definition.Icon}" FontFamily="Segoe MDL2 Assets" Foreground="{StaticResource CyanBrush}" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="1" Text="{Binding Definition.Name}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="2" Text="{Binding Definition.Code}" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="6,2,0,0" VerticalAlignment="Center" />
+                        </Grid>
+                      </CheckBox>
+                      <TextBlock Text="{Binding Availability}" Style="{StaticResource Muted}" FontSize="10" Margin="28,0,0,4" />
+                    </StackPanel>
                   </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
@@ -84,7 +91,7 @@
               <Border BorderBrush="#2B415A" BorderThickness="0,1,0,1" Margin="0,20" Padding="0,12">
                 <StackPanel>
                   <CheckBox Content="Estresse da CPU" IsChecked="False" IsEnabled="False" />
-                  <TextBlock Text="Desativado e bloqueado na v0.1. Requer supervisão e sensores de segurança validados na v0.4." Style="{StaticResource Muted}" FontSize="11" Margin="0,5,0,12" />
+                  <TextBlock Text="Desativado e bloqueado na v0.2. Requer supervisão e sensores de segurança validados na v0.4." Style="{StaticResource Muted}" FontSize="11" Margin="0,5,0,12" />
                   <ComboBox ItemsSource="{Binding Durations}" DisplayMemberPath="Label" SelectedItem="{Binding StressDuration}" IsEnabled="False" AutomationProperties.Name="Duração do estresse indisponível" />
                 </StackPanel>
               </Border>
@@ -104,7 +111,7 @@
           <Border Style="{StaticResource Card}" Background="#10263A">
             <StackPanel>
               <TextBlock Text="Esta versão do Windows pode apresentar limitações em determinados diagnósticos. Alguns recursos podem não funcionar corretamente." Style="{StaticResource Muted}" FontSize="11" />
-              <TextBlock Text="Compatibilidade e sensores não validados em hardware real." Foreground="#FFC76A" FontSize="11" Margin="0,10,0,0" />
+              <TextBlock Text="Compatibilidade limitada às fontes validadas. Sensores avançados não coletados na v0.2." Foreground="#FFC76A" FontSize="11" Margin="0,10,0,0" />
             </StackPanel>
           </Border>
         </StackPanel>
@@ -114,7 +121,7 @@
           <Button DockPanel.Dock="Right" Content="Iniciar diagnóstico" Command="{Binding StartCommand}" Style="{StaticResource PrimaryButton}" Margin="20,0,0,0" VerticalAlignment="Center" />
           <StackPanel>
             <TextBlock Text="O GCM Monitor coleta e analisa informações do sistema. Não realiza alterações nas configurações, drivers ou no sistema operacional." Style="{StaticResource Muted}" FontSize="11" />
-            <TextBlock Text="Na v0.1, esta ação inicia somente a demonstração sintética." Foreground="{StaticResource CyanBrush}" FontSize="11" Margin="0,5,0,0" />
+            <TextBlock Text="Inicia somente coleta passiva dos módulos disponíveis, sem estresse." Foreground="{StaticResource CyanBrush}" FontSize="11" Margin="0,5,0,0" />
           </StackPanel>
         </DockPanel>
       </Border>

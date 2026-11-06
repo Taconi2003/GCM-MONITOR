@@ -27,7 +27,7 @@ public partial class MainWindow : Window
     {
         if (closeAllowed) return;
         e.Cancel = true;
-        if (viewModel.IsActive && MessageBox.Show(this, "Encerrar a demonstração ativa e preservar os dados parciais?", "Fechar GCM Monitor", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
+        if (viewModel.IsActive && MessageBox.Show(this, "Encerrar a coleta passiva e preservar os dados parciais?", "Fechar GCM Monitor", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
         IsEnabled = false;
         await engine.DisposeAsync();
         closeAllowed = true;

@@ -25,7 +25,7 @@
       <StackPanel>
         <WrapPanel>
           <Button Content="Limpar histórico" Command="{Binding ClearHistoryCommand}" Style="{StaticResource DangerButton}" Margin="0,0,12,8" />
-          <Button Content="Carregar exemplos fictícios" Command="{Binding LoadExamplesCommand}" Margin="0,0,0,8" />
+          <Button Content="Carregar exemplos fictícios" Command="{Binding LoadExamplesCommand}" Margin="0,0,0,8" Visibility="{Binding IsDemoMode, Converter={StaticResource BoolVisibility}}" />
         </WrapPanel>
         <TextBlock Text="{Binding StorageSummary}" Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
         <TextBlock Text="Exclusões pedem confirmação. PDFs externos e sessões ativas são preservados." Style="{StaticResource Muted}" FontSize="11" />
@@ -89,7 +89,7 @@
         </DataGrid>
         <StackPanel Visibility="{Binding HasNoHistory, Converter={StaticResource BoolVisibility}}" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24,70,24,24" IsHitTestVisible="False">
           <TextBlock Text="Nenhuma sessão encontrada" FontSize="20" HorizontalAlignment="Center" />
-          <TextBlock Text="Inicie uma demonstração, carregue exemplos ou revise os filtros." Style="{StaticResource Muted}" Margin="0,12,0,0" />
+          <TextBlock Text="Inicie uma sessão ou revise os filtros." Style="{StaticResource Muted}" Margin="0,12,0,0" />
         </StackPanel>
       </Grid>
     </Border>

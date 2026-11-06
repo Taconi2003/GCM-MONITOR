@@ -70,14 +70,14 @@ public sealed class ContractTests
     [Fact]
     public void ProtocolRejectsWrongVersionAndIdentity()
     {
-        var id = Guid.NewGuid(); EngineProtocol.Validate(1, id, id);
-        Assert.Throws<InvalidDataException>(() => EngineProtocol.Validate(2, id, id));
-        Assert.Throws<InvalidDataException>(() => EngineProtocol.Validate(1, Guid.NewGuid(), id));
+        var id = Guid.NewGuid(); EngineProtocol.Validate(EngineProtocol.Version, id, id);
+        Assert.Throws<InvalidDataException>(() => EngineProtocol.Validate(EngineProtocol.Version + 1, id, id));
+        Assert.Throws<InvalidDataException>(() => EngineProtocol.Validate(EngineProtocol.Version, Guid.NewGuid(), id));
     }
     [Theory]
     [InlineData(-1)]
     [InlineData(0)]
-    [InlineData(262145)]
+    [InlineData(1048577)]
     public async Task ChannelRejectsInvalidSizesBeforeReadingPayload(int size)
     {
         var header = new byte[4]; BinaryPrimitives.WriteInt32LittleEndian(header, size);

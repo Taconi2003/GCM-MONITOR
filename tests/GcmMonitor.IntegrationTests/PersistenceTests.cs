@@ -52,10 +52,11 @@ public sealed class PersistenceTests : IDisposable
         Assert.True(version >= new Version(3, 50, 2), "A biblioteca nativa deve corrigir CVE-2025-6965.");
     }
     [Fact]
-    public async Task RealDataIsRejectedByDemoRepository()
+    public async Task MixingRealAndSyntheticDataInSameSessionIsRejected()
     {
         var repo = Repository; await repo.InitializeAsync();
-        await Assert.ThrowsAsync<InvalidOperationException>(() => repo.SaveAsync(new DiagnosticSession { IsDemo = false }));
+        var measurement = new Measurement(ModuleId.Cpu, "CPU", "fixture", 10, "%", DateTimeOffset.UtcNow, "test", DataQuality.Valid, true);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => repo.SaveAsync(new DiagnosticSession { IsDemo = false, Measurements = [measurement] }));
     }
     public void Dispose()
     {

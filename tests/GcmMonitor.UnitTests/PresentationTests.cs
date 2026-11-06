@@ -7,6 +7,20 @@ namespace GcmMonitor.UnitTests;
 public sealed class PresentationTests
 {
     [Fact]
+    public async Task RealModeLoadsInventoryAndEnablesOnlyFourAvailableModulesWithoutSyntheticHardware()
+    {
+        var provider = new FixtureInventory();
+        var vm = new ShellViewModel(new FakeEngine(), new MemoryRepository(), new FakeDialogs(), provider);
+        Assert.False(vm.IsDemoMode); Assert.Empty(vm.Disks);
+        Assert.All(vm.Hardware, x => Assert.Equal("Aguardando inventário", x.Value));
+        await vm.InitializeAsync(); vm.EnableAllCommand.Execute(null);
+        Assert.Equal(4, vm.SelectedModuleCount);
+        Assert.All(vm.Modules.Where(x => !x.IsAvailable), x => Assert.False(x.IsSelected));
+        Assert.DoesNotContain(vm.Hardware, x => x.Value.Contains("DEMO"));
+        Assert.Equal(50, vm.Hardware.Single(x => x.IsStorage).Volumes.Single().PercentUsed);
+        Assert.Equal("disk:0", vm.CreateOptions().DiskIds.Single());
+    }
+    [Fact]
     public async Task FiveScreensAreNavigableAndSelectionSurvivesNavigation()
     {
         var vm = Create(); await vm.InitializeAsync();
@@ -81,6 +95,16 @@ public sealed class PresentationTests
     private static ShellViewModel Create(FakeEngine? engine = null, MemoryRepository? repository = null, FakeDialogs? dialogs = null) => new(engine ?? new(), repository ?? new(), dialogs ?? new());
 }
 
+internal sealed class FixtureInventory : IInventoryProvider
+{
+    public Task<ComputerInventory> ReadAsync(CancellationToken cancellationToken = default)
+    {
+        var volume = new VolumeInfo("C:", 10000, 5000, ["disk:0"]);
+        return Task.FromResult(new ComputerInventory("FIXTURE-COMPUTER", "Windows fixture", "test", "x64", DateTimeOffset.UtcNow,
+            "CPU fixture", 2, 4, 16L * 1024 * 1024 * 1024, [], [new("disk:0", 0, "Disk fixture", "test", "test", 10000, [volume], "fixture")], [], DateTimeOffset.UtcNow));
+    }
+}
+
 internal sealed class GatedEngine : IDiagnosticEngineClient
 {
     public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -114,6 +138,8 @@ internal sealed class FakeDialogs : IUserDialogs
 }
 internal sealed class MemoryRepository : ISessionRepository
 {
+    public Task SaveBatchAsync(DiagnosticSession session, CollectionBatch batch, CancellationToken cancellationToken = default) => SaveAsync(session, cancellationToken);
+    public Task<ProcessAggregate[]> ReadProcessRankingsAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(Array.Empty<ProcessAggregate>());
     private readonly Dictionary<Guid, DiagnosticSession> sessions = [];
     public Task InitializeAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     public Task SaveAsync(DiagnosticSession session, CancellationToken cancellationToken = default) { sessions[session.Id] = session; return Task.CompletedTask; }

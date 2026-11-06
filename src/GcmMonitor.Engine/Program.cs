@@ -2,21 +2,24 @@ using System.IO.Pipes;
 using GcmMonitor.Collector;
 using GcmMonitor.Core;
 using GcmMonitor.Persistence;
+using GcmMonitor.Engine;
 
-// Executável exclusivo de demonstração. Não recebe comandos de sistema nem carrega coletores reais.
+// Motor local: modo passivo real por padrão. Demonstração reservada aos testes, explicitamente identificada.
+if (!OperatingSystem.IsWindows()) return 2;
 if (args.Length != 6 || args[0] != "--pipe" || args[2] != "--session" || args[4] != "--database" ||
-    !Guid.TryParse(args[3], out var sessionId) || !args[1].StartsWith("gcm-demo-", StringComparison.Ordinal))
+    !Guid.TryParse(args[3], out var sessionId) || !(args[1].StartsWith("gcm-session-", StringComparison.Ordinal) || args[1].StartsWith("gcm-demo-", StringComparison.Ordinal)))
 {
-    Console.Error.WriteLine("Motor demonstrativo: inicialização restrita ao controlador GCM Monitor v0.1.");
+    Console.Error.WriteLine("Motor de sessão: inicialização restrita ao controlador GCM Monitor v0.2.");
     return 2;
 }
 
 var repository = new SqliteSessionRepository(args[5]);
 DiagnosticSession? session = null;
-using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+using var lifetime = new CancellationTokenSource(TimeSpan.FromHours(4.1));
 using var cancel = new CancellationTokenSource();
 using var pipe = new NamedPipeClientStream(".", args[1], PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 Task? commandLoop = null;
+bool disconnected = false;
 try
 {
     await pipe.ConnectAsync(8000, lifetime.Token);
@@ -24,9 +27,9 @@ try
     var start = await channel.ReadAsync<StartSessionMessage>(lifetime.Token);
     EngineProtocol.Validate(start.Version, start.SessionId, sessionId);
     if (start.Options is null) throw new InvalidDataException("Opções ausentes.");
+    if (!Enum.IsDefined(start.Mode)) throw new InvalidDataException("Modo de coleta inválido.");
     start.Options.Validate();
     await repository.InitializeAsync(lifetime.Token);
-    session = new DiagnosticSession { Id = sessionId, Options = start.Options };
     long sequence = 0;
     async Task SendAsync()
     {
@@ -34,8 +37,6 @@ try
         await channel.WriteAsync(new EngineMessage(EngineProtocol.Version, sessionId, ++sequence, session!), lifetime.Token);
     }
 
-    session = session.TransitionTo(SessionState.Validating, "Validando opções demonstrativas; estresse bloqueado.", DateTimeOffset.UtcNow);
-    await SendAsync();
     commandLoop = Task.Run(async () =>
     {
         try
@@ -45,9 +46,25 @@ try
             if (command.Command != "cancel") throw new InvalidDataException("Comando não permitido.");
             cancel.Cancel();
         }
-        catch (Exception ex) when (ex is IOException or OperationCanceledException or InvalidDataException)
-        { cancel.Cancel(); }
+        catch (Exception ex) when (ex is IOException or OperationCanceledException or InvalidDataException or System.Text.Json.JsonException)
+        { if (!lifetime.IsCancellationRequested) disconnected = true; cancel.Cancel(); }
     });
+
+    if (start.Mode == CollectionMode.Passive)
+    {
+        await using var source = new WindowsPassiveSource();
+        using var runLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel.Token, lifetime.Token);
+        session = await new PassiveSessionRunner(repository, source).RunAsync(sessionId, start.Options, async snapshot =>
+        {
+            session = snapshot;
+            await channel.WriteAsync(new EngineMessage(EngineProtocol.Version, sessionId, ++sequence, snapshot), lifetime.Token);
+        }, runLifetime.Token, () => disconnected);
+        return session.State == SessionState.Error ? 1 : 0;
+    }
+
+    session = new DiagnosticSession { Id = sessionId, Options = start.Options };
+    session = session.TransitionTo(SessionState.Validating, "Validando opções demonstrativas; estresse bloqueado.", DateTimeOffset.UtcNow);
+    await SendAsync();
 
     var collectors = start.Options.Modules.Select(x => new DemoCollector(x)).ToArray();
     var runs = new List<ModuleRun>();
@@ -114,7 +131,7 @@ catch (Exception ex) when (ex is IOException or InvalidDataException or Argument
         }
         catch (Exception saveError) when (saveError is IOException or Microsoft.Data.Sqlite.SqliteException) { /* Falha de gravação: processo encerra. */ }
     }
-    Console.Error.WriteLine("Motor demonstrativo interrompido; nenhuma carga de estresse foi executada.");
+    Console.Error.WriteLine("Motor de sessão interrompido; nenhuma carga de estresse foi executada.");
     return 1;
 }
 finally

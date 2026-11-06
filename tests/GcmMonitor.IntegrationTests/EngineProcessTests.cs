@@ -26,7 +26,7 @@ public sealed class EngineProcessTests : IDisposable
     [Fact]
     public async Task SeparateEngineCompletesPointQueriesWithoutWaitingMonitoringDuration()
     {
-        await using var client = new DemoEngineClient(Executable("GcmMonitor.Engine"), Database);
+        await using var client = new SessionEngineClient(Executable("GcmMonitor.Engine"), Database, CollectionMode.Demonstration);
         var snapshots = new List<DiagnosticSession>(); var watch = Stopwatch.StartNew();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await foreach (var snapshot in client.RunAsync(new DiagnosticOptions { Modules = [ModuleId.WindowsUpdate, ModuleId.Devices], MonitoringMinutes = 240 }, timeout.Token)) snapshots.Add(snapshot);
@@ -38,7 +38,7 @@ public sealed class EngineProcessTests : IDisposable
     [Fact]
     public async Task CancellingDemoPreservesPartialStateAndSelectedModulesOnly()
     {
-        await using var client = new DemoEngineClient(Executable("GcmMonitor.Engine"), Database);
+        await using var client = new SessionEngineClient(Executable("GcmMonitor.Engine"), Database, CollectionMode.Demonstration);
         DiagnosticSession? last = null;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         await foreach (var snapshot in client.RunAsync(new DiagnosticOptions { Modules = [ModuleId.Cpu] }, timeout.Token))
@@ -70,7 +70,7 @@ public sealed class EngineProcessTests : IDisposable
     [Fact]
     public async Task CompletedDemoHonorsDiskSelectionAndProducesOnlySyntheticBoundedSamples()
     {
-        await using var client = new DemoEngineClient(Executable("GcmMonitor.Engine"), Database);
+        await using var client = new SessionEngineClient(Executable("GcmMonitor.Engine"), Database, CollectionMode.Demonstration);
         DiagnosticSession? last = null;
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
         await foreach (var snapshot in client.RunAsync(new DiagnosticOptions { Modules = [ModuleId.Storage], DiskIds = ["demo-disk-1"], MonitoringMinutes = 5 }, timeout.Token)) last = snapshot;

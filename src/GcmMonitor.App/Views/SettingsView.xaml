@@ -15,7 +15,7 @@
           <StackPanel>
             <TextBlock Text="Coleta e desempenho" Style="{StaticResource SectionTitle}" />
             <TextBlock Text="Cadência gerenciada automaticamente" />
-            <TextBlock Text="Persistência periódica e limites de recursos são proteções do motor. Não há coleta real na v0.1." Style="{StaticResource Muted}" Margin="0,8,0,0" />
+            <TextBlock Text="Persistência periódica e limites de recursos são proteções do motor. CPU/RAM/discos: cadência de referência 2 s; processos: 5 s." Style="{StaticResource Muted}" Margin="0,8,0,0" />
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
@@ -49,13 +49,13 @@
           <TextBlock Text="Histórico e armazenamento" Style="{StaticResource SectionTitle}" />
           <TextBlock Text="{Binding StorageSummary}" Style="{StaticResource Muted}" />
           <TextBlock Text="Uso em disco: não calculado nesta etapa. Retenção automática e limpeza de arquivos locais ainda indisponíveis. Nenhuma exclusão retroativa automática." Style="{StaticResource Muted}" Margin="0,8,0,14" />
-          <Button Content="Limpar histórico demonstrativo" Command="{Binding ClearHistoryCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" />
+          <Button Content="Limpar histórico" Command="{Binding ClearHistoryCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" />
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Sobre o GCM Monitor" Style="{StaticResource SectionTitle}" />
-          <TextBlock Text="Gimenes Coleta e Monitoramento · v0.1.0" FontWeight="SemiBold" />
+          <TextBlock Text="Gimenes Coleta e Monitoramento · v0.2.0" FontWeight="SemiBold" />
           <TextBlock Text="C# · .NET 10 · WPF/XAML · MVVM · SQLite · Windows x64" Style="{StaticResource Muted}" Margin="0,8,0,0" />
           <TextBlock Text="Execução de desenvolvimento. Distribuição instalada por usuário com Inno Setup prevista para v1.0; não há edição portátil." Style="{StaticResource Muted}" Margin="0,8,0,0" />
           <TextBlock Text="Localização dos binários" Foreground="{StaticResource CyanBrush}" Margin="0,14,0,6" />

@@ -58,6 +58,7 @@ public sealed class WpfViewTests
                 vm.StartCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 Assert.NotEmpty(vm.MetricCards);
                 foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Monitoring, size, "series");
+                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, "series-and-rankings");
                 window.Close(); Assert.Empty(bindingErrors.Errors);
                 completion.SetResult();
             }
@@ -92,8 +93,14 @@ public sealed class WpfViewTests
             var session = DemoFixtures.Archived(SessionState.Completed, DateTimeOffset.UtcNow.AddMinutes(-30));
             var samples = new List<Measurement>();
             foreach (var module in new[] { ModuleId.Cpu, ModuleId.Memory, ModuleId.Storage })
-                for (int sample = 0; sample < 6; sample++) samples.AddRange(await new DemoCollector(module).CollectAsync(session.StartedAt.AddMinutes(sample * 5), sample, cancellationToken));
-            yield return session with { Measurements = samples.ToArray() };
+                for (int sample = 0; sample < 6; sample++) samples.AddRange(await new DemoCollector(module).CollectAsync(session.StartedAt.AddSeconds(sample * 2), sample, cancellationToken));
+            var accumulator = new MetricAccumulator(); foreach (var reading in samples) accumulator.Add(reading);
+            yield return session with
+            {
+                Measurements = samples.ToArray(), Statistics = accumulator.Snapshot(),
+                Processes = [new(42, session.StartedAt, "processo-ficticio.exe", 2, 10, 10, 50.0 * 1024 * 1024 * 10, 10,
+                    60 * 1024 * 1024, session.StartedAt, session.StartedAt.AddSeconds(10), true, 6)]
+            };
         }
         public Task CancelAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
