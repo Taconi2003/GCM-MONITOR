@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../GcmMonitor.Core/GcmMonitor.Core.csproj" />
+    <ProjectReference Include="../GcmMonitor.Collector/GcmMonitor.Collector.csproj" />
+    <ProjectReference Include="../GcmMonitor.Persistence/GcmMonitor.Persistence.csproj" />
+  </ItemGroup>
+</Project>
