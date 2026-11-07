@@ -11,6 +11,15 @@
   #define ProductName "GCM Monitor"
 #endif
 
+#ifdef LabUi
+  #ifndef LabRoot
+    #error A interface de laboratório exige LabRoot.
+  #endif
+  #define AppExecutable "GcmMonitor.Lab.App.exe"
+#else
+  #define AppExecutable "GcmMonitor.App.exe"
+#endif
+
 [Setup]
 #ifdef LabRoot
 AppId={{204540CC-B3ED-4A10-8C50-B3FCB628CE57}
@@ -35,7 +44,7 @@ SetupArchitecture=x64
 AppMutex={code:BusyMutexName}
 CloseApplications=no
 RestartApplications=no
-UninstallDisplayIcon={app}\GcmMonitor.App.exe
+UninstallDisplayIcon={app}\{#AppExecutable}
 Compression=lzma2/fast
 SolidCompression=yes
 WizardStyle=modern dark polar includetitlebar
@@ -47,7 +56,7 @@ Name: "ptbr"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 Source: "{#PublishRoot}\*"; DestDir: "{app}"; Excludes: "*.pdb"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{userprograms}\{#ProductName}"; Filename: "{app}\GcmMonitor.App.exe"; WorkingDir: "{app}"
+Name: "{userprograms}\{#ProductName}"; Filename: "{app}\{#AppExecutable}"; WorkingDir: "{app}"
 
 [Code]
 var

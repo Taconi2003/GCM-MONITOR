@@ -30,6 +30,16 @@ public sealed class PresentationTests
         Assert.False(vm.Modules[0].IsSelected);
     }
     [Fact]
+    public async Task MonitoringBeforeFirstSessionShowsHowToStart()
+    {
+        var vm = new ShellViewModel(new FakeEngine(), new MemoryRepository(), new FakeDialogs(), new FixtureInventory());
+        await vm.InitializeAsync();
+        vm.OpenMonitoringCommand.Execute(null);
+        Assert.Equal("Nenhuma sessão iniciada", vm.SessionStatus);
+        Assert.Contains("Inicie um diagnóstico", vm.Subtitle);
+        Assert.False(vm.CancelCommand.CanExecute(null));
+    }
+    [Fact]
     public async Task EnableDisableAndRestoreNeverEnableStress()
     {
         var vm = Create(); await vm.InitializeAsync(); vm.DisableAllCommand.Execute(null); Assert.Equal(0, vm.SelectedModuleCount);
@@ -86,6 +96,7 @@ public sealed class PresentationTests
         try
         {
             Assert.True(vm.IsActive); Assert.False(vm.StartCommand.CanExecute(null));
+            Assert.Contains("Acompanhe", vm.Subtitle);
             foreach (var item in vm.Navigation) { vm.NavigateCommand.Execute(item); Assert.True(vm.IsActive); }
             Assert.Equal(0, engine.Cancels); await vm.CancelCommand.ExecuteAsync(null); Assert.Equal(1, engine.Cancels);
         }

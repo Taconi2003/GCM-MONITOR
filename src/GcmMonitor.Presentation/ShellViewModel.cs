@@ -88,7 +88,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public string Subtitle => CurrentScreen switch
     {
         Screen.Home => "Visão geral do computador, seleção e execução do diagnóstico",
-        Screen.Monitoring => IsDemoMode ? "Acompanhe a reprodução demonstrativa da sessão" : "Diagnóstico em execução — coletando e analisando dados.",
+        Screen.Monitoring when !IsActive && !HasSession => "Inicie um diagnóstico no Início para acompanhar a sessão.",
+        Screen.Monitoring => IsDemoMode ? "Acompanhe a reprodução demonstrativa da sessão." : "Acompanhe o andamento e as medições da sessão.",
         Screen.Results => "Resumo e análise do diagnóstico realizado.",
         Screen.History => "Diagnósticos realizados neste computador.",
         _ => "Preferências e gerenciamento do GCM Monitor"
@@ -156,7 +157,8 @@ public sealed partial class ShellViewModel : ObservableObject
     partial void OnIsActiveChanged(bool value)
     {
         OnPropertyChanged(nameof(CanConfigure)); OnPropertyChanged(nameof(BatteryEnabled)); OnPropertyChanged(nameof(WifiEnabled)); OnPropertyChanged(nameof(StorageEnabled));
-        StartCommand.NotifyCanExecuteChanged(); CancelCommand.NotifyCanExecuteChanged(); OnPropertyChanged(nameof(ResultStatus));
+        StartCommand.NotifyCanExecuteChanged(); CancelCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(ResultStatus)); OnPropertyChanged(nameof(Subtitle));
     }
 
     [RelayCommand] private void Navigate(NavigationItem? item) { if (item is not null) CurrentScreen = item.Screen; }

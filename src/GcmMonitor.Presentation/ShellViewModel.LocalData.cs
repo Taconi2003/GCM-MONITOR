@@ -5,7 +5,10 @@ using GcmMonitor.Core;
 
 namespace GcmMonitor.Presentation;
 
-public sealed record RetentionOption(int Days, string Label);
+public sealed record RetentionOption(int Days, string Label)
+{
+    public override string ToString() => Label;
+}
 
 public sealed partial class ShellViewModel
 {

@@ -49,7 +49,7 @@
           <TextBlock Text="Histórico e armazenamento" Style="{StaticResource SectionTitle}" />
           <TextBlock Text="{Binding StorageSummary}" Style="{StaticResource Muted}" />
           <TextBlock Text="Retenção do histórico" Style="{StaticResource Muted}" Margin="0,8,0,6" />
-          <ComboBox ItemsSource="{Binding RetentionOptions}" DisplayMemberPath="Label" SelectedValuePath="Days" SelectedValue="{Binding RetentionDays, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="220" />
+          <ComboBox ItemsSource="{Binding RetentionOptions}" DisplayMemberPath="Label" SelectedValuePath="Days" SelectedValue="{Binding RetentionDays, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="220" AutomationProperties.Name="Retenção do histórico" />
           <TextBlock Text="A limpeza por prazo exige confirmação com a data de corte." Style="{StaticResource Muted}" Margin="0,8,0,14" />
           <WrapPanel>
             <Button Content="Salvar preferências" Command="{Binding SavePreferencesCommand}" Margin="0,0,8,8" />

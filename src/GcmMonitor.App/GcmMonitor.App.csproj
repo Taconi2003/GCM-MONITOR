@@ -6,6 +6,10 @@
     <PlatformTarget>x64</PlatformTarget>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(GcmLabUi)' == 'true'">
+    <AssemblyName>GcmMonitor.Lab.App</AssemblyName>
+    <DefineConstants>$(DefineConstants);GCM_LAB_UI</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../GcmMonitor.Presentation/GcmMonitor.Presentation.csproj" />
     <ProjectReference Include="../GcmMonitor.Persistence/GcmMonitor.Persistence.csproj" />

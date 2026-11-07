@@ -20,16 +20,26 @@ public partial class App : Application
         base.OnStartup(e);
         CultureInfo.DefaultThreadCurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
         CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.GetCultureInfo("pt-BR");
+#if GCM_LAB_UI
+        string root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "profile"));
+        instanceMutex = new Mutex(true, "Local\\GcmMonitor.Ui.Laboratorio", out bool created);
+#else
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         string userScope = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData).ToUpperInvariant())));
+            localAppData.ToUpperInvariant())));
         instanceMutex = new Mutex(true, "Global\\GcmMonitor." + userScope, out bool created);
+        string root = Path.Combine(localAppData, "GCM Monitor");
+#endif
         if (!created)
         {
             MessageBox.Show("O GCM Monitor já está aberto nesta sessão do Windows.", "GCM Monitor");
             Shutdown(); return;
         }
+#if GCM_LAB_UI
+        installationUse = new Mutex(false, "Local\\GcmMonitor.InUse.Laboratorio");
+#else
         installationUse = InstallationUse.OpenMarker();
-        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCM Monitor");
+#endif
         var data = Path.Combine(root, "Data", "gcm-monitor.db");
         var collection = new ServiceCollection();
         collection.AddSingleton<ISessionRepository>(new SqliteSessionRepository(data));
@@ -44,7 +54,11 @@ public partial class App : Application
         collection.AddSingleton<IUserDialogs, UserDialogs>();
         collection.AddSingleton<ShellViewModel>(); collection.AddSingleton<MainWindow>();
         services = collection.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
-        MainWindow = services.GetRequiredService<MainWindow>(); MainWindow.Show();
+        MainWindow = services.GetRequiredService<MainWindow>();
+#if GCM_LAB_UI
+        MainWindow.Title = "GCM Monitor · Laboratório";
+#endif
+        MainWindow.Show();
     }
 
     protected override void OnExit(ExitEventArgs e)

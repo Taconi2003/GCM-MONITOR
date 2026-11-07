@@ -54,3 +54,10 @@ O ensaio compila pacotes com identidade e pasta de dados próprias. Ele abre som
 instalado e grava as evidências em `.artifacts/installer/upgrade-<id>`. Os executáveis chamados
 `GCMMonitor-LabSetup.exe` pertencem ao ensaio. Distribua somente `GCMMonitor-Setup.exe`.
 Veja os [resultados da prévia 4](../../docs/testes/V1.0-PREVIEW.4.md).
+
+Para conferir a primeira abertura e as confirmações do desinstalador, gere o pacote de
+laboratório com `./scripts/package.ps1 -LabUi`. Use um perfil sem outra instalação
+**GCM Monitor Laboratorio**. Instale `GCMMonitor-LabSetup.exe` no destino sugerido e abra o
+atalho **GCM Monitor Laboratorio**. O executável da interface usa a pasta `profile` ao lado
+do diretório instalado e um marcador de uso separado. Desinstale pelo registro ou executável
+da instalação de laboratório. Use dados sintéticos para testar a opção de remover o histórico.
