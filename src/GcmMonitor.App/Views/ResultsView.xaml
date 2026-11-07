@@ -5,6 +5,7 @@
         <StackPanel>
           <TextBlock Text="{Binding ResultStatus}" FontSize="21" FontWeight="SemiBold" Foreground="{StaticResource CyanBrush}" />
           <TextBlock Text="{Binding ResultSummary}" Style="{StaticResource Muted}" Margin="0,12,0,0" />
+          <TextBlock Text="{Binding StressResultSummary}" Style="{StaticResource Muted}" Margin="0,12,0,0" />
         </StackPanel>
       </Border>
       <StackPanel Visibility="{Binding HasResults, Converter={StaticResource BoolVisibility}}">
@@ -161,7 +162,7 @@
         <DockPanel>
           <Button Content="Exportar relatório PDF" Style="{StaticResource PrimaryButton}" IsEnabled="False" DockPanel.Dock="Right" Margin="20,0,0,0" />
           <StackPanel>
-            <TextBlock Text="Exportação PDF indisponível na v0.3" FontWeight="SemiBold" />
+            <TextBlock Text="Exportação PDF indisponível na v0.4" FontWeight="SemiBold" />
             <TextBlock Text="Prevista para v1.0. A exportação PDF ainda não está implementada." Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
           </StackPanel>
         </DockPanel>

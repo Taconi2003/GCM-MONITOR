@@ -47,7 +47,8 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
                 var message = await channel.ReadAsync<EngineMessage>(timeout.Token);
                 EngineProtocol.Validate(message.Version, message.SessionId, sessionId);
                 if (message.Sequence != lastSequence + 1 || message.Session is null || message.Session.Id != sessionId || message.Session.IsDemo != (mode == CollectionMode.Demonstration) ||
-                    message.Session.Options is null || message.Session.Options.StressEnabled || !Enum.IsDefined(message.Session.State))
+                    message.Session.Options is null || message.Session.Options.StressEnabled || !Enum.IsDefined(message.Session.State) ||
+                    message.Session.Stress is { } safety && (safety.Available || safety.LoadExecuted))
                     throw new InvalidDataException("Snapshot de sessão inválido.");
                 message.Session.Options.Validate();
                 foreach (var measurement in message.Session.Measurements)

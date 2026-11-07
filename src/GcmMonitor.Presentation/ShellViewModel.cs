@@ -17,7 +17,11 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private readonly IInventoryProvider? inventoryProvider;
     public bool IsDemoMode => inventoryProvider is null;
-    public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · v0.3";
+    public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · v0.4";
+    public string StressBlockReason => "Estresse bloqueado: sensores térmicos, limites por hardware e matriz P0 ainda precisam de validação em laboratório.";
+    public string StressResultSummary => resultSession is null ? "Estresse bloqueado. Selecione um resultado para consultar a avaliação registrada." : resultSession.Stress is { } assessment
+        ? "Estresse desativado · nenhuma carga executada.\n" + string.Join(" ", assessment.Reasons)
+        : "Estresse não executado. Sessão anterior ou demonstrativa sem avaliação de segurança da v0.4.";
     public string DataBanner => IsDemoMode ? "MODO DEMONSTRAÇÃO · Dados sintéticos. Nenhuma medição real, teste de estresse ou alteração do Windows. O relógio da reprodução é acelerado." :
         "COLETA PASSIVA · Diagnósticos por capacidade e permissão das fontes Windows. Sensores ausentes são identificados. Estresse bloqueado.";
     public ShellViewModel(IDiagnosticEngineClient engine, ISessionRepository repository, IUserDialogs dialogs, IInventoryProvider? inventoryProvider = null)
@@ -250,7 +254,7 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private void NotifyResults()
     {
-        foreach (var name in new[] { nameof(HasResults), nameof(HasNoResults), nameof(ResultStatus), nameof(ResultSummary), nameof(NormalCount), nameof(AttentionCount), nameof(FailureCount), nameof(UnavailableCount), nameof(CollectionIssues) }) OnPropertyChanged(name);
+        foreach (var name in new[] { nameof(HasResults), nameof(HasNoResults), nameof(ResultStatus), nameof(ResultSummary), nameof(StressResultSummary), nameof(NormalCount), nameof(AttentionCount), nameof(FailureCount), nameof(UnavailableCount), nameof(CollectionIssues) }) OnPropertyChanged(name);
     }
 
     [RelayCommand]

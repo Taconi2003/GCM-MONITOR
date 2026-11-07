@@ -50,7 +50,7 @@ public sealed class AdvancedCollectionTests : IDisposable
         var evidence = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation"); Directory.CreateDirectory(evidence);
         await File.WriteAllTextAsync(Path.Combine(evidence, "advanced-capabilities.json"), JsonSerializer.Serialize(new
         {
-            Version = "0.3.0", TimestampUtc = DateTimeOffset.UtcNow, WindowsBuild = Environment.OSVersion.Version.Build,
+            Version = "0.4.0", TimestampUtc = DateTimeOffset.UtcNow, WindowsBuild = Environment.OSVersion.Version.Build,
             Environment = "Máquina local de desenvolvimento; identificação omitida", StressExecuted = false,
             IdentifiersExcluded = true, Modules = summaries,
             SecondSensorValidSamples = second.Measurements.Count(x => x.Quality == DataQuality.Valid),

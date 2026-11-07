@@ -85,7 +85,7 @@ public sealed class PassiveCollectionTests : IDisposable
         string evidenceFolder = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation"); Directory.CreateDirectory(evidenceFolder);
         await File.WriteAllTextAsync(Path.Combine(evidenceFolder, "cpu-reference.json"), JsonSerializer.Serialize(new
         {
-            Version = "0.3.0",
+            Version = "0.4.0",
             NativeSource = "GetSystemTimes",
             Reference = "PDH Processor(_Total) % Processor Time",
             Samples = differences.Count,
@@ -167,13 +167,14 @@ public sealed class PassiveCollectionTests : IDisposable
         var repo = new SqliteSessionRepository(Database); var restored = await repo.GetAsync(last.Id);
         Assert.Equal(SessionState.Completed, restored!.State); Assert.NotEmpty(restored.Records);
         Assert.Equal(11, restored.Modules.Length); Assert.True(maxBytes < EngineProtocol.MaxMessageLength);
+        Assert.NotNull(restored.Stress); Assert.False(restored.Stress.Available); Assert.False(restored.Stress.LoadExecuted);
         await using var connection = new SqliteConnection($"Data Source={Database};Pooling=False"); await connection.OpenAsync();
         using var command = connection.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM Measurements;";
         var persisted = Convert.ToInt64(await command.ExecuteScalarAsync()); Assert.True(persisted > maxSamples);
         string evidenceFolder = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation"); Directory.CreateDirectory(evidenceFolder);
         await File.WriteAllTextAsync(Path.Combine(evidenceFolder, "passive-five-minutes.json"), JsonSerializer.Serialize(new
         {
-            Version = "0.3.0",
+            Version = "0.4.0",
             EndedUtc = DateTimeOffset.UtcNow,
             Result = "Passed",
             ActualSeconds = watch.Elapsed.TotalSeconds,

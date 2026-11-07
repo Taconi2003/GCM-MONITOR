@@ -8,6 +8,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/GcmMonitor.App/GcmMonitor.App.csproj" />
+    <ProjectReference Include="../../src/GcmMonitor.Execution/GcmMonitor.Execution.csproj" />
+    <ProjectReference Include="../../src/GcmMonitor.StressSupervisor/GcmMonitor.StressSupervisor.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
