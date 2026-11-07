@@ -1,43 +1,46 @@
 # GCM Monitor — Gimenes Coleta e Monitoramento
 
-**v0.2.0 — coleta básica passiva para Windows x64.** Agora utiliza dados reais de CPU,
-memória, processos, discos e inventário do computador. Versão de desenvolvimento;
-ainda não liberada para diagnóstico de clientes.
+**v0.3.0 — diagnósticos avançados por capacidade, Windows x64.** Versão de desenvolvimento,
+com coleta passiva real e limitações explícitas; ainda não liberada para diagnóstico de clientes.
+Fonte obrigatória: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md), seção 14.
+O documento original foi preservado. Esta etapa continua a v0.2.
 
-Fonte de escopo: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md),
-seção 14. A especificação original permanece preservada. A v0.2 dá continuidade à v0.1.
+## Funcionalidades
 
-## O que está disponível
+- Exatamente cinco telas: **Início, Monitoramento, Resultados, Histórico e Configurações**.
+  WPF/XAML, MVVM, DI e tema exclusivamente escuro azul-marinho com azul/ciano.
+- Os onze módulos podem ser selecionados no Início, com verificação de capacidade ao executar.
+  Armazenamento requer disco físico detectado. Ausência/permissão/limitação não vira resultado saudável.
+- CPU, RAM física/comprometimento/cache/paginação, discos/volumes e Top 10 de processos da v0.2.
+  CPU acumulada por sessão e working set ponderado; processos encerrados preservados.
+- Inventário de GPU e driver instalado. Uso por **engine/LUID físico** via PDH quando exposto,
+  sem associar automaticamente esse identificador ao modelo de Win32_VideoController.
+- Temperaturas/RPM/carga GPU pelo provedor **WMI LibreHardwareMonitor já existente**, quando
+  compatível. GCM não o instala ou inicia. Zonas ACPI são identificadas separadamente, nunca como CPU.
+- Indicadores de confiabilidade de disco (temperatura, desgaste, horas e erros) via associação
+  Storage do Windows, quando expostos. Não é leitura SMART bruta completa nem atestado de integridade.
+- Bateria: carga, capacidades/desgaste quando disponíveis, ciclos e autonomia estimada por consumo
+  observado. Capacidades relativas não viram mWh; identidades/tags precisam coincidir na associação.
+- Wi-Fi passivo: adaptador/estado/sinal/enlace/canal e reconexões observadas. Sem SSID/BSSID/perfil,
+  varredura de redes, ping ou teste de velocidade. Banda permanece não determinada nesta etapa.
+- Drivers/dispositivos PnP, eventos selecionados dos últimos sete dias, alimentação/plano e mudanças.
+  Eventos têm log/origem/ID/horário/nível; mensagens integrais e conteúdo pessoal não são coletados.
+- Windows Update: **histórico local** e reinicialização informada pelo WUA. Não executa busca,
+  download/instalação nem afirma conhecer todas as pendências ou que o sistema está atualizado.
+- Motor separado, relógio real, cadências automáticas, consultas pontuais uma vez, cancelamento,
+  estados parciais e recuperação. Sessões somente pontuais terminam ao concluir as consultas.
+- SQLite WAL schema 3, migração aditiva da v0.2, amostras e evidências incrementais, notas e histórico.
+  Resultados reabertos recuperam os registros persistidos, além do snapshot limitado enviado à UI.
 
-- Cinco telas: **Início, Monitoramento, Resultados, Histórico e Configurações**.
-- WPF/XAML, MVVM, injeção de dependências e tema escuro azul-marinho/azul/ciano.
-- Inventário por consultas de leitura do Windows: edição/build/arquitetura, boot/uptime,
-  CPU/núcleos/processadores lógicos, RAM/módulos e discos físicos associados aos volumes.
-- CPU por deltas de `GetSystemTimes`, RAM física disponível/ocupada, comprometimento,
-  cache do sistema e contadores de paginação quando acessíveis.
-- Tráfego de leitura/gravação por disco físico em **MB/s decimais**, sem teste de escrita.
-  Capacidade e espaço livre são apresentados respeitando a diferença entre disco e volume.
-- Top 10 de CPU acumulada e RAM média ponderada no tempo (working set), com pico,
-  período observado e processos encerrados. Identidade por **PID + início do processo**.
-- Motor separado por sessão, seleção de módulos/discos, relógio real, gráficos limitados,
-  cancelamento passivo e consolidação parcial.
-- SQLite WAL com transações, amostras normalizadas, módulos, estatísticas, transições,
-  ocorrências, agregados de processos, notas e recuperação de sessões interrompidas.
+**Estresse permanece desligado e bloqueado**, inclusive após Habilitar todos. Não há geração de
+carga, reparo, atualização de drivers/Windows, alteração de energia ou instalação de driver de sensores.
+PDF, preferências definitivas, histórico completo e Inno Setup permanecem na etapa v1.0 aprovada.
 
-O catálogo mantém os 11 módulos aprovados. Nesta etapa estão disponíveis **M01, M02, M03
-(inventário/espaço/tráfego; SMART indisponível) e M08**. Os demais aparecem como indisponíveis,
-previstos para v0.3. GPU, temperatura, RPM, SMART, bateria e Wi-Fi não recebem valores simulados.
+## Compilar, testar e abrir
 
-**Estresse continua separado, desligado e bloqueado.** Não há gerador de carga,
-alteração de energia, atualização, reparo, instalação de driver ou leitura de conteúdo de processos.
-PDF, preferências definitivas e Inno Setup pertencem às próximas etapas aprovadas.
-
-## Compilar e abrir
-
-Requisitos: Windows x64, SDK **.NET 10.0.403 x64** (`global.json`), Git e acesso ao NuGet no
-primeiro restore. O SDK .NET 8 não compila esta solução. PowerShell 7 é recomendado.
-Um SDK isolado em `.tools/dotnet/` é reconhecido pelos scripts; também pode ser usado o
-[SDK instalado da Microsoft](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
+Windows x64 e SDK **.NET 10.0.403 x64** (`global.json`); acesso ao NuGet no primeiro restore.
+O SDK 8 não compila esta solução. PowerShell 7 recomendado. Um SDK local em `.tools/dotnet/`
+é reconhecido pelos scripts; também pode usar o [SDK oficial](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
 
 ```powershell
 .\scripts\dev.ps1 Restore
@@ -46,76 +49,68 @@ Um SDK isolado em `.tools/dotnet/` é reconhecido pelos scripts; também pode se
 .\scripts\dev.ps1 Run -Configuration Release
 ```
 
-Os scripts isolam cache em `.tools/`, fazem restore travado e propagam falhas.
-O build copia o motor e suas dependências para `engine/` ao lado do aplicativo.
-O script Run configura o runtime local; ao abrir o `.exe` diretamente, é necessário
-runtime .NET Desktop 10 instalado ou `DOTNET_ROOT` apontando ao SDK isolado.
-Não copie somente o `.exe`. Esta saída é de desenvolvimento, **não uma edição portátil**.
+Restore usa versões travadas. Caches ficam em `.tools/`; motor/dependências são copiados para
+`engine/` ao lado da UI. Abrir o executável diretamente exige .NET Desktop 10 ou `DOTNET_ROOT`
+configurado. Não copie somente o `.exe`: o build de desenvolvimento **não é uma edição portátil**.
+A distribuição futura será instalada, self-contained, por usuário, com Inno Setup.
 
-## Utilizar a v0.2
+## Uso e estrutura
 
-1. Aguarde o inventário no **Início**. Somente fontes disponíveis são selecionadas por padrão.
-2. Escolha módulos, discos e uma das durações aprovadas: **5 min, 30 min, 1 h ou 4 h**.
-   As durações são reais; nenhuma aceleração é aplicada na execução normal.
-3. Inicie a coleta. CPU/RAM/discos têm cadência de referência de 2 s; processos, 5 s.
-   O programa registra o timestamp efetivo e não promete amostras exatas sob atrasos.
-4. Navegue sem perder a sessão. O Início mostra a execução ativa e impede iniciar outra.
-   **Cancelar diagnóstico** interrompe a coleta e preserva resultados parciais.
-5. Em **Resultados**, revise estatísticas, fontes, limitações e rankings; salve observações.
-   Ausência de achados não equivale a integridade física comprovada.
-6. Em **Histórico**, filtre por computador/data `dd/MM/aaaa`/estado, abra resultados e exclua
-   apenas sessões finalizadas com confirmação. A consulta atual carrega as 100 mais recentes;
-   paginação e retenção automática ainda não estão implementadas.
+1. Aguarde o inventário no Início; selecione módulos/discos e 5 min, 30 min, 1 h ou 4 h.
+2. Análise detalhada da bateria acrescenta capacidades/consumo; a de Wi-Fi acrescenta reconexões
+   amostradas. Não representam consentimento para testes ativos.
+3. Inicie. CPU/RAM/discos têm referência de 2 s; processos, sensores, bateria/Wi-Fi/energia, 5 s.
+   Consultas pontuais e tempos de API podem atrasar amostras; fontes e timestamps ficam registrados.
+4. Navegue entre as cinco telas sem iniciar outra sessão. Cancelar preserva os dados confirmados.
+5. Em Resultados, expanda os módulos para ver registros, fontes, horários e limitações; salve notas.
+6. Histórico filtra computador/data `dd/MM/aaaa`/estado e abre resultados completos preservados.
+   Exclusão só de sessões finalizadas, com confirmação, sem remover PDFs externos.
 
-Cada gráfico apresenta no máximo 32 pontos por série; o snapshot da UI limita o total a 512.
-As amostras completas e estatísticas do período observado permanecem no banco.
-Lacunas não são preenchidas com zero ou valores artificiais. As médias não interpolam
-intervalos acima de 15 s; atrasos/suspensão são registrados como ocorrência.
+Projetos em `src/`: **Core** (contratos/modelos), **Collector** (fontes), **Persistence** (SQLite),
+**Engine** (coordenação/processo), **Presentation** (MVVM testável), **App** (WPF/DI/IPC),
+**StressSupervisor** (reservado, recusa carga). `tests/` contém testes unitários e integrados Windows.
+Detalhes e fontes: [arquitetura v0.3](docs/arquitetura/V0.3.md),
+[dependências/licenças](docs/DEPENDENCIAS.md), [distribuição](installer/InnoSetup/README.md).
 
-## Testes e evidências
+## Verificação e limites
 
-A suíte combina fixtures determinísticas com **leituras passivas curtas do Windows**.
-Também encerra um motor criado pelo próprio teste para validar recuperação; não encerra
-aplicativos de terceiros. Não executa estresse.
-
-O ensaio real completo de cinco minutos é separado da suíte rápida:
+A suíte combina fixtures e leituras passivas reais locais. Também encerra somente um motor
+criado pelo próprio teste para exercitar recuperação; não encerra programas de terceiros.
+O ensaio completo de cinco minutos com onze módulos é separado da suíte rápida:
 
 ```powershell
+$env:DOTNET_ROOT = "$PWD\.tools\dotnet"
+$env:DOTNET_CLI_HOME = "$PWD\.tools\home"
+$env:NUGET_PACKAGES = "$PWD\.tools\nuget"
 $env:GCM_RUN_LONG_PASSIVE_VALIDATION = '1'
-# Usar o dotnet do SDK 10 selecionado; os caches/runtime devem estar configurados como em scripts/dev.ps1.
-dotnet test tests/GcmMonitor.IntegrationTests -c Release --no-build --no-restore `
+& .\.tools\dotnet\dotnet.exe test tests/GcmMonitor.IntegrationTests -c Release --no-build --no-restore `
   --filter 'FullyQualifiedName~FullFiveMinutePassiveSession' --logger trx
 ```
 
-Sem a variável, esse caso aparece explicitamente como ignorado; não é contado como aprovado.
-O relatório registra separadamente os ensaios executados. TRX/capturas ficam em `.artifacts/`
-e não são versionados. Capturas automatizadas usam apenas fixtures, claramente identificadas.
-O CI publica somente TRX, capturas sintéticas e resumos sanitizados, nunca bancos reais.
+Sem a variável, esse caso aparece como ignorado; não é contado como aprovado nessa execução.
+Evidências: [relatório v0.3](docs/testes/RELATORIO_V0.3.md) e
+[rastreabilidade dos 77 CT](docs/testes/RASTREABILIDADE_V0.3.md).
+TRX/capturas ficam em `.artifacts/`. O CI publica apenas resultados de testes, imagens sintéticas
+identificadas e resumos sanitizados, nunca bancos locais ou registros brutos do equipamento.
 
-Veja [relatório v0.2](docs/testes/RELATORIO_V0.2.md),
-[arquitetura v0.2](docs/arquitetura/V0.2.md) e [dependências/licenças](docs/DEPENDENCIAS.md).
+- Sensores CPU/GPU/RPM: **não validados em hardware real nesta entrega**. Fonte WMI externa pode
+  estar ausente ou desatualizada. Zero desse contrato externo é ambíguo e fica indisponível.
+  Nenhuma proteção térmica/estresse é liberada a partir dessas leituras.
+- GPU PDH é por engine; não se somam engines diferentes como porcentagem global. Não há
+  correlação validada entre LUID e modelo, VRAM ou classificação integrada/dedicada.
+- SMART indisponível não significa saudável. Controladoras/RAID/USB e associações podem limitar dados.
+- Wi-Fi depende do serviço/API/permissões de localização. Sem banda validada ou testes ativos.
+- Eventos: até 128 por log, sete dias, fontes selecionadas. Limite excedido é sinalizado como parcial.
+  PnP: até 512 dispositivos, problemas primeiro. Nenhum Event ID isolado determina causa.
+- Gráficos: até 32 pontos/série e 512 amostras no snapshot; registros IPC: até 64 por módulo/192
+  no total. Os registros completos coletados ficam no banco e são carregados ao abrir o resultado.
+- Histórico lista as 100 sessões mais recentes; paginação/retenção automática não implementadas.
+- CPU representa tempo ocupado, não utilidade ajustada por frequência. Mais de 64 processadores
+  lógicos permanece indisponível até validar grupos. Processos protegidos podem ficar parciais.
+- Preferências de avisos/pasta valem apenas na execução; PDF desabilitado. Sem instalador nesta etapa.
+- Validação local não substitui matriz Windows 10/11, máquinas com sensores e ensaios reais de 30 min/1 h/4 h.
 
-## Dados e limites
-
-Banco real por usuário: `%LOCALAPPDATA%\GCM Monitor\Data\gcm-monitor.db`.
-O banco `demo-v0.1.db` da entrega anterior não é importado nem misturado automaticamente.
-Fixtures permanecem reservadas aos testes. Dados reais e sintéticos são rejeitados quando
-misturados na mesma sessão. Não inclua bancos, notas, nomes de máquinas/processos reais,
-relatórios ou capturas reais no repositório público.
-
-- CPU representa **tempo ocupado**, podendo diferir da utilidade com ajuste de frequência
-  mostrada pelo Gerenciador de Tarefas. Acima de 64 processadores lógicos, a leitura agregada
-  fica indisponível até validação de grupos de processadores.
-- RAM física, cache e comprometimento são contadores diferentes; GiB usa base 1024.
-  Paginação não comprova defeito de RAM.
-- Discos/volumes complexos e metadados de tipo/barramento podem ficar indisponíveis.
-  Tipo desconhecido não é inferido pelo nome do modelo. SMART não acessado não significa saudável.
-- Processos protegidos podem não fornecer identidade/contadores; o ranking sinaliza cobertura parcial.
-- Houve validação passiva local; **não há validação ampla em hardware real**, precisão certificada,
-  ensaio real de quatro horas ou aprovação da matriz completa de Windows/sensores.
-- Preferências de avisos/pasta são ilustrativas e valem apenas nesta execução. PDF desabilitado.
-- Não há instalador nesta etapa. A futura distribuição é instalada, self-contained, por usuário,
-  com Inno Setup; ver [contrato de distribuição](installer/InnoSetup/README.md).
-
-Próxima etapa do plano: v0.3 (diagnósticos avançados). Estresse somente na v0.4 após os P0
-de segurança; PDF/distribuição e matriz de liberação completa na v1.0.
+Dados por usuário: `%LOCALAPPDATA%\GCM Monitor\Data\gcm-monitor.db`; banco demonstrativo antigo
+não é importado. Não versione bancos, notas, identificadores, relatórios ou capturas reais.
+Próximo marco: provas de sensores/observabilidade e **v0.4 protegida**, condicionada aos P0 de
+segurança em laboratório. A v0.3 não autoriza liberar estresse antes dessas provas.

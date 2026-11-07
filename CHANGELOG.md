@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 — 06/11/2026
+
+- Diagnósticos avançados passivos com registros, fontes, qualidade e limites por capacidade.
+- Inventário de GPU e PDH por engine; sensores WMI externos/ACPI sem instalação de drivers.
+- Confiabilidade de discos por associação Storage; ausência de SMART não significa integridade.
+- Bateria detalhada, capacidades relativas protegidas, desgaste e autonomia estimada por consumo.
+- Wi-Fi passivo, PnP/drivers, eventos limitados, energia/plano e histórico local Windows Update.
+- Consultas pontuais sem espera artificial, falhas isoladas e invalidação de séries indisponíveis.
+- SQLite schema 3 aditivo, registros duráveis e resultados hidratados ao reabrir; IPC 3 limitado.
+- Seleção dos onze módulos no Início, resultados expansíveis e testes determinísticos/integrados.
+- Zero ambíguo do provedor WMI externo tratado como indisponível. Estresse continua bloqueado.
+- Banda Wi-Fi, SMART bruto, sensores em hardware real e matriz ampla permanecem não validados.
+
 ## 0.2.0 — 06/11/2026
 
 - Coleta passiva real de CPU, RAM/comprometimento/paginação, processos e tráfego de discos.

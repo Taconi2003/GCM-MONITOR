@@ -1,0 +1,71 @@
+{
+  "Version": "0.3.0",
+  "EndedUtc": "2026-11-07T01:22:30.2177248+00:00",
+  "Result": "Passed",
+  "ActualSeconds": 300.5144166,
+  "PersistedMeasurements": 3580,
+  "MaxUiSamples": 512,
+  "MaxMessageBytes": 282718,
+  "RestoredRecords": 432,
+  "Modules": [
+    {
+      "Module": "Memory",
+      "State": "Completed",
+      "ReadingCount": 1062
+    },
+    {
+      "Module": "Cpu",
+      "State": "Completed",
+      "ReadingCount": 132
+    },
+    {
+      "Module": "Storage",
+      "State": "Partial",
+      "ReadingCount": 528
+    },
+    {
+      "Module": "WindowsEvents",
+      "State": "Partial",
+      "ReadingCount": 166
+    },
+    {
+      "Module": "Battery",
+      "State": "Partial",
+      "ReadingCount": 163
+    },
+    {
+      "Module": "WindowsUpdate",
+      "State": "Partial",
+      "ReadingCount": 34
+    },
+    {
+      "Module": "Sensors",
+      "State": "Partial",
+      "ReadingCount": 1092
+    },
+    {
+      "Module": "Processes",
+      "State": "Partial",
+      "ReadingCount": 7526
+    },
+    {
+      "Module": "Devices",
+      "State": "Completed",
+      "ReadingCount": 221
+    },
+    {
+      "Module": "Wifi",
+      "State": "Partial",
+      "ReadingCount": 318
+    },
+    {
+      "Module": "Power",
+      "State": "Completed",
+      "ReadingCount": 106
+    }
+  ],
+  "Messages": 671,
+  "ProcessRankings": 14,
+  "StressExecuted": false,
+  "IdentifiersExcluded": true
+}

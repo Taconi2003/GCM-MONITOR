@@ -1,4 +1,4 @@
-# Dependências da v0.2
+# Dependências da v0.3
 
 SDK de validação: .NET 10.0.403 x64, isolado no workspace. Ferramentas locais não são versionadas.
 Versões diretas em `Directory.Packages.props`; resolução exata e hashes nos `packages.lock.json`.
@@ -20,7 +20,7 @@ Metadados de licença conferidos nos pacotes restaurados; não substituem revis�
 Transitivos de testes (incluindo TestPlatform, CodeCoverage e Newtonsoft.Json) constam dos lockfiles.
 Dependências de testes não integram o aplicativo distribuído.
 
-## Correção aplicada na v0.1 e mantida na v0.2
+## Correção aplicada na v0.1 e mantida na v0.2/v0.3
 
 O restore inicial de Microsoft.Data.Sqlite 10.0.0 resolveu o bundle nativo antigo 2.1.11 e
 falhou com NU1903: [GHSA-2m69-gcr7-jv3q / CVE-2025-6965](https://github.com/advisories/GHSA-2m69-gcr7-jv3q).
@@ -35,9 +35,13 @@ Antes de distribuir, incluir os avisos/licenças necessários, revisar dependên
 executar a matriz Windows e assinar os artefatos conforme planejamento. NuGet audit é uma verificação
 pontual de advisories conhecidos, não uma garantia de ausência de vulnerabilidades.
 
-ScottPlot.WPF, LibreHardwareMonitorLib, APIs de eventos e PDFsharp/MigraDoc
+ScottPlot.WPF, LibreHardwareMonitorLib e PDFsharp/MigraDoc
 continuam candidatos aprovados, ainda sem versões congeladas ou prova de conceito nesta etapa.
 
 System.Management 10.0.0 foi fixado e exercitado em consultas de inventário somente de leitura.
 Sensores/drivers, compatibilidade ampla e qualidade de cada metadado continuam sujeitos às provas
 de conceito previstas. A auditoria da v0.2 incluiu os transitivos dessa nova referência.
+
+System.Diagnostics.EventLog **10.0.0**, Microsoft, licença **MIT** conferida no nuspec restaurado. Usada apenas para consultas EventLogReader com XPath limitado. Sem novos transitivos de produção no alvo net10.0. Auditoria NuGet direta/transitiva da v0.3 sem avisos conhecidos na data do ensaio.
+
+LibreHardwareMonitor não é empacotado, instalado ou iniciado. A integração WMI opcional usa o contrato público do provedor v0.9.4 existente. A prova de contrato identificou conversão de null para zero; zero externo não é aceito como leitura comprovada. Ver docs/arquitetura/V0.3.md. Não há aprovação de sensor/driver para estresse.

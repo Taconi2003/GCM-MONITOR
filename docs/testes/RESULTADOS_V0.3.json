@@ -1,0 +1,471 @@
+{
+  "Version": "0.3.0",
+  "CodeCommit": "8666d6475ba37b007c26a7ed0153a02b4333336a",
+  "Environment": "DEV-LOCAL-01, Windows 11 x64 build 26200",
+  "Timezone": "America/Sao_Paulo",
+  "Sdk": "10.0.403",
+  "Build": "Release, zero warnings/errors",
+  "StressExecuted": false,
+  "ClientIdentifiersExcluded": true,
+  "DistinctPassedTests": 84,
+  "QuickRuns": [
+    {
+      "Sha256": "75D3801D01F8FE1C516D2A352CAC848DA2E1119187410109848C30064C626D33",
+      "StartedUtc": "2026-11-07T01:16:49.7211921+00:00",
+      "EndedUtc": "2026-11-07T01:17:10.2250371+00:00",
+      "Passed": 22,
+      "Failed": 0,
+      "Skipped": 1,
+      "Cases": [
+        {
+          "Name": "GcmMonitor.IntegrationTests.PersistenceTests.RecoveryMarksUnfinishedSessionInterruptedWithoutResumingStress",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0922758"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.AdvancedCollectionTests.PunctualEngineCompletesWithoutWaitingFiveMinutesAndPersistsAdvancedRecords",
+          "Outcome": "Passed",
+          "Duration": "00:00:05.4029988"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.WpfViewTests.FiveViewsRenderAtTwoWindowSizesWithoutBindingErrors",
+          "Outcome": "Passed",
+          "Duration": "00:00:03.0791690"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.KillingOnlyTheOwnedEnginePreservesCommittedSamplesForRecovery",
+          "Outcome": "Passed",
+          "Duration": "00:00:01.1379615"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PersistenceTests.ReopeningDatabasePreservesSessionTransitionsAndTechnicianNotes",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.2930401"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.WindowsInventoryContainsPhysicalDiskMappingsAndNoSyntheticHardware",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.2331974"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.AdvancedCollectionTests.SchemaTwoMigratesAdditivelyAndPreservesExistingSessionAndNotes",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.3999923"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PersistenceTests.MixingRealAndSyntheticDataInSameSessionIsRejected",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.1183371"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PersistenceTests.CleanupCannotDeleteRunningSessionAndDoesNotTouchExternalPdf",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.1008370"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.AdvancedCollectionTests.NativeAdvancedSourcesExposeRealReadingsOrExplicitCapabilityLimits",
+          "Outcome": "Passed",
+          "Duration": "00:00:10.2567228"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PersistenceTests.WalAndPatchedNativeSqliteAreActuallyLoaded",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0415814"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.RecoveryDoesNotInterruptASessionWithMatchingLiveProcessIdentity",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0404677"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.EngineProcessTests.SeparateEngineCompletesPointQueriesWithoutWaitingMonitoringDuration",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.5980369"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.EngineProcessTests.SupervisorExecutableRefusesToGenerateLoad",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.1190051"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.EngineProcessTests.CancellingDemoPreservesPartialStateAndSelectedModulesOnly",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.7626589"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.EngineProcessTests.WrongProtocolVersionIsRejectedBeforeCreatingDatabase",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.2572208"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.PassiveEngineCanCancelAndReopenWithRealSamplesAndProcessRankings",
+          "Outcome": "Passed",
+          "Duration": "00:00:06.6087401"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.AdvancedCollectionTests.RecordsAreAtomicRejectMixedOriginsAndDeleteOnlyWithTheirOwnSession",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0939694"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.EngineProcessTests.CompletedDemoHonorsDiskSelectionAndProducesOnlySyntheticBoundedSamples",
+          "Outcome": "Passed",
+          "Duration": "00:00:11.1243610"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.BatchPersistsSamplesModulesFindingsAndEndedProcessRankingsAtomically",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0416777"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.CpuCanBeComparedWithEquivalentWindowsPdhCounterWithoutGeneratingLoad",
+          "Outcome": "Passed",
+          "Duration": "00:00:08.4277026"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.NativeCpuMemoryDiskAndProcessSamplesAreRealAndHaveValidUnits",
+          "Outcome": "Passed",
+          "Duration": "00:00:03.0015046"
+        },
+        {
+          "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.FullFiveMinutePassiveSessionCompletesAndKeepsBoundedUiSnapshots",
+          "Outcome": "NotExecuted",
+          "Duration": "00:00:00.0010000"
+        }
+      ]
+    },
+    {
+      "Sha256": "D32CC896930C93DD4FA0B7F2695DEF1251831462EF164D9931496424C5052C94",
+      "StartedUtc": "2026-11-07T01:16:49.6710631+00:00",
+      "EndedUtc": "2026-11-07T01:16:51.1723385+00:00",
+      "Passed": 61,
+      "Failed": 0,
+      "Skipped": 0,
+      "Cases": [
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.TerminalDemoProducesResultsWithoutSensorOrGpuCharts",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0526800"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.ChannelRoundTripsOnlyStructuredData",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0828627"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.EmptySelectionDisplaysValidationAndNeverStartsEngine",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0010904"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.ChannelRejectsInvalidSizesBeforeReadingPayload(size: -1)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0000757"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.WifiCountsOnlyObservedReconnectsAndNeverInventsSignalWhenAccessIsDenied",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0149958"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.NavigationDoesNotCancelActiveSessionOrAllowASecondRun",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0606988"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.UnsupportedDurationIsRejected(minutes: 120)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0003222"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.CatalogHasExactlyElevenDistinctModulesWithoutStress",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0048638"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.MissingOrInconsistentBatteryCapacityDoesNotProduceHealthValue(design: 50000, full: 60000)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0003917"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.EventSelectionUsesProviderAndIdTogetherAndBoundsItsHistoricalWindow",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0010027"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.ProcessCpuAndWorkingSetAreTimeWeightedAndPidReuseDoesNotMerge",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0172051"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.WeightedMetricMeanUsesActualIntervalsAndExcludesGaps",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0034448"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.BatteryWearUsesDesignAndFullChargeCapacities(design: 50000, full: 50000, expected: 0)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0003903"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.PersistenceFailureAfterCollectionStartsStopsFurtherSampling",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0046778"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.PassiveSessionRunsApprovedDurationWithoutAcceleratingRealClockContract",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0494953"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.ChannelRejectsInvalidSizesBeforeReadingPayload(size: 0)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0004181"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.BrokenPersistenceStopsSessionRatherThanContinuingUnrecordedCollection",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0013404"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.CancellationPreservesPartialResultsWithoutFinishingChosenDuration",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0759823"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.ChannelRejectsInvalidSizesBeforeReadingPayload(size: 1048577)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0073149"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.DurationsAreExactlyTheApprovedOptions",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0031679"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.PnpDriversAreJoinedByDeviceIdentityAndPrivateIdsAreNotPersisted",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0506662"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.BatteryRuntimeUsesObservedDischargeAndRejectsUnknownValues",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0005897"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.UnavailableSmartAndFirstPdhBaselineDoNotDisableContinuousDiskActivity",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0043060"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.StressIsOffByDefaultAndExplicitActivationIsRejected",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0008530"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.EnableDisableAndRestoreNeverEnableStress",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0044152"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.WifiAbsenceIsUnavailableAndAdapterRemovalBreaksPreviousSignalSeries",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.1056253"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.CpuDeltaSubtractsIdleAndIncludesKernelOnlyOnce",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0008203"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.FiveScreensAreNavigableAndSelectionSurvivesNavigation",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0069582"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.DiagnosticRecordRejectsOversizedPayloads",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0002727"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.RealModeLoadsInventoryAndSelectsElevenModulesForCapabilityChecksWithoutSyntheticHardware",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0605214"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.IsolatedCollectorFailureDoesNotCancelOtherModules",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0229504"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.SensorIdentityComesFromParentAndAcpiZoneIsNeverRelabelledAsCpu",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0086554"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.MissingOrInconsistentBatteryCapacityDoesNotProduceHealthValue(design: 50000, full: 0)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0001630"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.DetailedBatteryJoinsCapacityByFullInstanceAndTagAndRejectsRelativeUnits",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0125411"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.SmartCounterRequiresAssociationAndTreatsUnexposedTemperatureAsUnavailable",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0016812"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.LongPnpIdsAreNeverTruncatedBeforeDriverAssociation",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0018912"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.SessionTransitionsRecordReasonsAndTerminalSessionsCannotResume",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0262793"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.ProtocolRejectsWrongVersionAndIdentity",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0006223"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.HistoryFiltersStatusComputerAndDate",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0228911"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.StorageRequiresSelectedPhysicalDisk",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0003744"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.UnavailableSensorHasNoInventedValue",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0008649"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.GpuEnginesAreGroupedByAdapterAndEngineWithoutSummingDifferentEngines",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0583245"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.DelayedSamplingRecordsGapWithoutInterpolatingMissingInterval",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0473866"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.DetailedBatteryUsesActualUnitsAndDoesNotEstimateRuntimeWhileCharging",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0015223"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.UnsupportedDurationIsRejected(minutes: 10)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0004131"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.UnsupportedModulesFinishImmediatelyAndAreNotHealthy",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0016614"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.PunctualOnlySessionCompletesWithoutWaitingChosenFourHoursAndDoesNotRepeatQueries",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0138564"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.MissingOrInconsistentBatteryCapacityDoesNotProduceHealthValue(design: 0, full: 40000)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0000098"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.DetailsAreClearedWhenTheirModuleIsDisabled",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0015410"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.DetailedWifiRequiresWifiModule",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0003601"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.EmptySelectionIsRejected",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0006137"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.PowerChangesAreRecordsAndDoNotBecomeHardwareFailureFindings",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0026858"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.UnknownAndDuplicateModulesAreRejected",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0005981"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.PresentationTests.DeleteRequiresConfirmationAndKeepsActiveSessions",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0104962"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.BatteryWearUsesDesignAndFullChargeCapacities(design: 50000, full: 40000, expected: 20)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0009032"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.RunningCannotSkipFinalizationToComplete",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0004544"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.SyntheticCollectorIsDeterministicAndMarksEverySample",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0211164"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.TelemetryTests.MissingProcessCountersDoNotFillInZerosOrIntegrateUnobservedTime",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0004372"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.CancellingContinuousMonitoringKeepsAlreadyCompletedPunctualModuleCompleted",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0014693"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.AdvancedDiagnosticTests.BatteryAbsenceIsUnavailableWithoutSyntheticZeroCharge",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0005561"
+        },
+        {
+          "Name": "GcmMonitor.UnitTests.ContractTests.UnsupportedDurationIsRejected(minutes: 0)",
+          "Outcome": "Passed",
+          "Duration": "00:00:00.0000305"
+        }
+      ]
+    }
+  ],
+  "FinalFiveMinuteRun": {
+    "Sha256": "15128B7671705F6714B34CD970B6B4BCDF9922197DCB118D0AD6DFEC9BF21233",
+    "StartedUtc": "2026-11-07T01:17:28.7380013+00:00",
+    "EndedUtc": "2026-11-07T01:22:30.4685924+00:00",
+    "Passed": 1,
+    "Failed": 0,
+    "Skipped": 0,
+    "Cases": [
+      {
+        "Name": "GcmMonitor.IntegrationTests.PassiveCollectionTests.FullFiveMinutePassiveSessionCompletesAndKeepsBoundedUiSnapshots",
+        "Outcome": "Passed",
+        "Duration": "00:05:00.8589210"
+      }
+    ]
+  },
+  "NugetAudit": "No known vulnerable direct or transitive package reported",
+  "CodeCi": "https://github.com/Taconi2003/GCM-MONITOR/actions/runs/42323188135",
+  "OriginalSpecificationSha256": "34D51BCB95231774FB1EB4E0DAE157C0714717DC902B671127A7E59F4A960B4E"
+}
