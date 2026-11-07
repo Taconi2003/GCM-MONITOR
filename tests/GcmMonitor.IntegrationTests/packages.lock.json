@@ -151,16 +151,16 @@
       "gcmmonitor.app": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Persistence": "[1.0.0-preview.5, )",
-          "GcmMonitor.Presentation": "[1.0.0-preview.5, )",
-          "GcmMonitor.Reporting": "[1.0.0-preview.5, )",
+          "GcmMonitor.Persistence": "[1.0.0-preview.6, )",
+          "GcmMonitor.Presentation": "[1.0.0-preview.6, )",
+          "GcmMonitor.Reporting": "[1.0.0-preview.6, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.0, )"
         }
       },
       "gcmmonitor.collector": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.5, )",
+          "GcmMonitor.Core": "[1.0.0-preview.6, )",
           "System.Management": "[10.0.0, )"
         }
       },
@@ -170,13 +170,13 @@
       "gcmmonitor.execution": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.5, )"
+          "GcmMonitor.Core": "[1.0.0-preview.6, )"
         }
       },
       "gcmmonitor.persistence": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.5, )",
+          "GcmMonitor.Core": "[1.0.0-preview.6, )",
           "Microsoft.Data.Sqlite": "[10.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
@@ -185,14 +185,14 @@
         "type": "Project",
         "dependencies": {
           "CommunityToolkit.Mvvm": "[8.4.0, )",
-          "GcmMonitor.Collector": "[1.0.0-preview.5, )",
-          "GcmMonitor.Core": "[1.0.0-preview.5, )"
+          "GcmMonitor.Collector": "[1.0.0-preview.6, )",
+          "GcmMonitor.Core": "[1.0.0-preview.6, )"
         }
       },
       "gcmmonitor.reporting": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.5, )",
+          "GcmMonitor.Core": "[1.0.0-preview.6, )",
           "PDFsharp-MigraDoc-WPF": "[6.2.4, )"
         }
       },

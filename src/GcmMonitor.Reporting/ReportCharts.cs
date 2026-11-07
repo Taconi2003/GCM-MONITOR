@@ -39,7 +39,20 @@ internal static class ReportCharts
         }
     }
 
-    private static byte[] Render(Measurement[] samples)
+    public static void AddThermal(Section section, ThermalTrace trace)
+    {
+        var points = ThermalRecoveryAnalyzer.TemperatureSeries(trace).Select(p => new Measurement(ModuleId.Sensors, "Temperatura CPU", trace.Sensor,
+            p.HasFreshTemperature ? p.Celsius : null, "°C", p.ObservedAt, trace.Source,
+            p.HasFreshTemperature ? DataQuality.Valid : DataQuality.Unavailable, true)).ToArray();
+        if (points.Count(p => p.Quality == DataQuality.Valid) < 2 || points[^1].Timestamp <= points[0].Timestamp) return;
+        var caption = section.AddParagraph("Temperatura (°C) · laranja início da carga fictícia · verde início da recuperação");
+        caption.Format.KeepWithNext = true;
+        var image = section.AddImage("base64:" + Convert.ToBase64String(Render(points, trace.LoadStartedAt, trace.LoadEndedAt)));
+        image.Width = Unit.FromCentimeter(16.7);
+        image.LockAspectRatio = true;
+    }
+
+    private static byte[] Render(Measurement[] samples, DateTimeOffset? load = null, DateTimeOffset? recovery = null)
     {
         const double width = 800, height = 226, left = 72, top = 16, right = 750, bottom = 184;
         var numeric = samples.Where(x => x.Quality == DataQuality.Valid).Select(x => x.Value!.Value).ToArray();
@@ -66,6 +79,15 @@ internal static class ReportCharts
                 if (tick is 0 or 2 or 4)
                     Label(((min + (max - min) * tick / 4) * scale).ToString("0.##", Pt), 8, y - 8);
             }
+            void Marker(DateTimeOffset? time, byte red, byte green, byte blue)
+            {
+                if (time is not { } at || at < samples[0].Timestamp || at > samples[^1].Timestamp) return;
+                double x = left + (right - left) * (at - samples[0].Timestamp).TotalSeconds / totalSeconds;
+                var marker = new Pen(new SolidColorBrush(System.Windows.Media.Color.FromRgb(red, green, blue)), 2) { DashStyle = DashStyles.Dash };
+                draw.DrawLine(marker, new Point(x, top), new Point(x, bottom));
+            }
+            Marker(load, 174, 96, 22);
+            Marker(recovery, 20, 128, 93);
             Point? previous = null;
             foreach (var sample in samples)
             {
@@ -79,7 +101,7 @@ internal static class ReportCharts
             }
             Label(samples[0].Timestamp.ToLocalTime().ToString("HH:mm:ss", Pt), left, bottom + 12);
             Label(samples[^1].Timestamp.ToLocalTime().ToString("HH:mm:ss", Pt), right - 60, bottom + 12);
-            Label("Horário local", (left + right) / 2 - 42, bottom + 12);
+            Label(samples[0].IsDemo ? "Tempo simulado" : "Horário local", (left + right) / 2 - 42, bottom + 12);
         }
         var bitmap = new RenderTargetBitmap((int)width * 2, (int)height * 2, 192, 192, PixelFormats.Pbgra32);
         bitmap.Render(visual);

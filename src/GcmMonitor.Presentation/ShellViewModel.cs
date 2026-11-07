@@ -21,7 +21,8 @@ public sealed partial class ShellViewModel : ObservableObject
     public string VersionLabel => "v" + ProductVersion.Value;
     public string WindowTitle => "GCM Monitor — Gimenes Coleta e Monitoramento · " + VersionLabel;
     public string StressBlockReason => "Estresse bloqueado: sensores térmicos, limites por hardware e matriz P0 ainda precisam de validação em laboratório.";
-    public string StressResultSummary => resultSession is null ? "Estresse bloqueado. Selecione um resultado para consultar a avaliação registrada." : resultSession.Stress is { } assessment
+    public string StressResultSummary => resultSession?.ThermalRehearsal is not null ? "Simulação térmica · estresse físico bloqueado." :
+        resultSession is null ? "Estresse bloqueado. Selecione um resultado para consultar a avaliação registrada." : resultSession.Stress is { } assessment
         ? "Estresse desativado · nenhuma carga executada.\n" + string.Join(" ", assessment.Reasons)
         : "Estresse não executado. Sessão anterior ou demonstrativa sem avaliação de segurança da v0.4.";
     public string DataBanner => IsDemoMode ? "MODO DEMONSTRAÇÃO · Dados sintéticos. Nenhuma medição real, teste de estresse ou alteração do Windows. O relógio da reprodução é acelerado." :
@@ -70,6 +71,8 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty] private bool detailedBattery;
     [ObservableProperty] private bool detailedWifi;
     [ObservableProperty] private string technicianNotes = "";
+    [ObservableProperty] private ThermalCard? monitoringThermal;
+    [ObservableProperty] private ThermalCard? resultThermal;
     [ObservableProperty] private string historySearch = "";
     [ObservableProperty] private string historyDateText = "";
     [ObservableProperty] private string historyStatus = "Todos";
@@ -85,6 +88,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public bool StorageEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Storage).IsSelected;
     public bool CanConfigure => IsReady && !IsActive;
     public string Title => Navigation.Single(x => x.Screen == CurrentScreen).Title;
+    public string ScreenIcon => Navigation.Single(x => x.Screen == CurrentScreen).Icon;
     public string Subtitle => CurrentScreen switch
     {
         Screen.Home => "Visão geral do computador, seleção e execução do diagnóstico",
@@ -97,22 +101,42 @@ public sealed partial class ShellViewModel : ObservableObject
     public string SessionStatus => activeSession is null ? "Nenhuma sessão iniciada" : Labels.Session(activeSession.State) + (activeSession.IsDemo ? " · demonstração" : " · coleta passiva");
     public string Stage => (activeSession?.Transitions.LastOrDefault()?.Reason ?? "Selecione módulos disponíveis no Início para iniciar uma sessão.") +
         (activeSession?.Issues.LastOrDefault() is { } issue ? "\nÚltima ocorrência da coleta: " + issue.Message : "");
-    public string Clock => activeSession is null ? "— / —" : $"{activeSession.EffectiveDuration:hh\\:mm\\:ss} / {TimeSpan.FromMinutes(activeSession.Options.MonitoringMinutes):hh\\:mm\\:ss}" + (activeSession.IsDemo ? " · tempo simulado" : " · tempo efetivo");
-    public double Progress => activeSession is null ? 0 : Math.Clamp(activeSession.EffectiveDuration.TotalMinutes / activeSession.Options.MonitoringMinutes * 100, 0, 100);
+    public string Clock => activeSession is null ? "— / —" : $"{activeSession.EffectiveDuration:hh\\:mm\\:ss} / {PlannedSessionTime:hh\\:mm\\:ss}" + (activeSession.IsDemo ? " · tempo simulado" : " · tempo efetivo");
+    public double Progress => activeSession is null ? 0 : Math.Clamp(activeSession.EffectiveDuration.TotalSeconds / PlannedSessionTime.TotalSeconds * 100, 0, 100);
+    private TimeSpan PlannedSessionTime
+    {
+        get
+        {
+            if (activeSession?.ThermalRehearsal is not { } trace)
+                return TimeSpan.FromMinutes(activeSession?.Options.MonitoringMinutes ?? 5);
+            var plan = StressPlan.Create(activeSession.Options.MonitoringMinutes, activeSession.Options.StressMinutes);
+            return trace.LoadEndedAt is { } ended ? ended - trace.StartedAt + plan.After : plan.ProposedDuration;
+        }
+    }
     public bool HasSession => activeSession is not null;
+    public bool HasMonitoringThermal => MonitoringThermal is not null;
+    public string MonitoringStressTitle => HasMonitoringThermal ? "Ensaio térmico demonstrativo" : "Estresse desativado";
+    public string MonitoringStressDetail => HasMonitoringThermal ? "Carga fictícia e relógio acelerado." : "Coleta passiva dos módulos selecionados.";
+    public bool HasResultThermal => ResultThermal is not null;
+    public bool HasThermalAttention => IsActive && MonitoringThermal?.AwaitingChoice == true;
+    public bool HasThermalCritical => MonitoringThermal?.Critical == true;
+    public bool CanStopSimulatedLoad => IsActive && activeSession?.ThermalRehearsal?.Phase == StressPhase.Active;
+    public bool ShowThermalStopButton => CanStopSimulatedLoad && !HasThermalAttention;
     public bool HasResults => resultSession is not null;
     public bool HasNoResults => !HasResults;
     public bool HasNoMetrics => MetricCards.Count == 0;
     public bool HasNoHistory => History.Count == 0;
     public string ResultStatus => resultSession is null ? IsActive ? "Sessão ativa: resultados ainda não consolidados." : "Nenhum resultado selecionado." :
-        $"{Labels.Session(resultSession.State)} · {(resultSession.State == SessionState.Completed ? "Resumo da sessão" : "Relatório parcial")}" + (resultSession.IsDemo ? " demonstrativo" : "");
+        $"{Labels.Session(resultSession.State)} · {(resultSession.State == SessionState.Completed
+            ? resultSession.IsDemo ? "Resumo demonstrativo da sessão" : "Resumo da sessão"
+            : resultSession.IsDemo ? "Relatório parcial demonstrativo" : "Relatório parcial")}";
     public string ResultSummary => resultSession is null ? "Inicie uma sessão no Início ou abra um resultado pelo Histórico." :
         $"{resultSession.ComputerName} · {resultSession.StartedAt.ToLocalTime():dd/MM/yyyy HH:mm} → {resultSession.EndedAt?.ToLocalTime():HH:mm}\n{resultSession.EffectiveDuration.TotalMinutes:0.#} min {(resultSession.IsDemo ? "simulados" : "efetivos")} · {resultSession.Modules.Length} módulos · Estresse desativado\n{resultSession.IntegrityNote}";
     public int NormalCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Normal) ?? 0;
     public int AttentionCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Attention) ?? 0;
     public int FailureCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Failure) ?? 0;
     public int UnavailableCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Unavailable) ?? 0;
-    public string InstallationPath => AppContext.BaseDirectory;
+    public string InstallationPath => IsDemoMode ? "Instalação demonstrativa" : AppContext.BaseDirectory;
     public string CollectionIssues => resultSession is null ? "Nenhuma coleta realizada." :
         string.Join("\n", resultSession.Modules.Where(x => x.State is ModuleState.Unavailable or ModuleState.Error or ModuleState.Partial)
             .Select(x => $"{Labels.Module(x.State)} · {ModuleCatalog.All.Single(m => m.Id == x.Id).Name}: {x.Summary}")
@@ -152,7 +176,7 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(SelectedModuleCount)); OnPropertyChanged(nameof(BatteryEnabled));
         OnPropertyChanged(nameof(WifiEnabled)); OnPropertyChanged(nameof(StorageEnabled));
     }
-    partial void OnCurrentScreenChanged(Screen value) { OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Subtitle)); }
+    partial void OnCurrentScreenChanged(Screen value) { OnPropertyChanged(nameof(Title)); OnPropertyChanged(nameof(Subtitle)); OnPropertyChanged(nameof(ScreenIcon)); }
     partial void OnIsReadyChanged(bool value) { OnPropertyChanged(nameof(CanConfigure)); StartCommand.NotifyCanExecuteChanged(); }
     partial void OnIsActiveChanged(bool value)
     {
@@ -195,6 +219,18 @@ public sealed partial class ShellViewModel : ObservableObject
         try
         {
             var options = CreateOptions(); options.Validate();
+            if (engine is IThermalRehearsalClient { ThermalRehearsalEnabled: true })
+            {
+                if (options.Modules.Length != 2 || !options.Modules.Contains(ModuleId.Cpu) || !options.Modules.Contains(ModuleId.Sensors))
+                    throw new ArgumentException("Selecione apenas Processador (CPU) e Temperaturas e ventoinhas no ensaio térmico.");
+                var plan = StressPlan.Create(options.MonitoringMinutes, options.StressMinutes);
+                string extension = plan.RequiresExtension
+                    ? $"\n\nA duração planejada da simulação passa de {plan.MonitoringMinutes} min para {plan.ProposedDuration:c}, incluindo referência e recuperação."
+                    : "";
+                if (!dialogs.Confirm("Autorizar simulação térmica",
+                    "Os valores e a carga são fictícios. O relógio da reprodução é acelerado." + extension + "\n\nIniciar a simulação?"))
+                    return;
+            }
             activeSession = null;
             UpdateMonitoring();
             IsActive = true; Message = IsDemoMode ? "Reprodução acelerada de dados sintéticos. Nenhum diagnóstico real em execução." : "Coleta passiva real em andamento. O Windows e seus componentes não serão modificados.";
@@ -231,8 +267,26 @@ public sealed partial class ShellViewModel : ObservableObject
         catch (Exception ex) when (ex is IOException or OperationCanceledException) { Message = "Canal indisponível. O motor de sessão será encerrado."; }
     }
 
+    private bool CanResolveThermalAttention(ThermalChoice choice) =>
+        HasThermalAttention || choice == ThermalChoice.Stop && CanStopSimulatedLoad;
+
+    [RelayCommand(CanExecute = nameof(CanResolveThermalAttention))]
+    private async Task ResolveThermalAttentionAsync(ThermalChoice choice)
+    {
+        if (engine is not IThermalRehearsalClient control || !CanResolveThermalAttention(choice)) return;
+        try { await control.ResolveThermalAttentionAsync(choice); }
+        catch (Exception ex) when (ex is IOException or InvalidOperationException or OperationCanceledException)
+        { Message = "Não foi possível enviar a escolha ao ensaio térmico."; }
+    }
+
     private void UpdateMonitoring()
     {
+        MonitoringThermal = ThermalCard.From(activeSession);
+        OnPropertyChanged(nameof(HasMonitoringThermal));
+        OnPropertyChanged(nameof(MonitoringStressTitle)); OnPropertyChanged(nameof(MonitoringStressDetail));
+        OnPropertyChanged(nameof(HasThermalAttention)); OnPropertyChanged(nameof(HasThermalCritical));
+        OnPropertyChanged(nameof(CanStopSimulatedLoad)); OnPropertyChanged(nameof(ShowThermalStopButton));
+        ResolveThermalAttentionCommand.NotifyCanExecuteChanged();
         foreach (var name in new[] { nameof(SessionStatus), nameof(Stage), nameof(Clock), nameof(Progress), nameof(HasSession) }) OnPropertyChanged(name);
         FillCharts(activeSession, MetricCards);
         OnPropertyChanged(nameof(HasNoMetrics));
@@ -241,6 +295,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private void ShowResult(DiagnosticSession session)
     {
         resultSession = session; TechnicianNotes = session.Notes; CurrentScreen = Screen.Results;
+        ResultThermal = ThermalCard.From(session);
         ModuleResults.Clear(); MainFindings.Clear();
         FillCharts(session, ResultMetricCards); FillProcessRankings(session);
         foreach (var run in session.Modules)
@@ -260,6 +315,8 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private void NotifyResults()
     {
+        if (resultSession is null) ResultThermal = null;
+        OnPropertyChanged(nameof(HasResultThermal));
         foreach (var name in new[] { nameof(HasResults), nameof(HasNoResults), nameof(ResultStatus), nameof(ResultSummary), nameof(StressResultSummary), nameof(NormalCount), nameof(AttentionCount), nameof(FailureCount), nameof(UnavailableCount), nameof(CollectionIssues) }) OnPropertyChanged(name);
         ExportPdfCommand.NotifyCanExecuteChanged();
     }

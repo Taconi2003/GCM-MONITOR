@@ -1,18 +1,19 @@
-<UserControl x:Class="GcmMonitor.App.Views.MonitoringView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:GcmMonitor.App.Controls">
+<UserControl x:Class="GcmMonitor.App.Views.MonitoringView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:GcmMonitor.App.Controls" xmlns:core="clr-namespace:GcmMonitor.Core;assembly=GcmMonitor.Core">
   <DockPanel>
     <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Margin="0,12,12,0">
       <DockPanel>
         <Button DockPanel.Dock="Right" Content="Cancelar diagnóstico" Command="{Binding CancelCommand}" Style="{StaticResource DangerButton}" Margin="12,0,0,0" />
+        <Button DockPanel.Dock="Right" Content="Parar estresse" Command="{Binding ResolveThermalAttentionCommand}" CommandParameter="{x:Static core:ThermalChoice.Stop}" Visibility="{Binding ShowThermalStopButton, Converter={StaticResource BoolVisibility}}" Style="{StaticResource DangerButton}" Margin="12,0,0,0" />
         <Button DockPanel.Dock="Right" Content="Ver resultados" Command="{Binding OpenResultsCommand}" />
         <StackPanel>
-          <TextBlock Text="Estresse desativado" FontWeight="SemiBold" />
-          <TextBlock Text="Nenhuma carga de estresse é criada pelo GCM Monitor." Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
+          <TextBlock Text="{Binding MonitoringStressTitle}" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding MonitoringStressDetail}" Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
         </StackPanel>
       </DockPanel>
     </Border>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
       <StackPanel>
-        <Border Style="{StaticResource Card}">
+        <Border Style="{StaticResource Card}" BorderBrush="#2D6086">
           <StackPanel>
             <DockPanel>
               <TextBlock Text="{Binding Progress, StringFormat={}{0:0}%}" DockPanel.Dock="Right" FontSize="28" Foreground="{StaticResource CyanBrush}" />
@@ -21,10 +22,28 @@
                 <TextBlock Text="{Binding Clock}" Style="{StaticResource Muted}" Margin="0,8,0,0" />
               </StackPanel>
             </DockPanel>
-            <ProgressBar Maximum="100" Value="{Binding Progress, Mode=OneWay}" Margin="0,20,0,0" />
+            <ProgressBar Maximum="100" Value="{Binding Progress, Mode=OneWay}" Margin="0,13,0,0" />
             <TextBlock Text="Progresso por tempo da sessão; não representa proporção de módulos concluídos." Style="{StaticResource Muted}" FontSize="11" Margin="0,10,0,0" />
           </StackPanel>
         </Border>
+        <Border Style="{StaticResource Card}" Background="#33291C" BorderBrush="#9A6D2E" Visibility="{Binding HasThermalAttention, Converter={StaticResource BoolVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Atenção · temperatura elevada" Foreground="#FFCA75" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Simulação. Deseja interromper a carga fictícia ou continuar monitorando enquanto as condições de segurança estiverem válidas?" Style="{StaticResource Muted}" />
+            <WrapPanel Margin="0,8,0,0">
+              <Button Content="Parar estresse" Style="{StaticResource DangerButton}" Command="{Binding ResolveThermalAttentionCommand}" CommandParameter="{x:Static core:ThermalChoice.Stop}" Margin="0,0,8,0" />
+              <Button Content="Continuar monitorando" Command="{Binding ResolveThermalAttentionCommand}" CommandParameter="{x:Static core:ThermalChoice.Continue}" />
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+        <Border Style="{StaticResource Card}" Background="#341C28" BorderBrush="#A85567" Visibility="{Binding HasThermalCritical, Converter={StaticResource BoolVisibility}}">
+          <StackPanel>
+            <TextBlock Text="Crítico · parada obrigatória simulada" Foreground="#FF9DAA" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="A simulação interrompeu a carga fictícia. A observação passiva da recuperação continua." Style="{StaticResource Muted}" />
+          </StackPanel>
+        </Border>
+        <ContentControl Content="{Binding MonitoringThermal}" ContentTemplate="{StaticResource ThermalPanel}"
+                        Visibility="{Binding HasMonitoringThermal, Converter={StaticResource BoolVisibility}}" />
         <Border Style="{StaticResource Card}" Visibility="{Binding HasNoMetrics, Converter={StaticResource BoolVisibility}}">
           <StackPanel>
             <TextBlock Text="Sem gráficos disponíveis" Style="{StaticResource SectionTitle}" />
@@ -34,12 +53,12 @@
         <ItemsControl ItemsSource="{Binding MetricCards}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
-              <WrapPanel />
+              <local:ResponsiveGrid MaximumColumns="3" MinimumTileWidth="242" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Border Style="{StaticResource Card}" Width="320">
+              <Border Style="{StaticResource Card}">
                 <StackPanel>
                   <DockPanel>
                     <TextBlock Text="{Binding Unit}" DockPanel.Dock="Right" Foreground="{StaticResource CyanBrush}" />
@@ -50,7 +69,7 @@
                     <TextBlock Text="{Binding Unit}" VerticalAlignment="Bottom" Margin="6,0,0,7" />
                   </StackPanel>
                   <TextBlock Text="{Binding Component}" Style="{StaticResource Muted}" FontSize="11" />
-                  <local:MetricChart Values="{Binding Values}" Labels="{Binding Labels}" Unit="{Binding Unit}" AxisLabel="{Binding AxisLabel}" Height="140" Margin="0,12,0,8" />
+                  <local:MetricChart Values="{Binding Values}" Labels="{Binding Labels}" Unit="{Binding Unit}" AxisLabel="{Binding AxisLabel}" Height="108" Margin="0,8,0,6" />
                   <TextBlock Text="{Binding Source}" Foreground="{StaticResource MutedBrush}" FontSize="10" />
                 </StackPanel>
               </Border>

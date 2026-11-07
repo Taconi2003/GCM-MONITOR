@@ -15,6 +15,21 @@ namespace GcmMonitor.IntegrationTests;
 public sealed class StressContainmentTests
 {
     [Fact]
+    public async Task CriticalSyntheticTemperatureStopsTheOwnedIdleWorkerWithoutAControllerChoice()
+    {
+        await using var probe = await Probe.ConnectAsync();
+        var running = await probe.SendStartAsync(15000, thermalFixture: true, criticalFixtureCelsius: 90);
+        Assert.Equal("IdleProbeRunning", running.State);
+        using var worker = probe.OpenWorker();
+        var frame = Fixture(probe.Id, 2);
+        frame.Sensors[0] = frame.Sensors[0] with { Celsius = 92 };
+        await probe.CommandAsync("thermal-fixture", frame);
+        var stopped = await probe.ReadAsync();
+        Assert.Equal("IdleProbeStopped", stopped.State);
+        Assert.Equal(SafetyStopReason.CriticalTemperature, stopped.Reason);
+        Assert.True(worker.HasExited);
+    }
+    [Fact]
     public async Task SuspendedChildIsAlreadyContainedAndClosingJobKillsItWithoutResuming()
     {
         var job = OwnedProcessJob.CreateSuspended(Executable, ["--idle-probe"]);
@@ -330,10 +345,11 @@ public sealed class StressContainmentTests
             }
             catch { await probe.DisposeAsync(); throw; }
         }
-        public async Task<SafetyProbeEvent> SendStartAsync(int duration, bool observeWindows = false, bool thermalFixture = false)
+        public async Task<SafetyProbeEvent> SendStartAsync(int duration, bool observeWindows = false, bool thermalFixture = false,
+            double? criticalFixtureCelsius = null)
         {
             await Channel.WriteAsync(new SafetyProbeStart(SafetyProbeProtocol.Version, Id, Nonce, SafetyProbeProtocol.Purpose,
-                duration, observeWindows, thermalFixture ? Fixture(Id, 1) : null));
+                duration, observeWindows, thermalFixture ? Fixture(Id, 1) : null, criticalFixtureCelsius));
             return started = await ReadAsync();
         }
         public static async Task<Probe> ConnectAsync(bool wrongControllerStart = false)

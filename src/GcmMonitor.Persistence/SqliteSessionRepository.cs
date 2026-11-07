@@ -111,6 +111,8 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
     public async Task SaveBatchAsync(DiagnosticSession session, CollectionBatch batch, CancellationToken cancellationToken = default)
     {
         session.Options.Validate();
+        if (session.ThermalRehearsal is not null && !session.IsDemo)
+            throw new InvalidOperationException("Um ensaio térmico simulado exige uma sessão demonstrativa.");
         if (session.Stress is { } safety && (safety.Available || safety.LoadExecuted))
             throw new InvalidOperationException("Esta versão bloqueada não registra execução de carga como validada.");
         if (session.Measurements.Concat(batch.Measurements).Any(x => x.IsDemo != session.IsDemo))

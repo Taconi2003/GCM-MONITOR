@@ -50,8 +50,10 @@ public sealed class EngineProcessTests : IDisposable
         Assert.Equal(ModuleId.Cpu, last.Modules[0].Id); Assert.False(last.Options.StressEnabled);
         Assert.Equal(SessionState.Cancelled, (await new SqliteSessionRepository(Database).GetAsync(last.Id))!.State);
     }
-    [Fact]
-    public async Task WrongProtocolVersionIsRejectedBeforeCreatingDatabase()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InvalidProtocolOrPassiveRehearsalIsRejectedBeforeCreatingDatabase(bool passiveRehearsal)
     {
         string pipeName = "gcm-demo-" + Guid.NewGuid().ToString("N"); var id = Guid.NewGuid();
         await using var server = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
@@ -62,7 +64,11 @@ public sealed class EngineProcessTests : IDisposable
         try
         {
             await server.WaitForConnectionAsync(timeout.Token);
-            await new EngineChannel(server).WriteAsync(new StartSessionMessage(99, id, new()), timeout.Token);
+            var options = new DiagnosticOptions { Modules = [ModuleId.Cpu, ModuleId.Sensors] };
+            var consent = passiveRehearsal ? new StressConsent(id, StressPlan.Create(options.MonitoringMinutes, options.StressMinutes).Fingerprint,
+                true, true, DateTimeOffset.UtcNow, Guid.NewGuid()) : null;
+            await new EngineChannel(server).WriteAsync(new StartSessionMessage(passiveRehearsal ? EngineProtocol.Version : 99,
+                id, options, RehearsalConsent: consent), timeout.Token);
             await process.WaitForExitAsync(timeout.Token); Assert.Equal(1, process.ExitCode); Assert.False(File.Exists(Database));
         }
         finally { if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(); } }

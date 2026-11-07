@@ -75,12 +75,13 @@ public static class StressReleasePolicy
 }
 
 public enum SafetyStopReason { DurationCompleted, UserStopped, Cancelled, HeartbeatLost, ControllerDisconnected,
-    SensorLost, Suspended, PowerChanged, PersistenceFailed, InvalidProtocol, WorkerExited, SupervisorFailed, EnvironmentUnavailable }
+    SensorLost, Suspended, PowerChanged, PersistenceFailed, InvalidProtocol, WorkerExited, SupervisorFailed, EnvironmentUnavailable,
+    CriticalTemperature }
 
 /// <summary>Contrato exclusivo da prova ociosa de contenção. Não transporta autorização de carga.</summary>
 public static class SafetyProbeProtocol
 {
-    public const int Version = 2;
+    public const int Version = 3;
     public const int MaximumBytes = 16384;
     public static TimeSpan HeartbeatTimeout => TimeSpan.FromSeconds(3);
     public const string Purpose = "IdleContainmentProbe";
@@ -91,7 +92,7 @@ public static class SafetyProbeProtocol
     }
 }
 public sealed record SafetyProbeStart(int Version, Guid SessionId, string Nonce, string Purpose, int DurationMilliseconds,
-    bool ObserveWindows = false, CpuThermalFrame? InitialThermalFixture = null);
+    bool ObserveWindows = false, CpuThermalFrame? InitialThermalFixture = null, double? CriticalFixtureCelsius = null);
 public sealed record SafetyProbeCommand(int Version, Guid SessionId, string Nonce, long Sequence, string Command,
     CpuThermalFrame? ThermalFixture = null);
 public sealed record SafetyProbeEvent(int Version, Guid SessionId, long Sequence, string State,

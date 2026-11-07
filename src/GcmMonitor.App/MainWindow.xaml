@@ -1,17 +1,22 @@
 <Window x:Class="GcmMonitor.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="clr-namespace:GcmMonitor.Presentation;assembly=GcmMonitor.Presentation" xmlns:views="clr-namespace:GcmMonitor.App.Views" Title="{Binding WindowTitle}" Width="1440" Height="960" MinWidth="1000" MinHeight="700" WindowStartupLocation="CenterScreen" Language="pt-BR">
   <Grid Background="{StaticResource BackgroundBrush}">
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="224" />
+      <ColumnDefinition Width="208" />
       <ColumnDefinition Width="*" />
     </Grid.ColumnDefinitions>
-    <Border Background="#0B1628" BorderBrush="#23374E" BorderThickness="0,0,1,0">
+    <Border Background="{StaticResource SidebarSurface}" BorderBrush="#285679" BorderThickness="0,0,1,0">
       <DockPanel Margin="18,28,18,20">
-        <StackPanel DockPanel.Dock="Top" Margin="10,0,0,35">
-          <Border Width="44" Height="40" HorizontalAlignment="Left" Background="#113C5A" BorderBrush="#2CBCD9" BorderThickness="1" CornerRadius="8" Margin="0,0,0,12">
-            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="23" Foreground="{StaticResource CyanBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Border>
-          <TextBlock Text="GCM Monitor" FontSize="23" FontWeight="Bold" />
-          <TextBlock Text="Gimenes Coleta e&#xA;Monitoramento" Style="{StaticResource Muted}" FontSize="11" Margin="0,7,0,0" />
+        <StackPanel DockPanel.Dock="Top" Margin="4,0,0,26">
+          <StackPanel Orientation="Horizontal">
+            <Border Width="44" Height="44" Background="#113C5A" BorderBrush="#2CBCD9" BorderThickness="1" CornerRadius="8" Margin="0,0,9,0">
+              <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="23" Foreground="{StaticResource CyanBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="GCM" FontSize="22" FontWeight="Bold" />
+              <TextBlock Text="Monitor" Foreground="{StaticResource CyanBrush}" FontSize="16" FontWeight="SemiBold" />
+            </StackPanel>
+          </StackPanel>
+          <TextBlock Text="Gimenes Coleta e Monitoramento" Style="{StaticResource Muted}" FontSize="10" Margin="0,8,0,0" />
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Margin="12,20,0,0">
           <TextBlock Text="{Binding VersionLabel}" Foreground="{StaticResource CyanBrush}" />
@@ -29,23 +34,26 @@
         </ListBox>
       </DockPanel>
     </Border>
-    <Grid Grid.Column="1" Margin="30,24,20,16">
+    <Grid Grid.Column="1" Margin="22,19,16,12">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
         <RowDefinition Height="Auto" />
       </Grid.RowDefinitions>
-      <DockPanel Margin="0,0,10,20">
+      <DockPanel Margin="0,0,10,12">
         <Border DockPanel.Dock="Right" Background="#12374B" CornerRadius="5" Padding="10,6" VerticalAlignment="Top">
           <TextBlock Text="{Binding DataBadge}" Foreground="{StaticResource CyanBrush}" FontSize="10" FontWeight="Bold" />
+        </Border>
+        <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="8" Background="#133450" Margin="0,2,10,0" VerticalAlignment="Top">
+          <TextBlock Text="{Binding ScreenIcon}" FontFamily="Segoe MDL2 Assets" FontSize="22" Foreground="{StaticResource CyanBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
         </Border>
         <StackPanel>
           <TextBlock Text="{Binding Title}" FontSize="29" FontWeight="SemiBold" />
           <TextBlock Text="{Binding Subtitle}" Style="{StaticResource Muted}" Margin="0,5,0,0" />
         </StackPanel>
       </DockPanel>
-      <Border Grid.Row="1" Background="#102B3C" BorderBrush="#23536B" BorderThickness="1" CornerRadius="7" Padding="14,10" Margin="0,0,10,20">
+      <Border Grid.Row="1" Background="#102B3C" BorderBrush="#23536B" BorderThickness="1" CornerRadius="7" Padding="12,8" Margin="0,0,10,12">
         <TextBlock Text="{Binding DataBanner}" Foreground="#9DDAE9" FontSize="12" />
       </Border>
       <ContentControl Grid.Row="2" Content="{Binding}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">

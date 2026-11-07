@@ -51,6 +51,9 @@ try
     if (start.Purpose != SafetyProbeProtocol.Purpose || start.DurationMilliseconds is < 100 or > 15000 || !start.Nonce.All(Uri.IsHexDigit))
         throw new InvalidDataException("Prova aceita somente contenção ociosa, com duração interna limitada.");
     var thermal = start.InitialThermalFixture is { } initial ? new IdleThermalWatch(sessionId, initial) : null;
+    if (start.CriticalFixtureCelsius is { } critical &&
+        (!double.IsFinite(critical) || thermal is null || start.InitialThermalFixture!.Sensors.Any(s => s.Celsius >= critical)))
+        throw new InvalidDataException("Condição crítica inicial ou limiar inválido na prova ociosa.");
     if (start.ObserveWindows)
     {
         try { environment = new WindowsSafetyObservation(); }
@@ -119,6 +122,8 @@ try
             {
                 if (thermal is null || command.ThermalFixture is null) throw new InvalidDataException("Fixture térmica não negociada.");
                 if (!thermal.Observe(command.ThermalFixture, elapsed.Elapsed)) reason = SafetyStopReason.SensorLost;
+                else if (start.CriticalFixtureCelsius is { } limit && command.ThermalFixture.Sensors.Any(s => s.Celsius >= limit))
+                    reason = SafetyStopReason.CriticalTemperature;
                 continue;
             }
             if (command.ThermalFixture is not null) throw new InvalidDataException("Payload térmico fora da operação permitida.");

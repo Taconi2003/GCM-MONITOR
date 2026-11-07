@@ -38,9 +38,15 @@ public interface IStressSupervisor
     Task StopAsync(CancellationToken cancellationToken = default);
 }
 
+public interface IThermalRehearsalClient
+{
+    bool ThermalRehearsalEnabled { get; }
+    Task ResolveThermalAttentionAsync(ThermalChoice choice, CancellationToken ct = default);
+}
+
 public static class EngineProtocol
 {
-    public const int Version = 5;
+    public const int Version = 6;
     public const int MaxMessageLength = 1024 * 1024;
     public static JsonSerializerOptions Json { get; } = new() { PropertyNameCaseInsensitive = false };
     public static void Validate(int version, Guid sessionId, Guid expectedId)
@@ -51,6 +57,6 @@ public static class EngineProtocol
 }
 
 public sealed record StartSessionMessage(int Version, Guid SessionId, DiagnosticOptions Options, CollectionMode Mode = CollectionMode.Passive,
-    bool UseCpuThermalBridge = false);
+    bool UseCpuThermalBridge = false, StressConsent? RehearsalConsent = null);
 public sealed record EngineMessage(int Version, Guid SessionId, long Sequence, DiagnosticSession Session);
 public sealed record EngineCommand(int Version, Guid SessionId, string Command);

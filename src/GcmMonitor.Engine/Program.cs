@@ -31,6 +31,12 @@ try
     if (start.Options is null) throw new InvalidDataException("Opções ausentes.");
     if (!Enum.IsDefined(start.Mode)) throw new InvalidDataException("Modo de coleta inválido.");
     start.Options.Validate();
+    if (start.RehearsalConsent is { } consent &&
+        (start.Mode != CollectionMode.Demonstration || start.Options.Modules.Length != 2 ||
+        !start.Options.Modules.Contains(ModuleId.Cpu) || !start.Options.Modules.Contains(ModuleId.Sensors) ||
+        !new StressConsentLedger().TryConsume(sessionId,
+            StressPlan.Create(start.Options.MonitoringMinutes, start.Options.StressMinutes), consent, DateTimeOffset.UtcNow)))
+        throw new InvalidDataException("Ensaio térmico exige modo demonstrativo, CPU e sensores, e consentimento válido.");
     if (start.UseCpuThermalBridge && (start.Mode != CollectionMode.Passive || !start.Options.Modules.Contains(ModuleId.Sensors)))
         throw new InvalidDataException("Auxiliar térmico aceito somente para coleta passiva de sensores selecionados.");
     await repository.InitializeAsync(lifetime.Token);
@@ -41,18 +47,38 @@ try
         await channel.WriteAsync(new EngineMessage(EngineProtocol.Version, sessionId, ++sequence, session!), lifetime.Token);
     }
 
+    var rehearsal = start.RehearsalConsent is not null ? new DemoThermalSession() : null;
     commandLoop = Task.Run(async () =>
     {
         try
         {
-            var command = await channel.ReadAsync<EngineCommand>(lifetime.Token);
-            EngineProtocol.Validate(command.Version, command.SessionId, sessionId);
-            if (command.Command != "cancel") throw new InvalidDataException("Comando não permitido.");
-            cancel.Cancel();
+            while (true)
+            {
+                var command = await channel.ReadAsync<EngineCommand>(lifetime.Token);
+                EngineProtocol.Validate(command.Version, command.SessionId, sessionId);
+                if (command.Command == "cancel") { cancel.Cancel(); break; }
+                if (rehearsal is not null && command.Command is "thermal-continue" or "thermal-stop")
+                {
+                    rehearsal.Resolve(command.Command == "thermal-stop" ? ThermalChoice.Stop : ThermalChoice.Continue);
+                    continue;
+                }
+                throw new InvalidDataException("Comando não permitido.");
+            }
         }
         catch (Exception ex) when (ex is IOException or OperationCanceledException or InvalidDataException or System.Text.Json.JsonException)
         { if (!lifetime.IsCancellationRequested) disconnected = true; cancel.Cancel(); }
     });
+
+    if (rehearsal is not null)
+    {
+        using var runLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel.Token, lifetime.Token);
+        await rehearsal.RunAsync(sessionId, start.Options, async snapshot =>
+        {
+            session = snapshot;
+            await SendAsync();
+        }, runLifetime.Token, () => disconnected);
+        return 0;
+    }
 
     if (start.Mode == CollectionMode.Passive)
     {

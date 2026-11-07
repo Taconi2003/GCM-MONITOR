@@ -7,7 +7,7 @@ namespace GcmMonitor.App;
 
 /// <summary>Canal local restrito ao usuário; um processo próprio por sessão passiva.</summary>
 public sealed class SessionEngineClient(string enginePath, string databasePath, CollectionMode mode = CollectionMode.Passive,
-    Func<bool>? authorizeCpuTemperature = null) : IDiagnosticEngineClient
+    Func<bool>? authorizeCpuTemperature = null, bool rehearseThermal = false) : IDiagnosticEngineClient, IThermalRehearsalClient
 {
     private Process? process;
     private EngineChannel? channel;
@@ -15,10 +15,13 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
     private bool running;
     private bool cancelRequested;
     private int cancelSent;
+    public bool ThermalRehearsalEnabled => rehearseThermal;
 
     public async IAsyncEnumerable<DiagnosticSession> RunAsync(DiagnosticOptions options, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         options.Validate();
+        if (rehearseThermal && mode != CollectionMode.Demonstration)
+            throw new InvalidOperationException("O ensaio térmico é exclusivo de demonstração.");
         if (running) throw new InvalidOperationException("Já existe uma sessão ativa.");
         bool thermalRequested = mode == CollectionMode.Passive && options.Modules.Contains(ModuleId.Sensors) &&
             File.Exists(Path.Combine(Path.GetDirectoryName(enginePath)!, "thermal", "GcmMonitor.SensorProbe.dll")) &&
@@ -41,7 +44,9 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
             if (!GetNamedPipeClientProcessId(server.SafePipeHandle, out uint clientPid) || clientPid != expectedPid)
                 throw new InvalidDataException("A identidade do cliente do canal não corresponde ao motor iniciado.");
             channel = new EngineChannel(server);
-            await channel.WriteAsync(new StartSessionMessage(EngineProtocol.Version, sessionId, options, mode, thermalRequested), cancellationToken);
+            var consent = rehearseThermal ? new StressConsent(sessionId, StressPlan.Create(options.MonitoringMinutes, options.StressMinutes).Fingerprint,
+                true, true, DateTimeOffset.UtcNow, Guid.NewGuid()) : null;
+            await channel.WriteAsync(new StartSessionMessage(EngineProtocol.Version, sessionId, options, mode, thermalRequested, consent), cancellationToken);
             if (cancelRequested) await CancelAsync(cancellationToken);
             long lastSequence = 0;
             while (true)
@@ -52,6 +57,7 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
                 EngineProtocol.Validate(message.Version, message.SessionId, sessionId);
                 if (message.Sequence != lastSequence + 1 || message.Session is null || message.Session.Id != sessionId || message.Session.IsDemo != (mode == CollectionMode.Demonstration) ||
                     message.Session.Options is null || message.Session.Options.StressEnabled || !Enum.IsDefined(message.Session.State) ||
+                    message.Session.ThermalRehearsal is not null && !rehearseThermal ||
                     message.Session.Stress is { } safety && (safety.Available || safety.LoadExecuted))
                     throw new InvalidDataException("Snapshot de sessão inválido.");
                 message.Session.Options.Validate();
@@ -77,6 +83,16 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
             await StopOwnedProcessAsync();
             running = false;
         }
+    }
+
+    public async Task ResolveThermalAttentionAsync(ThermalChoice choice, CancellationToken ct = default)
+    {
+        if (!rehearseThermal || !Enum.IsDefined(choice) || channel is not { } active)
+            throw new InvalidOperationException("Ensaio térmico demonstrativo indisponível.");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeout.CancelAfter(TimeSpan.FromSeconds(2));
+        await active.WriteAsync(new EngineCommand(EngineProtocol.Version, sessionId,
+            choice == ThermalChoice.Stop ? "thermal-stop" : "thermal-continue"), timeout.Token);
     }
 
     public async Task CancelAsync(CancellationToken cancellationToken = default)

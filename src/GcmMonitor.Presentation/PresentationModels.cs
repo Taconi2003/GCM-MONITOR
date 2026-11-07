@@ -11,6 +11,7 @@ public sealed record NavigationItem(Screen Screen, string Title, string Icon)
 public sealed record DurationOption(int Minutes, string Label)
 {
     public override string ToString() => Label;
+    public string ShortLabel => Minutes < 60 ? $"{Minutes} min" : $"{Minutes / 60} h";
 }
 public sealed record SummaryCard(string Icon, string Title, string Value, string Detail)
 {
@@ -25,7 +26,22 @@ public sealed partial class ModuleSelection(ModuleDefinition definition) : Obser
     [ObservableProperty] private bool isSelected = true;
     [ObservableProperty] private bool isAvailable = true;
     public string Availability => IsAvailable ? "Verificação por capacidade ao iniciar" : "Indisponível · nenhum disco físico detectado";
-    partial void OnIsAvailableChanged(bool value) => OnPropertyChanged(nameof(Availability));
+    public string Detail => !IsAvailable ? Availability : Definition.Id switch
+    {
+        ModuleId.Memory => "RAM, cache e paginação",
+        ModuleId.Cpu => "Uso e desempenho",
+        ModuleId.Storage => "Espaço, atividade e SMART",
+        ModuleId.WindowsEvents => "Eventos e ocorrências",
+        ModuleId.Battery => "Carga, ciclos e autonomia",
+        ModuleId.WindowsUpdate => "Histórico e reinicialização",
+        ModuleId.Sensors => "Temperaturas e rotações",
+        ModuleId.Processes => "Ranking de CPU e RAM",
+        ModuleId.Devices => "Dispositivos e versões",
+        ModuleId.Wifi => "Sinal, enlace e reconexões",
+        _ => "Alimentação e plano"
+    };
+    partial void OnIsAvailableChanged(bool value)
+    { OnPropertyChanged(nameof(Availability)); OnPropertyChanged(nameof(Detail)); }
 }
 
 public sealed partial class DiskSelection(string id, string label) : ObservableObject

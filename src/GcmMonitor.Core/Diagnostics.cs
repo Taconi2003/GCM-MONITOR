@@ -99,6 +99,7 @@ public sealed record DiagnosticSession
     public CollectionIssue[] Issues { get; init; } = [];
     public DiagnosticRecord[] Records { get; init; } = [];
     public StressAssessment? Stress { get; init; }
+    public ThermalTrace? ThermalRehearsal { get; init; }
     public int? EngineProcessId { get; init; }
     public DateTimeOffset? EngineProcessStartedAt { get; init; }
     public bool IsTerminal => State is SessionState.Completed or SessionState.Cancelled or SessionState.Interrupted or SessionState.Error;

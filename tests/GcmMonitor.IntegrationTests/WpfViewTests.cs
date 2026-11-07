@@ -9,6 +9,8 @@ using GcmMonitor.Collector;
 using GcmMonitor.Core;
 using GcmMonitor.Persistence;
 using GcmMonitor.Presentation;
+using GcmMonitor.Reporting;
+using PdfSharp.Pdf.IO;
 
 namespace GcmMonitor.IntegrationTests;
 
@@ -31,10 +33,11 @@ public sealed class WpfViewTests
                 application.Resources.MergedDictionaries.Add(new ResourceDictionary { Source = new Uri("/GcmMonitor.App;component/Themes/Dark.xaml", UriKind.Relative) });
                 var vm = new ShellViewModel(new NoEngine(), new SqliteSessionRepository(Path.Combine(folder, "demo.db")), new NoDialogs());
                 vm.InitializeAsync().GetAwaiter().GetResult();
+                vm.ReportFolder = @"C:\GCM-Demo\Relatórios";
                 var window = new MainWindow(vm, new NoEngine());
                 var surface = (FrameworkElement)window.Content;
                 surface.DataContext = vm;
-                var artifacts = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "ui"); Directory.CreateDirectory(artifacts);
+                var artifacts = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "ui", "preview.6"); Directory.CreateDirectory(artifacts);
                 void Render(Screen screen, Size size, string scenario)
                 {
                     vm.CurrentScreen = screen; window.Width = size.Width; window.Height = size.Height;
@@ -45,26 +48,75 @@ public sealed class WpfViewTests
                     var pixel = new byte[4]; bitmap.CopyPixels(new Int32Rect(1, 1, 1, 1), pixel, 4, 0);
                     Assert.True(pixel[3] > 0, "A renderização deve conter pixels visíveis.");
                     var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-                    using var file = File.Create(Path.Combine(artifacts, $"{screen}-{size.Width}-{scenario}.png")); encoder.Save(file);
+                    using var file = File.Create(Path.Combine(artifacts, $"{screen}-{size.Width}x{size.Height}-{scenario}.png")); encoder.Save(file);
                 }
-                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) })
+                Size[] sizes = [new Size(1440, 810), new Size(1000, 700)];
+                foreach (var size in sizes)
                     foreach (var screen in Enum.GetValues<Screen>()) Render(screen, size, "empty");
                 vm.LoadExamplesCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 foreach (var row in vm.History.ToArray())
                 {
                     vm.OpenHistoryCommand.ExecuteAsync(row).GetAwaiter().GetResult();
-                    foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, row.Session.State.ToString());
+                    foreach (var size in sizes) Render(Screen.Results, size, row.Session.State.ToString());
                 }
-                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.History, size, "examples");
+                foreach (var size in sizes) Render(Screen.History, size, "examples");
                 vm.StartCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 Assert.NotEmpty(vm.MetricCards);
-                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Monitoring, size, "series");
-                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, "series-and-rankings");
+                foreach (var size in sizes) Render(Screen.Monitoring, size, "series");
+                foreach (var size in sizes) Render(Screen.Results, size, "series-and-rankings");
                 Assert.Equal(3, vm.ModuleResults.Sum(x => x.EvidenceRows.Length));
                 foreach (var expander in Descendants(surface).OfType<Expander>()) expander.IsExpanded = true;
-                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, "advanced-expanded");
+                foreach (var size in sizes) Render(Screen.Results, size, "advanced-expanded");
+                if (Environment.GetEnvironmentVariable("GCM_CAPTURE_THERMAL_REVIEW") == "1")
+                {
+                    var previousContext = SynchronizationContext.Current;
+                    SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(window.Dispatcher));
+                    try
+                    {
+                        var capture = CaptureThermalAsync();
+                        var frame = new DispatcherFrame();
+                        _ = capture.ContinueWith(_ => window.Dispatcher.BeginInvoke(new Action(() => frame.Continue = false)),
+                            CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                        Dispatcher.PushFrame(frame);
+                        capture.GetAwaiter().GetResult();
+                    }
+                    finally { SynchronizationContext.SetSynchronizationContext(previousContext); }
+                }
                 window.Close(); Assert.Empty(bindingErrors.Errors);
                 completion.SetResult();
+
+                async Task CaptureThermalAsync()
+                {
+                    using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(28));
+                    string database = Path.Combine(folder, "thermal-demo.db");
+                    await using var engine = new SessionEngineClient(EngineProcessTests.Executable("GcmMonitor.Engine"),
+                        database, CollectionMode.Demonstration, rehearseThermal: true);
+                    var repository = new SqliteSessionRepository(database);
+                    var exporter = new PdfReportExporter();
+                    vm = new ShellViewModel(engine, repository, new NoDialogs(confirm: true), pdfExporter: exporter);
+                    surface.DataContext = vm;
+                    await vm.InitializeAsync();
+                    vm.MonitoringDuration = vm.Durations[0];
+                    foreach (var module in vm.Modules)
+                        module.IsSelected = module.Definition.Id is ModuleId.Cpu or ModuleId.Sensors;
+                    var run = vm.StartCommand.ExecuteAsync(null);
+                    while (!vm.HasThermalAttention && !run.IsCompleted) await Task.Delay(20, timeout.Token);
+                    Assert.True(vm.HasThermalAttention, vm.Message);
+                    Render(Screen.Monitoring, sizes[0], "thermal-attention");
+                    await vm.ResolveThermalAttentionCommand.ExecuteAsync(ThermalChoice.Continue);
+                    while (!vm.HasThermalCritical && !run.IsCompleted) await Task.Delay(20, timeout.Token);
+                    Assert.True(vm.HasThermalCritical);
+                    Render(Screen.Monitoring, sizes[0], "thermal-critical");
+                    await run.WaitAsync(timeout.Token);
+                    Assert.True(vm.HasResultThermal);
+                    foreach (var size in sizes) Render(Screen.Results, size, "thermal-recovery");
+                    var stored = Assert.Single(await repository.ListAsync());
+                    string pdfPath = Path.Combine(artifacts, "GCM-relatorio-termico-demonstrativo.pdf");
+                    await exporter.ExportAsync(stored, pdfPath, true, timeout.Token);
+                    using var report = PdfReader.Open(pdfPath, PdfDocumentOpenMode.Import);
+                    Assert.InRange(report.PageCount, 2, 10);
+                    Assert.Equal("Dados demonstrativos", report.Info.Subject);
+                }
             }
             catch (Exception ex) { completion.SetException(ex); }
             finally
@@ -76,7 +128,7 @@ public sealed class WpfViewTests
             }
         });
         thread.SetApartmentState(ApartmentState.STA); thread.Start();
-        await completion.Task.WaitAsync(TimeSpan.FromSeconds(40));
+        await completion.Task.WaitAsync(TimeSpan.FromSeconds(60));
     }
     private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
     {
@@ -92,9 +144,9 @@ public sealed class WpfViewTests
         public override void Write(string? message) { if (!string.IsNullOrWhiteSpace(message)) Errors.Add(message); }
         public override void WriteLine(string? message) => Write(message);
     }
-    private sealed class NoDialogs : IUserDialogs
+    private sealed class NoDialogs(bool confirm = false) : IUserDialogs
     {
-        public bool Confirm(string title, string message) => false;
+        public bool Confirm(string title, string message) => confirm;
         public string? ChooseReportFolder(string current) => null;
     }
     private sealed class NoEngine : IDiagnosticEngineClient

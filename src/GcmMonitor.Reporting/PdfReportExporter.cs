@@ -106,6 +106,7 @@ public sealed class PdfReportExporter : IPdfReportExporter
         section.AddParagraph(session.Stress?.LoadExecuted == true ? "Estresse registrado na sessão original." : "Estresse de CPU - Não executado.");
         if (session.State != SessionState.Completed)
             section.AddParagraph("O diagnóstico terminou antes da consolidação completa. Os resultados refletem somente os dados recuperados.");
+        if (session is { IsDemo: true, ThermalRehearsal: { } trace }) AddThermal(section, session, trace);
 
         section.AddParagraph("Equipamento", StyleNames.Heading1);
         if (session.Inventory is { } inventory)
@@ -184,6 +185,36 @@ public sealed class PdfReportExporter : IPdfReportExporter
         section.AddParagraph("Memória média observada", StyleNames.Heading2);
         foreach (var item in session.Processes.Where(x => x.WorkingSetMeanBytes.HasValue).OrderByDescending(x => x.WorkingSetMeanBytes).Take(10))
             section.AddParagraph($"{item.Name} · {Number(item.WorkingSetMeanBytes / 1048576)} MiB · pico {Number(item.WorkingSetPeakBytes / 1048576.0)} MiB");
+    }
+
+    private static void AddThermal(Section section, DiagnosticSession session, ThermalTrace trace)
+    {
+        var plan = StressPlan.Create(session.Options.MonitoringMinutes, session.Options.StressMinutes);
+        var review = ThermalRecoveryAnalyzer.Analyze(trace, plan);
+        section.AddParagraph("Análise térmica simulada", StyleNames.Heading1);
+        section.AddParagraph($"{trace.Sensor} · {trace.Source}. Cenário fictício, sem estresse físico.");
+        void Phase(string title, ThermalPhaseStatistics stats)
+        {
+            section.AddParagraph(title, StyleNames.Heading2);
+            section.AddParagraph($"{stats.Samples} amostras válidas · Inicial {Number(stats.First)} °C · média {Number(stats.Average)} °C · pico {Number(stats.Peak)} °C · final {Number(stats.Last)} °C.");
+            section.AddParagraph($"Médias de CPU {Number(stats.CpuAverage)} % · frequência {Number(stats.FrequencyAverage)} MHz · ventoinha {Number(stats.FanAverage)} RPM · energia {stats.Power}.");
+        }
+        Phase("Antes da carga fictícia", review.Baseline);
+        Phase("Durante a carga fictícia", review.Load);
+        Phase("Recuperação observada", review.Recovery);
+        if (trace.LoadStartedAt is { } started && trace.LoadEndedAt is { } ended)
+            section.AddParagraph($"Carga fictícia efetiva {ended - started:c} · observação após a parada {review.ObservedRecovery:c}.");
+        section.AddParagraph($"No fim da carga {Number(review.AtLoadEnd)} °C · queda {Number(review.Drop)} °C · taxa {Number(review.CoolingPerMinute)} °C/min · recuperação {Number(review.RecoveredPercent)} % · diferença da referência {Number(review.DifferenceFromBaseline)} °C.");
+        section.AddParagraph("Os valores descrevem a observação. Os critérios para classificar o comportamento térmico precisam de qualificação.");
+        foreach (var limitation in review.Limitations) section.AddParagraph(limitation);
+        foreach (var notice in trace.Notices)
+        {
+            string choice = notice.Choice == ThermalChoice.Stop ? "Parar estresse" : "Continuar monitorando";
+            section.AddParagraph($"{Time(notice.At)} (simulado) · {notice.Message}" +
+                (notice.Choice is not null ? $" Escolha {choice}. Registro local {Time(notice.ChoiceRecordedAt)}." : ""));
+        }
+        if (trace.StopReason is { } reason) section.AddParagraph(reason);
+        ReportCharts.AddThermal(section, trace);
     }
 
     private static string Time(DateTimeOffset? time) => time?.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss zzz", Pt) ?? "não disponível";
