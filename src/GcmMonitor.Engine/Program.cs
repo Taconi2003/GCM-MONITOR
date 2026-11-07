@@ -9,7 +9,7 @@ if (!OperatingSystem.IsWindows()) return 2;
 if (args.Length != 6 || args[0] != "--pipe" || args[2] != "--session" || args[4] != "--database" ||
     !Guid.TryParse(args[3], out var sessionId) || !(args[1].StartsWith("gcm-session-", StringComparison.Ordinal) || args[1].StartsWith("gcm-demo-", StringComparison.Ordinal)))
 {
-    Console.Error.WriteLine("Motor de sessão: inicialização restrita ao controlador GCM Monitor v0.2.");
+    Console.Error.WriteLine("Motor de sessão: inicialização restrita ao controlador GCM Monitor v0.4.");
     return 2;
 }
 

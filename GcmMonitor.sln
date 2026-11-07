@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcmMonitor.UnitTests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcmMonitor.IntegrationTests", "tests\GcmMonitor.IntegrationTests\GcmMonitor.IntegrationTests.csproj", "{F65E29EA-C8AA-48EA-8570-063EFF13C470}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GcmMonitor.Execution", "src\GcmMonitor.Execution\GcmMonitor.Execution.csproj", "{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -105,6 +107,14 @@ Global
 		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Release|x64.ActiveCfg = Release|Any CPU
 		{F65E29EA-C8AA-48EA-8570-063EFF13C470}.Release|x64.Build.0 = Release|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Debug|x64.Build.0 = Debug|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Release|x64.ActiveCfg = Release|Any CPU
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -119,5 +129,6 @@ Global
 		{9DCE7C4E-C1E2-4F14-B3F0-3EEA61319028} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{1D7C8F16-F421-431E-AF6A-A8855F006054} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{F65E29EA-C8AA-48EA-8570-063EFF13C470} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{A6174362-4FA9-4E84-8DC8-B922FBD06DB4} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

@@ -47,7 +47,7 @@ public sealed record DiagnosticOptions
             throw new ArgumentException("Selecione ao menos um módulo válido, sem duplicatas.");
         if (!DiagnosticDurations.Minutes.Contains(MonitoringMinutes) || !DiagnosticDurations.Minutes.Contains(StressMinutes))
             throw new ArgumentException("As durações permitidas são 5 min, 30 min, 1 h e 4 h.");
-        if (StressEnabled) throw new ArgumentException("Estresse bloqueado: supervisão ainda não validada.");
+        if (StressEnabled && !StressReleasePolicy.IsReleased) throw new ArgumentException(string.Join(" ", StressReleasePolicy.Evaluate(true, DateTimeOffset.UtcNow).Reasons));
         if (DetailedBattery && !Modules.Contains(ModuleId.Battery) || DetailedWifi && !Modules.Contains(ModuleId.Wifi))
             throw new ArgumentException("A análise detalhada requer o respectivo módulo.");
         if (DiskIds is null || DiskIds.Distinct().Count() != DiskIds.Length || Modules.Contains(ModuleId.Storage) &&
@@ -80,7 +80,7 @@ public sealed record DiagnosticSession
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string ComputerName { get; init; } = "DEMO-GCM01";
-    public string AppVersion { get; init; } = "0.3.0";
+    public string AppVersion { get; init; } = "0.4.0";
     public bool IsDemo { get; init; } = true;
     public DiagnosticOptions Options { get; init; } = new();
     public SessionState State { get; init; } = SessionState.NotStarted;
@@ -98,6 +98,7 @@ public sealed record DiagnosticSession
     public ProcessAggregate[] Processes { get; init; } = [];
     public CollectionIssue[] Issues { get; init; } = [];
     public DiagnosticRecord[] Records { get; init; } = [];
+    public StressAssessment? Stress { get; init; }
     public int? EngineProcessId { get; init; }
     public DateTimeOffset? EngineProcessStartedAt { get; init; }
     public bool IsTerminal => State is SessionState.Completed or SessionState.Cancelled or SessionState.Interrupted or SessionState.Error;

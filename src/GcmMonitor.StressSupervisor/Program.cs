@@ -1,3 +1,121 @@
-// Reserva executável do processo aprovado. Nenhum gerador de carga existe na v0.1.
-Console.Error.WriteLine("Estresse indisponível na v0.3. Supervisão, sensores, watchdog e Job Objects pendentes da v0.4.");
-return 3;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO.Pipes;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using GcmMonitor.Core;
+using GcmMonitor.Execution;
+
+if (!OperatingSystem.IsWindows()) return 2;
+// Filho de prova deliberadamente ocioso; não contém gerador de carga ou acesso a sensores/drivers.
+if (args is ["--idle-probe"])
+{
+    await Task.Delay(TimeSpan.FromSeconds(30));
+    return 0;
+}
+if (args.Length != 9 || args[0] != "--safety-probe" || args[1] != "--pipe" || args[3] != "--session" ||
+    args[5] != "--controller" || args[7] != "--controller-start" ||
+    !args[2].StartsWith("gcm-safety-probe-", StringComparison.Ordinal) || !Guid.TryParseExact(args[2][17..], "N", out _) ||
+    !Guid.TryParse(args[4], out var sessionId) || sessionId == Guid.Empty ||
+    !int.TryParse(args[6], NumberStyles.None, CultureInfo.InvariantCulture, out int controllerPid) || controllerPid <= 0 ||
+    !long.TryParse(args[8], NumberStyles.None, CultureInfo.InvariantCulture, out long controllerStart))
+{
+    Console.Error.WriteLine(string.Join(" ", StressReleasePolicy.Evaluate(true, DateTimeOffset.UtcNow).Reasons));
+    return 3;
+}
+
+using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+using var pipe = new NamedPipeClientStream(".", args[2], PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+OwnedProcessJob? worker = null;
+SafetyStopReason? reason = null;
+long sequence = 0;
+EngineChannel? channel = null;
+try
+{
+    await pipe.ConnectAsync(5000, lifetime.Token);
+    LocalPipePeer.ValidateServer(pipe.SafePipeHandle, controllerPid, DateTimeOffset.FromFileTime(controllerStart));
+    channel = new(pipe, SafetyProbeProtocol.MaximumBytes, new JsonSerializerOptions { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow });
+    SafetyProbeStart start;
+    using (var handshake = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token))
+    {
+        handshake.CancelAfter(TimeSpan.FromSeconds(3));
+        start = await channel.ReadAsync<SafetyProbeStart>(handshake.Token);
+    }
+    SafetyProbeProtocol.Validate(start.Version, start.SessionId, sessionId, start.Nonce, start.Nonce);
+    if (start.Purpose != SafetyProbeProtocol.Purpose || start.DurationMilliseconds is < 100 or > 15000 || !start.Nonce.All(Uri.IsHexDigit))
+        throw new InvalidDataException("Prova aceita somente contenção ociosa, com duração interna limitada.");
+    worker = OwnedProcessJob.CreateSuspended(Environment.ProcessPath!, ["--idle-probe"]);
+    worker.Resume();
+    var elapsed = Stopwatch.StartNew();
+    var lastHeartbeat = elapsed.Elapsed;
+    async Task Send(string state, SafetyStopReason? stopped = null)
+    {
+        using var writeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        await channel.WriteAsync(new SafetyProbeEvent(SafetyProbeProtocol.Version, sessionId, ++sequence, state,
+            worker.ProcessId, worker.StartedAt, stopped), writeTimeout.Token);
+    }
+    await Send("IdleProbeRunning");
+    long lastCommand = 0;
+    while (reason is null)
+    {
+        if (worker.HasExited) { reason = SafetyStopReason.WorkerExited; break; }
+        var remaining = TimeSpan.FromMilliseconds(start.DurationMilliseconds) - elapsed.Elapsed;
+        var heartbeatRemaining = SafetyProbeProtocol.HeartbeatTimeout - (elapsed.Elapsed - lastHeartbeat);
+        if (remaining <= TimeSpan.Zero) { reason = SafetyStopReason.DurationCompleted; break; }
+        if (heartbeatRemaining <= TimeSpan.Zero) { reason = SafetyStopReason.HeartbeatLost; break; }
+        bool durationDeadline = remaining <= heartbeatRemaining;
+        using var receive = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        receive.CancelAfter(durationDeadline ? remaining : heartbeatRemaining);
+        try
+        {
+            var command = await channel.ReadAsync<SafetyProbeCommand>(receive.Token);
+            // Uma mensagem concluída depois do prazo não pode reanimar a supervisão expirada.
+            if (elapsed.Elapsed >= TimeSpan.FromMilliseconds(start.DurationMilliseconds) || elapsed.Elapsed - lastHeartbeat >= SafetyProbeProtocol.HeartbeatTimeout)
+            { reason = durationDeadline ? SafetyStopReason.DurationCompleted : SafetyStopReason.HeartbeatLost; break; }
+            SafetyProbeProtocol.Validate(command.Version, command.SessionId, sessionId, command.Nonce, start.Nonce);
+            if (command.Sequence != lastCommand + 1) throw new InvalidDataException("Sequência de comando inválida.");
+            lastCommand = command.Sequence;
+            reason = command.Command switch
+            {
+                "heartbeat" => null,
+                "stop" => SafetyStopReason.UserStopped,
+                "cancel" => SafetyStopReason.Cancelled,
+                "sensor-lost" => SafetyStopReason.SensorLost,
+                "suspend" => SafetyStopReason.Suspended,
+                "power-changed" => SafetyStopReason.PowerChanged,
+                "persistence-failed" => SafetyStopReason.PersistenceFailed,
+                _ => throw new InvalidDataException("Comando não permitido na prova de contenção.")
+            };
+            if (command.Command == "heartbeat") lastHeartbeat = elapsed.Elapsed;
+        }
+        catch (OperationCanceledException) when (receive.IsCancellationRequested)
+        {
+            reason = worker.HasExited ? SafetyStopReason.WorkerExited :
+                lifetime.IsCancellationRequested ? SafetyStopReason.SupervisorFailed :
+                durationDeadline ? SafetyStopReason.DurationCompleted : SafetyStopReason.HeartbeatLost;
+        }
+    }
+    await worker.StopAsync(); // Confirma encerramento ANTES de informar sucesso ou tentar gravar/transmitir.
+    await Send("IdleProbeStopped", reason);
+    return 0;
+}
+catch (Exception ex) when (ex is IOException or InvalidDataException or JsonException or OperationCanceledException or
+    System.ComponentModel.Win32Exception or ArgumentException or InvalidOperationException)
+{
+    reason = ex is InvalidDataException or JsonException ? SafetyStopReason.InvalidProtocol :
+        ex is IOException ? SafetyStopReason.ControllerDisconnected : SafetyStopReason.SupervisorFailed;
+    if (worker is not null) await worker.StopAsync();
+    if (channel is not null && pipe.IsConnected)
+    {
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
+            await channel.WriteAsync(new SafetyProbeEvent(SafetyProbeProtocol.Version, sessionId, ++sequence,
+                "IdleProbeStopped", worker?.ProcessId, worker?.StartedAt, reason), timeout.Token);
+        }
+        catch (Exception writeError) when (writeError is IOException or OperationCanceledException or ObjectDisposedException) { }
+    }
+    Console.Error.WriteLine("Prova ociosa encerrada: " + reason + ". Nenhuma carga de CPU executada.");
+    return 2;
+}
+finally { worker?.Dispose(); }

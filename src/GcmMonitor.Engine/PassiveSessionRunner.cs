@@ -31,6 +31,7 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
         var session = new DiagnosticSession
         {
             Id = id, Options = options, IsDemo = false, ComputerName = "Identificando computador", StartedAt = clock.UtcNow,
+            Stress = StressReleasePolicy.Evaluate(false, clock.UtcNow),
             IntegrityNote = "Coleta passiva. Estresse desativado. Ausência de achados não comprova integridade física.",
             EngineProcessId = own.Id, EngineProcessStartedAt = new DateTimeOffset(own.StartTime.ToUniversalTime(), TimeSpan.Zero),
             Modules = options.Modules.Select(x => new ModuleRun(x, ModuleState.Pending, "Não executado", "Aguardando validação.")).ToArray()

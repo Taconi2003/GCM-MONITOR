@@ -37,7 +37,7 @@ public interface IStressSupervisor
 
 public static class EngineProtocol
 {
-    public const int Version = 3;
+    public const int Version = 4;
     public const int MaxMessageLength = 1024 * 1024;
     public static JsonSerializerOptions Json { get; } = new() { PropertyNameCaseInsensitive = false };
     public static void Validate(int version, Guid sessionId, Guid expectedId)

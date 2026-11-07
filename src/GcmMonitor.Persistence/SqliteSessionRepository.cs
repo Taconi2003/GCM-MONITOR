@@ -80,6 +80,8 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
     public async Task SaveBatchAsync(DiagnosticSession session, CollectionBatch batch, CancellationToken cancellationToken = default)
     {
         session.Options.Validate();
+        if (session.Stress is { } safety && (safety.Available || safety.LoadExecuted))
+            throw new InvalidOperationException("Esta versão bloqueada não registra execução de carga como validada.");
         if (session.Measurements.Concat(batch.Measurements).Any(x => x.IsDemo != session.IsDemo))
             throw new InvalidOperationException("Dados reais e sintéticos não podem ser misturados na mesma sessão.");
         foreach (var measurement in session.Measurements) measurement.Validate();

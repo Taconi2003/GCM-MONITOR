@@ -16,7 +16,7 @@
       "gcmmonitor.collector": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[0.3.0, )",
+          "GcmMonitor.Core": "[0.4.0, )",
           "System.Diagnostics.EventLog": "[10.0.0, )",
           "System.Management": "[10.0.0, )"
         }
