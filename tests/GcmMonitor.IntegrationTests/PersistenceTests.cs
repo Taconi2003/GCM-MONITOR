@@ -1,7 +1,10 @@
 using GcmMonitor.Collector;
 using GcmMonitor.Core;
 using GcmMonitor.Persistence;
+using GcmMonitor.Presentation;
+using GcmMonitor.Reporting;
 using Microsoft.Data.Sqlite;
+using PdfSharp.Pdf.IO;
 
 namespace GcmMonitor.IntegrationTests;
 
@@ -49,6 +52,81 @@ public sealed class PersistenceTests : IDisposable
         await Assert.ThrowsAsync<InvalidDataException>(() => store.SaveAsync(expected with { RetentionDays = 3 }));
         Assert.Equal(expected, await new JsonUserPreferencesStore(settings).LoadAsync());
         Assert.Single(Directory.EnumerateFiles(Path.GetDirectoryName(settings)!));
+    }
+
+    [Fact]
+    public async Task PdfCanBeReexportedFromHistoryAndSurvivesSessionDeletion()
+    {
+        var repo = Repository;
+        var time = new DateTimeOffset(2026, 11, 7, 12, 0, 0, TimeSpan.Zero);
+        var fixture = DemoFixtures.Archived(SessionState.Interrupted, time) with
+        {
+            ComputerName = "DEMO-GCM01", Notes = "Observação sintética do técnico. A ventilação e a alimentação são exemplos.",
+            Inventory = new("DEMO-GCM01", "Windows 11 fictício", "Versão de exemplo", "x64", null,
+                "Processador fictício", 4, 8, 16L * 1073741824, [], [], [], time, IsDemo: true),
+            Measurements = Enumerable.Range(0, 16).Select(i => new Measurement(ModuleId.Cpu, "CPU", "Processador fictício",
+                i == 7 ? null : 20 + i % 5 * 7, "%", time.AddSeconds(i * 5), "Amostras sintéticas",
+                i == 7 ? DataQuality.Unavailable : DataQuality.Valid, true, i == 7 ? "Lacuna ilustrativa" : null)).ToArray(),
+            Statistics = [new(ModuleId.Cpu, "CPU", "Processador fictício", "%", 20, 48, 1800, 60, 15, time, time.AddSeconds(75))],
+            Processes = [new(101, time, "editor-demonstrativo.exe", 12, 40, 32, 8388608d * 40, 40, 10485760, time, time.AddSeconds(40), true, 8)],
+            Records = [new(ModuleId.WindowsEvents, "demo:power", "Ocorrência sintética de energia",
+                "Kernel-Power, ID 41. O evento sozinho não identifica a causa.", time, "Fonte demonstrativa", DataQuality.Valid, true)],
+            Issues = [new(time.AddSeconds(35), ModuleId.Cpu, "Lacuna sintética de amostragem.")]
+        };
+        await repo.InitializeAsync(); await repo.SaveAsync(fixture);
+        string path = Path.Combine(folder, "relatorio.pdf");
+        var vm = new ShellViewModel(new ReportEngine(), repo, new ReportDialogs(path), pdfExporter: new PdfReportExporter());
+        await vm.InitializeAsync();
+        var row = Assert.Single(vm.History);
+        await vm.OpenHistoryCommand.ExecuteAsync(row);
+        await vm.ExportPdfCommand.ExecuteAsync(null);
+        Assert.True(File.Exists(path), vm.Message);
+        await vm.ExportPdfCommand.ExecuteAsync(row);
+        Assert.Contains("salvo", vm.Message);
+        using (var pdf = PdfReader.Open(path, PdfDocumentOpenMode.Import))
+        {
+            Assert.InRange(pdf.PageCount, 2, 12);
+            Assert.Contains("Relatório técnico", pdf.Info.Title);
+        }
+        await using (var db = new SqliteConnection($"Data Source={repo.DatabasePath};Mode=ReadOnly;Pooling=False"))
+        {
+            await db.OpenAsync(); using var count = db.CreateCommand();
+            count.CommandText = "SELECT COUNT(*) FROM ExportHistory WHERE Bytes>0;";
+            Assert.Equal(2L, await count.ExecuteScalarAsync());
+        }
+        Assert.True(await repo.DeleteAsync(fixture.Id)); Assert.True(File.Exists(path));
+        if (Environment.GetEnvironmentVariable("GCM_EXPORT_PDF_EXAMPLE") == "1")
+        {
+            string evidence = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "pdf");
+            Directory.CreateDirectory(evidence);
+            File.Copy(path, Path.Combine(evidence, "GCM-relatorio-demonstrativo.pdf"), overwrite: true);
+        }
+    }
+
+    [Fact]
+    public async Task ExportRefusesActiveSessionAndPreservesExistingFileWithoutOverwrite()
+    {
+        Directory.CreateDirectory(folder);
+        string path = Path.Combine(folder, "existente.pdf");
+        await File.WriteAllTextAsync(path, "fixture original");
+        var exporter = new PdfReportExporter();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => exporter.ExportAsync(new DiagnosticSession { State = SessionState.Running }, path, true));
+        await Assert.ThrowsAsync<IOException>(() => exporter.ExportAsync(DemoFixtures.Archived(SessionState.Completed, DateTimeOffset.UtcNow), path, false));
+        Assert.Equal("fixture original", await File.ReadAllTextAsync(path));
+        Assert.Single(Directory.EnumerateFiles(folder));
+    }
+
+    private sealed class ReportDialogs(string destination) : IUserDialogs
+    {
+        public bool Confirm(string title, string message) => true;
+        public string? ChooseReportFolder(string current) => null;
+        public string? ChoosePdfPath(string folder, string fileName) => destination;
+    }
+    private sealed class ReportEngine : IDiagnosticEngineClient
+    {
+        public IAsyncEnumerable<DiagnosticSession> RunAsync(DiagnosticOptions options, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task CancelAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 
     [Fact]

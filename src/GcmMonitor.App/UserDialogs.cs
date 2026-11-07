@@ -12,4 +12,14 @@ public sealed class UserDialogs : IUserDialogs
         var dialog = new OpenFolderDialog { Title = "Pasta padrão dos relatórios PDF", InitialDirectory = Directory.Exists(current) ? current : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) };
         return dialog.ShowDialog() == true ? dialog.FolderName : null;
     }
+    public string? ChoosePdfPath(string folder, string fileName)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = "Exportar relatório PDF", Filter = "Documento PDF (*.pdf)|*.pdf", DefaultExt = ".pdf",
+            FileName = fileName, AddExtension = true, CheckPathExists = true, OverwritePrompt = true,
+            InitialDirectory = Directory.Exists(folder) ? folder : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+        };
+        return dialog.ShowDialog() == true ? dialog.FileName : null;
+    }
 }

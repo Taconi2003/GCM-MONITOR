@@ -83,7 +83,7 @@
                 <DataTemplate>
                   <StackPanel Orientation="Horizontal">
                     <Button Content="Abrir" Padding="9,6" Command="{Binding DataContext.OpenHistoryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="0,0,6,0" />
-                    <Button Content="PDF" Padding="9,6" IsEnabled="False" ToolTip="Exportação prevista para v1.0" Margin="0,0,6,0" />
+                    <Button Content="PDF" Padding="9,6" Command="{Binding DataContext.ExportPdfCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" Margin="0,0,6,0" />
                     <Button Content="Excluir" Padding="9,6" Style="{StaticResource DangerButton}" Command="{Binding DataContext.DeleteHistoryCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}" />
                   </StackPanel>
                 </DataTemplate>

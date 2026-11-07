@@ -160,10 +160,10 @@
       </StackPanel>
       <Border Style="{StaticResource Card}">
         <DockPanel>
-          <Button Content="Exportar relatório PDF" Style="{StaticResource PrimaryButton}" IsEnabled="False" DockPanel.Dock="Right" Margin="20,0,0,0" />
+          <Button Content="Exportar relatório PDF" Style="{StaticResource PrimaryButton}" Command="{Binding ExportPdfCommand}" DockPanel.Dock="Right" Margin="20,0,0,0" />
           <StackPanel>
-            <TextBlock Text="Exportação PDF indisponível na v0.4" FontWeight="SemiBold" />
-            <TextBlock Text="Prevista para v1.0. A exportação PDF ainda não está implementada." Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
+            <TextBlock Text="Relatório do diagnóstico" FontWeight="SemiBold" />
+            <TextBlock Text="O PDF usa os resultados e as observações salvas na sessão." Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
           </StackPanel>
         </DockPanel>
       </Border>

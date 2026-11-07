@@ -132,7 +132,7 @@ identificadas e resumos sanitizados, nunca bancos locais ou registros brutos do 
   prazo exige confirmação com a data de corte. [Prévia de histórico e preferências](docs/testes/V1.0-PREVIEW.1.md).
 - CPU representa tempo ocupado, não utilidade ajustada por frequência. Mais de 64 processadores
   lógicos permanece indisponível até validar grupos. Processos protegidos podem ficar parciais.
-- PDF e instalador são as próximas prévias de distribuição.
+- A exportação PDF está disponível na segunda prévia. [Relatório de validação do PDF](docs/testes/V1.0-PREVIEW.2.md).
 - Validação local não substitui matriz Windows 10/11, máquinas com sensores e ensaios reais de 30 min/1 h/4 h.
 
 Dados por usuário: `%LOCALAPPDATA%\GCM Monitor\Data\gcm-monitor.db`; banco demonstrativo antigo

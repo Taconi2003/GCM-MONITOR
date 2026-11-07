@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="../GcmMonitor.Presentation/GcmMonitor.Presentation.csproj" />
     <ProjectReference Include="../GcmMonitor.Persistence/GcmMonitor.Persistence.csproj" />
+    <ProjectReference Include="../GcmMonitor.Reporting/GcmMonitor.Reporting.csproj" />
     <ProjectReference Include="../GcmMonitor.Engine/GcmMonitor.Engine.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>

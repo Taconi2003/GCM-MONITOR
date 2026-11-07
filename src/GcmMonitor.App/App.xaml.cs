@@ -4,6 +4,7 @@ using GcmMonitor.Core;
 using GcmMonitor.Collector;
 using GcmMonitor.Persistence;
 using GcmMonitor.Presentation;
+using GcmMonitor.Reporting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GcmMonitor.App;
@@ -31,6 +32,7 @@ public partial class App : Application
         var collection = new ServiceCollection();
         collection.AddSingleton<ISessionRepository>(new SqliteSessionRepository(data));
         collection.AddSingleton<IUserPreferencesStore>(new JsonUserPreferencesStore(Path.Combine(root, "Settings", "preferences.json")));
+        collection.AddSingleton<IPdfReportExporter, PdfReportExporter>();
         collection.AddSingleton<IInventoryProvider, WindowsInventoryProvider>();
         collection.AddSingleton<IDiagnosticEngineClient>(sp => new SessionEngineClient(Path.Combine(AppContext.BaseDirectory, "engine", "GcmMonitor.Engine.exe"), data,
             authorizeCpuTemperature: () => sp.GetRequiredService<IUserDialogs>().Confirm("Temperaturas da CPU",

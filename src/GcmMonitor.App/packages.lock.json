@@ -24,6 +24,22 @@
         "resolved": "10.0.0",
         "contentHash": "L3AdmZ1WOK4XXT5YFPEwyt0ep6l8lGIPs7F5OOBZc77Zqeo01Of7XXICy47628sdVl0v/owxYJTe86DTgFwKCA=="
       },
+      "Microsoft.Extensions.Logging.Abstractions": {
+        "type": "Transitive",
+        "resolved": "8.0.3",
+        "contentHash": "dL0QGToTxggRLMYY4ZYX5AMwBb+byQBd/5dMiZE07Nv73o6I5Are3C7eQTh7K2+A4ct0PVISSr7TZANbiNb2yQ==",
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "8.0.2"
+        }
+      },
+      "PDFsharp-WPF": {
+        "type": "Transitive",
+        "resolved": "6.2.4",
+        "contentHash": "wD2byoUNGc/IDmSSSPLGGCNMXf4TybnjKlcYa40nuWIYLVA4DSvnCvWr7HbsBEwFvAYRP6DceQ4MN35COD/pdw==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.3"
+        }
+      },
       "SQLite": {
         "type": "Transitive",
         "resolved": "3.53.4",
@@ -53,7 +69,7 @@
       "gcmmonitor.collector": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.1, )",
+          "GcmMonitor.Core": "[1.0.0-preview.2, )",
           "System.Management": "[10.0.0, )"
         }
       },
@@ -63,7 +79,7 @@
       "gcmmonitor.persistence": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.1, )",
+          "GcmMonitor.Core": "[1.0.0-preview.2, )",
           "Microsoft.Data.Sqlite": "[10.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
@@ -72,8 +88,15 @@
         "type": "Project",
         "dependencies": {
           "CommunityToolkit.Mvvm": "[8.4.0, )",
-          "GcmMonitor.Collector": "[1.0.0-preview.1, )",
-          "GcmMonitor.Core": "[1.0.0-preview.1, )"
+          "GcmMonitor.Collector": "[1.0.0-preview.2, )",
+          "GcmMonitor.Core": "[1.0.0-preview.2, )"
+        }
+      },
+      "gcmmonitor.reporting": {
+        "type": "Project",
+        "dependencies": {
+          "GcmMonitor.Core": "[1.0.0-preview.2, )",
+          "PDFsharp-MigraDoc-WPF": "[6.2.4, )"
         }
       },
       "CommunityToolkit.Mvvm": {
@@ -91,6 +114,16 @@
           "Microsoft.Data.Sqlite.Core": "10.0.0",
           "SQLitePCLRaw.bundle_e_sqlite3": "2.1.11",
           "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
+      "PDFsharp-MigraDoc-WPF": {
+        "type": "CentralTransitive",
+        "requested": "[6.2.4, )",
+        "resolved": "6.2.4",
+        "contentHash": "0r3+I3H4BIv2Mt5+3ajQnilY5kqs6fByoVdNly1A2jGOJwjW5qaWE+ohgi9hbMY3hK/JwcxvuChhHz4fi5DO3Q==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "8.0.3",
+          "PDFsharp-WPF": "6.2.4"
         }
       },
       "SQLitePCLRaw.bundle_e_sqlite3": {

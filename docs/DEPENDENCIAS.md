@@ -60,3 +60,7 @@ O [canal térmico passivo](arquitetura/CANAL_TERMICO_V0.4.md) usa o mesmo arquiv
 local, sem novas dependências NuGet na solução. Os lockfiles mudaram apenas por referências internas.
 No CI, o auxiliar é compilado com o arquivo oficial verificado; não se instala driver nem se eleva o
 processo. O auxiliar e o driver ainda não integram a distribuição Inno Setup.
+
+A prévia 2 fixa **PDFsharp-MigraDoc-WPF 6.2.4** e **PDFsharp-WPF 6.2.4**, ambos com licença MIT
+declarada. A resolução .NET 10 inclui Microsoft.Extensions.Logging.Abstractions 8.0.3. Os hashes
+estão nos lockfiles. Versões posteriores requerem revisão de licença. [Fornecedor](https://docs.pdfsharp.net/General/History.html).

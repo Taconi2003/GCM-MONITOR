@@ -41,7 +41,7 @@
             <Button Content="Escolher pasta" Command="{Binding ChooseFolderCommand}" DockPanel.Dock="Right" Margin="12,0,0,0" />
             <TextBox Text="{Binding ReportFolder}" IsReadOnly="True" AutomationProperties.Name="Pasta padrão de relatórios" />
           </DockPanel>
-          <TextBlock Text="A exportação de relatório PDF será disponibilizada na v1.0." Style="{StaticResource Muted}" FontSize="11" Margin="0,10,0,0" />
+          <TextBlock Text="Você pode escolher outro destino ao exportar." Style="{StaticResource Muted}" FontSize="11" Margin="0,10,0,0" />
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">

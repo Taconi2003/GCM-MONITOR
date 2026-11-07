@@ -45,3 +45,8 @@ public sealed record HistoryEntry(Guid Id, string ComputerName, DateTimeOffset S
 }
 
 public sealed record HistoryPage(HistoryEntry[] Entries, int MatchingCount, int TotalCount, int ActiveCount, long? DatabaseBytes);
+
+public interface IPdfReportExporter
+{
+    Task<long> ExportAsync(DiagnosticSession session, string destination, bool overwrite, CancellationToken ct = default);
+}

@@ -109,7 +109,7 @@ public sealed class AdvancedCollectionTests : IDisposable
         Assert.Equal("0.2.0", restored!.AppVersion); Assert.Equal(session.Notes, restored.Notes);
         Assert.Empty(restored.Records);
         await using var read = new SqliteConnection($"Data Source={Database};Pooling=False"); await read.OpenAsync();
-        using var version = read.CreateCommand(); version.CommandText = "PRAGMA user_version;"; Assert.Equal(4L, await version.ExecuteScalarAsync());
+        using var version = read.CreateCommand(); version.CommandText = "PRAGMA user_version;"; Assert.Equal(5L, await version.ExecuteScalarAsync());
         Assert.Equal(session.Id, Assert.Single((await repo.QueryHistoryAsync(new())).Entries).Id);
     }
     public void Dispose() { if (Directory.Exists(folder)) Directory.Delete(folder, true); }

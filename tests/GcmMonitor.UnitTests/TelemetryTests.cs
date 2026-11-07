@@ -145,6 +145,7 @@ public sealed class TelemetryTests
         public Task<IReadOnlyList<DiagnosticSession>> ListAsync(int limit = 100, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DiagnosticSession>>([]);
         public Task<HistoryPage> QueryHistoryAsync(HistoryQuery query, CancellationToken ct = default) => Task.FromResult(new HistoryPage([], 0, 0, 0, null));
         public Task<int> DeleteTerminalBeforeAsync(DateTimeOffset cutoff, CancellationToken ct = default) => Task.FromResult(0);
+        public Task RecordPdfExportAsync(Guid id, long bytes, DateTimeOffset exportedAt, CancellationToken ct = default) => Task.CompletedTask;
         public Task SaveNotesAsync(Guid id, string notes, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task<int> ClearTerminalAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);

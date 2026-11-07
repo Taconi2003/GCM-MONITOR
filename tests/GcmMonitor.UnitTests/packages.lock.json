@@ -135,7 +135,7 @@
       "gcmmonitor.collector": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.1, )",
+          "GcmMonitor.Core": "[1.0.0-preview.2, )",
           "System.Diagnostics.EventLog": "[10.0.0, )",
           "System.Management": "[10.0.0, )"
         }
@@ -146,22 +146,22 @@
       "gcmmonitor.engine": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Collector": "[1.0.0-preview.1, )",
-          "GcmMonitor.Core": "[1.0.0-preview.1, )",
-          "GcmMonitor.Execution": "[1.0.0-preview.1, )",
-          "GcmMonitor.Persistence": "[1.0.0-preview.1, )"
+          "GcmMonitor.Collector": "[1.0.0-preview.2, )",
+          "GcmMonitor.Core": "[1.0.0-preview.2, )",
+          "GcmMonitor.Execution": "[1.0.0-preview.2, )",
+          "GcmMonitor.Persistence": "[1.0.0-preview.2, )"
         }
       },
       "gcmmonitor.execution": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.1, )"
+          "GcmMonitor.Core": "[1.0.0-preview.2, )"
         }
       },
       "gcmmonitor.persistence": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.1, )",
+          "GcmMonitor.Core": "[1.0.0-preview.2, )",
           "Microsoft.Data.Sqlite": "[10.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
@@ -170,8 +170,8 @@
         "type": "Project",
         "dependencies": {
           "CommunityToolkit.Mvvm": "[8.4.0, )",
-          "GcmMonitor.Collector": "[1.0.0-preview.1, )",
-          "GcmMonitor.Core": "[1.0.0-preview.1, )"
+          "GcmMonitor.Collector": "[1.0.0-preview.2, )",
+          "GcmMonitor.Core": "[1.0.0-preview.2, )"
         }
       },
       "CommunityToolkit.Mvvm": {

@@ -17,6 +17,7 @@ public interface ISessionRepository
     Task<IReadOnlyList<DiagnosticSession>> ListAsync(int limit = 100, CancellationToken cancellationToken = default);
     Task<HistoryPage> QueryHistoryAsync(HistoryQuery query, CancellationToken ct = default);
     Task<int> DeleteTerminalBeforeAsync(DateTimeOffset cutoff, CancellationToken ct = default);
+    Task RecordPdfExportAsync(Guid id, long bytes, DateTimeOffset exportedAt, CancellationToken ct = default);
     Task SaveNotesAsync(Guid id, string notes, CancellationToken cancellationToken = default);
     Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     Task<int> ClearTerminalAsync(CancellationToken cancellationToken = default);

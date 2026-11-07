@@ -159,6 +159,7 @@ internal sealed class MemoryRepository : ISessionRepository
         foreach (var id in ids) sessions.Remove(id);
         return Task.FromResult(ids.Length);
     }
+    public Task RecordPdfExportAsync(Guid id, long bytes, DateTimeOffset exportedAt, CancellationToken ct = default) => Task.CompletedTask;
     public Task SaveNotesAsync(Guid id, string notes, CancellationToken cancellationToken = default) { sessions[id] = sessions[id] with { Notes = notes }; return Task.CompletedTask; }
     public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(sessions.TryGetValue(id, out var s) && s.IsTerminal && sessions.Remove(id));
     public Task<int> ClearTerminalAsync(CancellationToken cancellationToken = default) { var keys = sessions.Values.Where(x => x.IsTerminal).Select(x => x.Id).ToArray(); foreach (var key in keys) sessions.Remove(key); return Task.FromResult(keys.Length); }

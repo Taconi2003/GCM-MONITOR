@@ -27,11 +27,12 @@ public sealed partial class ShellViewModel : ObservableObject
     public string DataBanner => IsDemoMode ? "MODO DEMONSTRAÇÃO · Dados sintéticos. Nenhuma medição real, teste de estresse ou alteração do Windows. O relógio da reprodução é acelerado." :
         "COLETA PASSIVA · Diagnósticos por capacidade e permissão das fontes Windows. Sensores ausentes são identificados. Estresse bloqueado.";
     public ShellViewModel(IDiagnosticEngineClient engine, ISessionRepository repository, IUserDialogs dialogs, IInventoryProvider? inventoryProvider = null,
-        IUserPreferencesStore? preferencesStore = null)
+        IUserPreferencesStore? preferencesStore = null, IPdfReportExporter? pdfExporter = null)
     {
         this.engine = engine; this.repository = repository; this.dialogs = dialogs;
         this.inventoryProvider = inventoryProvider;
         this.preferencesStore = preferencesStore;
+        this.pdfExporter = pdfExporter;
         Modules = new(ModuleCatalog.All.Select(x => new ModuleSelection(x)));
         foreach (var module in Modules) module.PropertyChanged += SelectionChanged;
         if (!IsDemoMode)
@@ -258,6 +259,7 @@ public sealed partial class ShellViewModel : ObservableObject
     private void NotifyResults()
     {
         foreach (var name in new[] { nameof(HasResults), nameof(HasNoResults), nameof(ResultStatus), nameof(ResultSummary), nameof(StressResultSummary), nameof(NormalCount), nameof(AttentionCount), nameof(FailureCount), nameof(UnavailableCount), nameof(CollectionIssues) }) OnPropertyChanged(name);
+        ExportPdfCommand.NotifyCanExecuteChanged();
     }
 
     [RelayCommand]

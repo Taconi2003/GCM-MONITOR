@@ -90,4 +90,5 @@ public interface IUserDialogs
 {
     bool Confirm(string title, string message);
     string? ChooseReportFolder(string current);
+    string? ChoosePdfPath(string folder, string fileName) => null;
 }

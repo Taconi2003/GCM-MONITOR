@@ -40,7 +40,7 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
         command.Transaction = transaction;
         command.CommandText = "PRAGMA user_version;";
         int version = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
-        if (version > 4) throw new InvalidDataException("Banco de dados criado por uma versão posterior do GCM Monitor.");
+        if (version > 5) throw new InvalidDataException("Banco de dados criado por uma versão posterior do GCM Monitor.");
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS Sessions (
                 Id TEXT PRIMARY KEY, StartedAt TEXT NOT NULL, Terminal INTEGER NOT NULL,
@@ -81,6 +81,10 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
                 Duration TEXT NOT NULL, IsDemo INTEGER NOT NULL);
             CREATE INDEX IF NOT EXISTS IX_History_Date ON SessionHistory(StartedAt DESC,SessionId DESC);
             CREATE INDEX IF NOT EXISTS IX_History_StateDate ON SessionHistory(State,StartedAt DESC,SessionId DESC);
+            CREATE TABLE IF NOT EXISTS ExportHistory (
+                Id INTEGER PRIMARY KEY, SessionId TEXT NOT NULL REFERENCES Sessions(Id) ON DELETE CASCADE,
+                ExportedAt TEXT NOT NULL, AppVersion TEXT NOT NULL, Bytes INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS IX_ExportHistory_Session ON ExportHistory(SessionId);
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
         if (version < 4)
@@ -90,8 +94,12 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
                 SELECT Id,StartedAt,coalesce(json_extract(Snapshot,'$.ComputerName'),'Não disponível'),
                     coalesce(json_extract(Snapshot,'$.State'),0),coalesce(json_extract(Snapshot,'$.EffectiveDuration'),'00:00:00'),
                     coalesce(json_extract(Snapshot,'$.IsDemo'),1) FROM Sessions;
-                PRAGMA user_version=4;
                 """;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        if (version < 5)
+        {
+            command.CommandText = "PRAGMA user_version=5;";
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
         transaction.Commit();
@@ -284,6 +292,22 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
         command.CommandText = "DELETE FROM Sessions WHERE Terminal=1 AND StartedAt < $cutoff;";
         command.Parameters.AddWithValue("$cutoff", cutoff.UtcDateTime.ToString("O"));
         return await command.ExecuteNonQueryAsync(ct);
+    }
+
+    public async Task RecordPdfExportAsync(Guid id, long bytes, DateTimeOffset exportedAt, CancellationToken ct = default)
+    {
+        if (bytes <= 0) throw new ArgumentOutOfRangeException(nameof(bytes));
+        await using var connection = await OpenAsync(ct);
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            INSERT INTO ExportHistory(SessionId,ExportedAt,AppVersion,Bytes)
+            SELECT Id,$time,$version,$bytes FROM Sessions WHERE Id=$id AND Terminal=1;
+            """;
+        command.Parameters.AddWithValue("$id", id.ToString());
+        command.Parameters.AddWithValue("$time", exportedAt.UtcDateTime.ToString("O"));
+        command.Parameters.AddWithValue("$version", ProductVersion.Value);
+        command.Parameters.AddWithValue("$bytes", bytes);
+        if (await command.ExecuteNonQueryAsync(ct) != 1) throw new KeyNotFoundException("Sessão finalizada não encontrada.");
     }
 
     public async Task SaveNotesAsync(Guid id, string notes, CancellationToken cancellationToken = default)

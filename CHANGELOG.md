@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-preview.2 — 07/11/2026
+
+- Exportação PDF em Resultados e Histórico, com identificação de sessões parciais e dados sintéticos.
+- Estatísticas, ocorrências, observações salvas e gráficos que preservam lacunas da coleta.
+- Exportação registrada no esquema 5. Arquivos externos permanecem no destino escolhido.
+
 ## 1.0.0-preview.1 — 07/11/2026
 
 - Histórico paginado no SQLite, filtros sobre todas as sessões e total com tamanho do banco.

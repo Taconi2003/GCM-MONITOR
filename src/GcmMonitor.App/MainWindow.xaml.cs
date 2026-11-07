@@ -30,6 +30,7 @@ public partial class MainWindow : Window
         if (viewModel.IsActive && MessageBox.Show(this, "Encerrar a coleta passiva e preservar os dados parciais?", "Fechar GCM Monitor", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes) return;
         IsEnabled = false;
         await engine.DisposeAsync();
+        await viewModel.WaitForReportAsync();
         closeAllowed = true;
         // Close não pode ser chamado dentro do próprio evento Closing se a tarefa completar sincronicamente.
         _ = Dispatcher.BeginInvoke(new Action(Close));

@@ -8,7 +8,7 @@
       "gcmmonitor.execution": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.1, )"
+          "GcmMonitor.Core": "[1.0.0-preview.2, )"
         }
       }
     }
