@@ -61,3 +61,4 @@ laboratório com `./scripts/package.ps1 -LabUi`. Use um perfil sem outra instala
 atalho **GCM Monitor Laboratorio**. O executável da interface usa a pasta `profile` ao lado
 do diretório instalado e um marcador de uso separado. Desinstale pelo registro ou executável
 da instalação de laboratório. Use dados sintéticos para testar a opção de remover o histórico.
+Veja os [resultados da prévia 5](../../docs/testes/V1.0-PREVIEW.5.md).
