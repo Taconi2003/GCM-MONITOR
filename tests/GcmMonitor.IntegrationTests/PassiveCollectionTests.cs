@@ -4,7 +4,9 @@ using GcmMonitor.App;
 using GcmMonitor.Collector;
 using GcmMonitor.Core;
 using GcmMonitor.Persistence;
+using GcmMonitor.Reporting;
 using Microsoft.Data.Sqlite;
+using PdfSharp.Pdf.IO;
 
 namespace GcmMonitor.IntegrationTests;
 
@@ -85,7 +87,7 @@ public sealed class PassiveCollectionTests : IDisposable
         string evidenceFolder = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation"); Directory.CreateDirectory(evidenceFolder);
         await File.WriteAllTextAsync(Path.Combine(evidenceFolder, "cpu-reference.json"), JsonSerializer.Serialize(new
         {
-            Version = "0.4.0",
+            Version = ProductVersion.Value,
             NativeSource = "GetSystemTimes",
             Reference = "PDH Processor(_Total) % Processor Time",
             Samples = differences.Count,
@@ -148,52 +150,118 @@ public sealed class PassiveCollectionTests : IDisposable
     }
 
     [LiveValidationFact]
-    public async Task FullFiveMinutePassiveSessionCompletesAndKeepsBoundedUiSnapshots()
+    public async Task FullTimedPassiveSessionCompletesAndKeepsBoundedUiSnapshots()
     {
-        var inventory = await new WindowsInventoryProvider().ReadAsync();
-        await using var client = new SessionEngineClient(EngineProcessTests.Executable("GcmMonitor.Engine"), Database);
+        string? configuredMinutes = Environment.GetEnvironmentVariable("GCM_PASSIVE_VALIDATION_MINUTES");
+        int minutes = configuredMinutes is null ? 5 : int.Parse(configuredMinutes, System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Contains(minutes, DiagnosticDurations.Minutes);
+        string enginePath = Environment.GetEnvironmentVariable("GCM_PASSIVE_VALIDATION_ENGINE") ?? EngineProcessTests.Executable("GcmMonitor.Engine");
+        string evidenceFolder = Environment.GetEnvironmentVariable("GCM_PASSIVE_VALIDATION_OUTPUT") ??
+            Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation");
+        Directory.CreateDirectory(evidenceFolder);
+        string progressPath = Path.Combine(evidenceFolder, $"passive-{minutes}min-progress.json");
+        string reportPath = Path.Combine(evidenceFolder, $"passive-{minutes}min.json");
+        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(minutes + 3));
+        var inventory = await new WindowsInventoryProvider().ReadAsync(timeout.Token);
+        var repo = new SqliteSessionRepository(Database);
+        await using var client = new SessionEngineClient(enginePath, Database);
         DiagnosticSession? last = null; int maxSamples = 0, messages = 0, maxBytes = 0;
-        using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(6));
+        var resourceSamples = new List<PassiveResourceSample>();
         var watch = Stopwatch.StartNew();
+        var startedUtc = DateTimeOffset.UtcNow;
+        var nextProbe = TimeSpan.Zero;
+        int osBuild = Environment.OSVersion.Version.Build;
         await foreach (var snapshot in client.RunAsync(new() { Modules = ModuleCatalog.All.Select(x => x.Id).ToArray(),
-            DiskIds = inventory.Disks.Select(x => x.Id).ToArray(), MonitoringMinutes = 5, DetailedBattery = true, DetailedWifi = true }, timeout.Token))
+            DiskIds = inventory.Disks.Select(x => x.Id).ToArray(), MonitoringMinutes = minutes, DetailedBattery = true, DetailedWifi = true }, timeout.Token))
         {
-            last = snapshot; maxSamples = Math.Max(maxSamples, snapshot.Measurements.Length);
-            maxBytes = Math.Max(maxBytes, JsonSerializer.SerializeToUtf8Bytes(snapshot, EngineProtocol.Json).Length); messages++;
+            last = snapshot;
+            maxSamples = Math.Max(maxSamples, snapshot.Measurements.Length);
+            maxBytes = Math.Max(maxBytes, JsonSerializer.SerializeToUtf8Bytes(
+                new EngineMessage(EngineProtocol.Version, snapshot.Id, ++messages, snapshot), EngineProtocol.Json).Length);
+            if (snapshot.State != SessionState.Running || watch.Elapsed < nextProbe) continue;
+
+            using var process = Process.GetProcessById(snapshot.EngineProcessId!.Value);
+            Assert.Equal(snapshot.EngineProcessStartedAt!.Value.UtcDateTime, process.StartTime.ToUniversalTime());
+            var history = await repo.QueryHistoryAsync(new(), timeout.Token);
+            Assert.Equal(1, history.ActiveCount);
+            Assert.Equal(snapshot.Id, Assert.Single(history.Entries).Id);
+            var sample = new PassiveResourceSample(watch.Elapsed.TotalSeconds, process.WorkingSet64, process.PrivateMemorySize64,
+                process.TotalProcessorTime.TotalSeconds, history.DatabaseBytes.GetValueOrDefault());
+            resourceSamples.Add(sample);
+            nextProbe = watch.Elapsed + TimeSpan.FromMinutes(1);
+            await File.WriteAllTextAsync(progressPath, JsonSerializer.Serialize(new
+            {
+                Version = ProductVersion.Value, OSBuild = osBuild, StartedUtc = startedUtc, PlannedMinutes = minutes,
+                LastCheckpoint = sample, Checkpoints = resourceSamples.Count, Messages = messages, StressExecuted = false
+            }), timeout.Token);
         }
-        Assert.Equal(SessionState.Completed, last!.State); Assert.InRange(watch.Elapsed.TotalSeconds, 300, 345);
+        watch.Stop();
+        Assert.Equal(SessionState.Completed, last!.State);
+        Assert.Equal(ProductVersion.Value, last.AppVersion);
+        Assert.InRange(last.EffectiveDuration.TotalSeconds, minutes * 60, minutes * 60 + 45);
+        Assert.InRange(watch.Elapsed.TotalSeconds, minutes * 60, minutes * 60 + 60);
         Assert.True(maxSamples <= 512); Assert.NotEmpty(last.Processes); Assert.False(last.IsDemo);
         if (inventory.Disks.Length > 0) Assert.Contains(last.Statistics, x => x.Module == ModuleId.Storage && x.Metric == "Leitura do disco" && x.ValidSamples > 1);
-        var repo = new SqliteSessionRepository(Database); var restored = await repo.GetAsync(last.Id);
+        var restored = await repo.GetAsync(last.Id, timeout.Token);
         Assert.Equal(SessionState.Completed, restored!.State); Assert.NotEmpty(restored.Records);
         Assert.Equal(11, restored.Modules.Length); Assert.True(maxBytes < EngineProtocol.MaxMessageLength);
         Assert.NotNull(restored.Stress); Assert.False(restored.Stress.Available); Assert.False(restored.Stress.LoadExecuted);
-        await using var connection = new SqliteConnection($"Data Source={Database};Pooling=False"); await connection.OpenAsync();
-        using var command = connection.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM Measurements;";
-        var persisted = Convert.ToInt64(await command.ExecuteScalarAsync()); Assert.True(persisted > maxSamples);
-        string evidenceFolder = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation"); Directory.CreateDirectory(evidenceFolder);
-        await File.WriteAllTextAsync(Path.Combine(evidenceFolder, "passive-five-minutes.json"), JsonSerializer.Serialize(new
+        Assert.NotEmpty(resourceSamples);
+        var finalHistory = await repo.QueryHistoryAsync(new(), timeout.Token);
+        Assert.Equal(SessionState.Completed, Assert.Single(finalHistory.Entries).State);
+        Assert.Equal(0, finalHistory.ActiveCount);
+        await using var connection = new SqliteConnection($"Data Source={Database};Mode=ReadOnly;Pooling=False");
+        await connection.OpenAsync(timeout.Token);
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA quick_check;";
+        Assert.Equal("ok", await command.ExecuteScalarAsync(timeout.Token));
+        command.CommandText = "SELECT COUNT(*) FROM Measurements;";
+        var persisted = Convert.ToInt64(await command.ExecuteScalarAsync(timeout.Token));
+        Assert.True(persisted > maxSamples);
+        command.CommandText = """
+            SELECT COALESCE(MAX(gap), 0) FROM (
+                SELECT (julianday(Timestamp) - julianday(LAG(Timestamp) OVER (ORDER BY Timestamp))) * 86400 AS gap
+                FROM Measurements WHERE Metric='RAM' AND Value IS NOT NULL);
+            """;
+        double largestRamGap = Convert.ToDouble(await command.ExecuteScalarAsync(timeout.Token));
+        string pdfPath = Path.Combine(folder, "relatorio-local.pdf");
+        var bytes = await new PdfReportExporter().ExportAsync(restored, pdfPath, false, timeout.Token);
+        using var pdf = PdfReader.Open(pdfPath, PdfDocumentOpenMode.Import);
+        Assert.True(pdf.PageCount > 0);
+
+        await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(new
         {
-            Version = "0.4.0",
+            Version = ProductVersion.Value,
+            OSBuild = osBuild,
+            StartedUtc = startedUtc,
             EndedUtc = DateTimeOffset.UtcNow,
             Result = "Passed",
+            PlannedMinutes = minutes,
             ActualSeconds = watch.Elapsed.TotalSeconds,
+            SessionSeconds = restored.EffectiveDuration.TotalSeconds,
             PersistedMeasurements = persisted,
             MaxUiSamples = maxSamples,
             MaxMessageBytes = maxBytes,
             RestoredRecords = restored.Records.Length,
+            LargestRamGapSeconds = largestRamGap,
+            DatabaseBytes = finalHistory.DatabaseBytes,
+            PdfPages = pdf.PageCount,
+            PdfBytes = bytes,
             Modules = restored.Modules.Select(x => new { Module = x.Id.ToString(), State = x.State.ToString(), x.ReadingCount }).ToArray(),
             Messages = messages,
             ProcessRankings = last.Processes.Length,
+            ResourceSamples = resourceSamples,
             StressExecuted = false,
             IdentifiersExcluded = true
-        }, new JsonSerializerOptions { WriteIndented = true }));
+        }, new JsonSerializerOptions { WriteIndented = true }), timeout.Token);
     }
+
+    private sealed record PassiveResourceSample(double ElapsedSeconds, long WorkingSetBytes, long PrivateBytes, double CpuSeconds, long DatabaseBytes);
     public void Dispose() { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
 }
 
 public sealed class LiveValidationFactAttribute : FactAttribute
 {
     public LiveValidationFactAttribute()
-    { if (Environment.GetEnvironmentVariable("GCM_RUN_LONG_PASSIVE_VALIDATION") != "1") Skip = "Ensaio passivo de 5 minutos executado separadamente com opt-in; sem estresse."; }
+    { if (Environment.GetEnvironmentVariable("GCM_RUN_LONG_PASSIVE_VALIDATION") != "1") Skip = "Ensaio passivo executado separadamente com opt-in; sem estresse."; }
 }

@@ -100,18 +100,18 @@ Detalhes e fontes: [arquitetura v0.4](docs/arquitetura/V0.4.md),
 
 A suíte combina fixtures e leituras passivas reais locais. Também encerra somente um motor
 criado pelo próprio teste para exercitar recuperação; não encerra programas de terceiros.
-O ensaio completo de cinco minutos com onze módulos é separado da suíte rápida:
+Os ensaios passivos com onze módulos são separados da suíte rápida. Execute no notebook de
+laboratório, preferencialmente ligado à tomada. Compile em Release antes do ensaio:
 
 ```powershell
-$env:DOTNET_ROOT = "$PWD\.tools\dotnet"
-$env:DOTNET_CLI_HOME = "$PWD\.tools\home"
-$env:NUGET_PACKAGES = "$PWD\.tools\nuget"
-$env:GCM_RUN_LONG_PASSIVE_VALIDATION = '1'
-& .\.tools\dotnet\dotnet.exe test tests/GcmMonitor.IntegrationTests -c Release --no-build --no-restore `
-  --filter 'FullyQualifiedName~FullFiveMinutePassiveSession' --logger trx
+.\scripts\validate-notebook.ps1 -Minutes 5
+.\scripts\validate-notebook.ps1 -Minutes 30,60,240 `
+  -PublishedEngine '.artifacts/installer/<pasta>/publish/engine/GcmMonitor.Engine.exe'
 ```
 
-Sem a variável, esse caso aparece como ignorado; não é contado como aprovado nessa execução.
+Cada duração é executada de forma sequencial, em tempo real, com um banco temporário.
+Os checkpoints e resultados ficam em `.artifacts/validation/notebook-<id>`. O caso aparece como
+ignorado na suíte rápida.
 Evidências: [relatório v0.4](docs/testes/RELATORIO_V0.4.md) e
 [rastreabilidade dos 77 CT](docs/testes/RASTREABILIDADE_V0.4.md).
 TRX/capturas ficam em `.artifacts/`. O CI publica apenas resultados de testes, imagens sintéticas
