@@ -85,7 +85,7 @@ public sealed class PassiveCollectionTests : IDisposable
         string evidenceFolder = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation"); Directory.CreateDirectory(evidenceFolder);
         await File.WriteAllTextAsync(Path.Combine(evidenceFolder, "cpu-reference.json"), JsonSerializer.Serialize(new
         {
-            Version = "0.2.0",
+            Version = "0.3.0",
             NativeSource = "GetSystemTimes",
             Reference = "PDH Processor(_Total) % Processor Time",
             Samples = differences.Count,
@@ -152,26 +152,35 @@ public sealed class PassiveCollectionTests : IDisposable
     {
         var inventory = await new WindowsInventoryProvider().ReadAsync();
         await using var client = new SessionEngineClient(EngineProcessTests.Executable("GcmMonitor.Engine"), Database);
-        DiagnosticSession? last = null; int maxSamples = 0, messages = 0;
+        DiagnosticSession? last = null; int maxSamples = 0, messages = 0, maxBytes = 0;
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(6));
         var watch = Stopwatch.StartNew();
-        await foreach (var snapshot in client.RunAsync(new() { Modules = [ModuleId.Cpu, ModuleId.Memory, ModuleId.Processes, ModuleId.Storage], DiskIds = inventory.Disks.Select(x => x.Id).ToArray(), MonitoringMinutes = 5 }, timeout.Token))
-        { last = snapshot; maxSamples = Math.Max(maxSamples, snapshot.Measurements.Length); messages++; }
+        await foreach (var snapshot in client.RunAsync(new() { Modules = ModuleCatalog.All.Select(x => x.Id).ToArray(),
+            DiskIds = inventory.Disks.Select(x => x.Id).ToArray(), MonitoringMinutes = 5, DetailedBattery = true, DetailedWifi = true }, timeout.Token))
+        {
+            last = snapshot; maxSamples = Math.Max(maxSamples, snapshot.Measurements.Length);
+            maxBytes = Math.Max(maxBytes, JsonSerializer.SerializeToUtf8Bytes(snapshot, EngineProtocol.Json).Length); messages++;
+        }
         Assert.Equal(SessionState.Completed, last!.State); Assert.InRange(watch.Elapsed.TotalSeconds, 300, 345);
         Assert.True(maxSamples <= 512); Assert.NotEmpty(last.Processes); Assert.False(last.IsDemo);
-        var repo = new SqliteSessionRepository(Database); Assert.Equal(SessionState.Completed, (await repo.GetAsync(last.Id))!.State);
+        var repo = new SqliteSessionRepository(Database); var restored = await repo.GetAsync(last.Id);
+        Assert.Equal(SessionState.Completed, restored!.State); Assert.NotEmpty(restored.Records);
+        Assert.Equal(11, restored.Modules.Length); Assert.True(maxBytes < EngineProtocol.MaxMessageLength);
         await using var connection = new SqliteConnection($"Data Source={Database};Pooling=False"); await connection.OpenAsync();
         using var command = connection.CreateCommand(); command.CommandText = "SELECT COUNT(*) FROM Measurements;";
         var persisted = Convert.ToInt64(await command.ExecuteScalarAsync()); Assert.True(persisted > maxSamples);
         string evidenceFolder = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation"); Directory.CreateDirectory(evidenceFolder);
         await File.WriteAllTextAsync(Path.Combine(evidenceFolder, "passive-five-minutes.json"), JsonSerializer.Serialize(new
         {
-            Version = "0.2.0",
+            Version = "0.3.0",
             EndedUtc = DateTimeOffset.UtcNow,
             Result = "Passed",
             ActualSeconds = watch.Elapsed.TotalSeconds,
             PersistedMeasurements = persisted,
             MaxUiSamples = maxSamples,
+            MaxMessageBytes = maxBytes,
+            RestoredRecords = restored.Records.Length,
+            Modules = restored.Modules.Select(x => new { Module = x.Id.ToString(), State = x.State.ToString(), x.ReadingCount }).ToArray(),
             Messages = messages,
             ProcessRankings = last.Processes.Length,
             StressExecuted = false,

@@ -1,4 +1,4 @@
-<Window x:Class="GcmMonitor.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="clr-namespace:GcmMonitor.Presentation;assembly=GcmMonitor.Presentation" xmlns:views="clr-namespace:GcmMonitor.App.Views" Title="GCM Monitor — Gimenes Coleta e Monitoramento · v0.2" Width="1440" Height="960" MinWidth="1000" MinHeight="700" WindowStartupLocation="CenterScreen" Language="pt-BR">
+<Window x:Class="GcmMonitor.App.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:vm="clr-namespace:GcmMonitor.Presentation;assembly=GcmMonitor.Presentation" xmlns:views="clr-namespace:GcmMonitor.App.Views" Title="GCM Monitor — Gimenes Coleta e Monitoramento · v0.3" Width="1440" Height="960" MinWidth="1000" MinHeight="700" WindowStartupLocation="CenterScreen" Language="pt-BR">
   <Grid Background="{StaticResource BackgroundBrush}">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="224" />
@@ -14,7 +14,7 @@
           <TextBlock Text="Gimenes Coleta e&#xA;Monitoramento" Style="{StaticResource Muted}" FontSize="11" Margin="0,7,0,0" />
         </StackPanel>
         <StackPanel DockPanel.Dock="Bottom" Margin="12,20,0,0">
-          <TextBlock Text="v0.2 · Coleta básica" Foreground="{StaticResource CyanBrush}" />
+          <TextBlock Text="v0.3 · Diagnósticos avançados" Foreground="{StaticResource CyanBrush}" />
           <TextBlock Text="Windows x64" Style="{StaticResource Muted}" FontSize="10" Margin="0,6,0,0" />
         </StackPanel>
         <ListBox ItemsSource="{Binding Navigation}" SelectedValuePath="Screen" SelectedValue="{Binding CurrentScreen, Mode=TwoWay}" VerticalAlignment="Top" AutomationProperties.Name="Navegação principal">

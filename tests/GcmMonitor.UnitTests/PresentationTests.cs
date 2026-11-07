@@ -7,14 +7,14 @@ namespace GcmMonitor.UnitTests;
 public sealed class PresentationTests
 {
     [Fact]
-    public async Task RealModeLoadsInventoryAndEnablesOnlyFourAvailableModulesWithoutSyntheticHardware()
+    public async Task RealModeLoadsInventoryAndSelectsElevenModulesForCapabilityChecksWithoutSyntheticHardware()
     {
         var provider = new FixtureInventory();
         var vm = new ShellViewModel(new FakeEngine(), new MemoryRepository(), new FakeDialogs(), provider);
         Assert.False(vm.IsDemoMode); Assert.Empty(vm.Disks);
         Assert.All(vm.Hardware, x => Assert.Equal("Aguardando inventário", x.Value));
         await vm.InitializeAsync(); vm.EnableAllCommand.Execute(null);
-        Assert.Equal(4, vm.SelectedModuleCount);
+        Assert.Equal(11, vm.SelectedModuleCount);
         Assert.All(vm.Modules.Where(x => !x.IsAvailable), x => Assert.False(x.IsSelected));
         Assert.DoesNotContain(vm.Hardware, x => x.Value.Contains("DEMO"));
         Assert.Equal(50, vm.Hardware.Single(x => x.IsStorage).Volumes.Single().PercentUsed);

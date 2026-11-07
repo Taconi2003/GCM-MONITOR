@@ -17,9 +17,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private readonly IInventoryProvider? inventoryProvider;
     public bool IsDemoMode => inventoryProvider is null;
-    public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · v0.2";
+    public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · v0.3";
     public string DataBanner => IsDemoMode ? "MODO DEMONSTRAÇÃO · Dados sintéticos. Nenhuma medição real, teste de estresse ou alteração do Windows. O relógio da reprodução é acelerado." :
-        "COLETA PASSIVA · CPU, RAM, processos e discos por fontes de leitura do Windows. Estresse bloqueado. Diagnósticos avançados indisponíveis na v0.2.";
+        "COLETA PASSIVA · Diagnósticos por capacidade e permissão das fontes Windows. Sensores ausentes são identificados. Estresse bloqueado.";
     public ShellViewModel(IDiagnosticEngineClient engine, ISessionRepository repository, IUserDialogs dialogs, IInventoryProvider? inventoryProvider = null)
     {
         this.engine = engine; this.repository = repository; this.dialogs = dialogs;
@@ -72,8 +72,8 @@ public sealed partial class ShellViewModel : ObservableObject
     private IReadOnlyList<DiagnosticSession> storedHistory = [];
     public IReadOnlyList<string> HistoryStatuses { get; } = new[] { "Todos", "Concluída", "Cancelada", "Interrompida", "Erro" };
     public int SelectedModuleCount => Modules.Count(x => x.IsSelected);
-    public bool BatteryEnabled => !IsActive && IsDemoMode && Modules.Single(x => x.Definition.Id == ModuleId.Battery).IsSelected;
-    public bool WifiEnabled => !IsActive && IsDemoMode && Modules.Single(x => x.Definition.Id == ModuleId.Wifi).IsSelected;
+    public bool BatteryEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Battery).IsSelected;
+    public bool WifiEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Wifi).IsSelected;
     public bool StorageEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Storage).IsSelected;
     public bool CanConfigure => IsReady && !IsActive;
     public string Title => Navigation.Single(x => x.Screen == CurrentScreen).Title;
@@ -196,6 +196,7 @@ public sealed partial class ShellViewModel : ObservableObject
                 activeSession = snapshot; UpdateMonitoring();
                 if (snapshot.IsTerminal) ShowResult(snapshot);
             }
+            if (activeSession?.IsTerminal == true && await repository.GetAsync(activeSession.Id) is { } saved) ShowResult(saved);
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or InvalidOperationException or System.Data.Common.DbException or OperationCanceledException or System.ComponentModel.Win32Exception or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
@@ -240,7 +241,8 @@ public sealed partial class ShellViewModel : ObservableObject
                 finding?.Interpretation ?? "Medições observacionais, sem conclusão automática de saúde física.", finding?.Recommendation ?? "Comparar mesma métrica, unidade e intervalo com fontes equivalentes do Windows.",
                 run.State == ModuleState.Completed ? "#42D6B0" : run.State == ModuleState.Error ? "#FF8292" : "#FFC76A",
                 string.Join("\n", session.Statistics.Where(x => x.Module == run.Id).Select(x =>
-                    $"{x.Metric} · {x.Component}: mínimo {x.Minimum:0.##}; média ponderada {(x.TimeWeightedMean.HasValue ? x.TimeWeightedMean.Value.ToString("0.##") : "insuficiente")}; pico {x.Maximum:0.##} {x.Unit} · {x.ValidSamples} leituras · cobertura {x.ObservedSeconds:0.#} s\nFonte: {session.Measurements.FirstOrDefault(m => m.Module == x.Module && m.Metric == x.Metric && m.Component == x.Component)?.Source ?? run.Source}"))));
+                    $"{x.Metric} · {x.Component}: mínimo {x.Minimum:0.##}; média ponderada {(x.TimeWeightedMean.HasValue ? x.TimeWeightedMean.Value.ToString("0.##") : "insuficiente")}; pico {x.Maximum:0.##} {x.Unit} · {x.ValidSamples} leituras · cobertura {x.ObservedSeconds:0.#} s\nFonte: {session.Measurements.FirstOrDefault(m => m.Module == x.Module && m.Metric == x.Metric && m.Component == x.Component)?.Source ?? run.Source}")),
+                session.Records.Where(x => x.Module == run.Id).OrderByDescending(x => x.Severity == FindingSeverity.Attention).ThenByDescending(x => x.Timestamp).ToArray()));
         }
         foreach (var finding in session.Findings.Where(x => x.Severity != FindingSeverity.Normal).OrderByDescending(x => x.Severity == FindingSeverity.Failure).ThenByDescending(x => x.Severity == FindingSeverity.Attention)) MainFindings.Add(finding);
         NotifyResults();
@@ -283,10 +285,14 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(HasNoHistory));
     }
     [RelayCommand]
-    private void OpenHistory(HistoryRow? row)
+    private async Task OpenHistoryAsync(HistoryRow? row)
     {
         row ??= SelectedHistory;
-        if (row is not null && row.Session.IsTerminal) ShowResult(row.Session);
+        if (row is not null && row.Session.IsTerminal)
+        {
+            try { ShowResult(await repository.GetAsync(row.Session.Id) ?? row.Session); }
+            catch (Exception ex) when (ex is IOException or System.Data.Common.DbException) { Message = "Não foi possível abrir o resultado salvo."; }
+        }
         else Message = row is null ? "Selecione uma sessão do histórico." : "A sessão ainda está ativa; não há resultado consolidado.";
     }
     [RelayCommand]

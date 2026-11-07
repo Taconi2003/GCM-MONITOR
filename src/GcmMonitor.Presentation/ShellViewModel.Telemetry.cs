@@ -12,10 +12,11 @@ public sealed partial class ShellViewModel
         Hardware.Add(new("\uE770", "Computador", inventory.ComputerName,
             $"{inventory.WindowsEdition}\n{inventory.WindowsVersion} · {inventory.Architecture}\nÚltimo boot: {inventory.LastBoot?.ToLocalTime():dd/MM HH:mm}\nUptime: {(inventory.LastBoot.HasValue ? (inventory.Timestamp - inventory.LastBoot.Value).ToString(@"d\d\ hh\h\ mm\m") : "Não disponível")}"));
         Hardware.Add(new("\uE9D9", "CPU", string.IsNullOrWhiteSpace(inventory.CpuName) ? "Não disponível" : inventory.CpuName,
-            $"{inventory.Cores?.ToString() ?? "?"} núcleos · {inventory.LogicalProcessors} processadores lógicos\nFrequência não coletada na v0.2"));
+            $"{inventory.Cores?.ToString() ?? "?"} núcleos · {inventory.LogicalProcessors} processadores lógicos\nUtilização passiva; nenhum estresse"));
         Hardware.Add(new("\uE950", "RAM", Size(inventory.PhysicalMemoryBytes), inventory.MemoryModulesBytes.Length > 0
             ? string.Join(" + ", inventory.MemoryModulesBytes.Select(x => Size(x))) + "\nCapacidade física instalada" : "Módulos físicos não disponíveis"));
-        Hardware.Add(new("\uE7F4", "GPU", "Não coletado na v0.2", "Identificação e sensores de GPU previstos para v0.3."));
+        Hardware.Add(new("\uE7F4", "GPU", inventory.Gpus.Length > 0 ? string.Join(" / ", inventory.Gpus.Select(x => x.Name)) : "Não disponível",
+            string.Join("\n", inventory.Gpus.Select(x => "Driver " + x.DriverVersion)) + "\nTipo/VRAM não determinados; sensores conforme disponibilidade."));
         var shown = inventory.Disks.Take(2).ToArray();
         var usage = shown.SelectMany(x => x.Volumes).DistinctBy(x => x.Name)
             .Where(x => x.DiskIds.Length == 1 && x.CapacityBytes > 0 && x.FreeBytes.HasValue)
@@ -23,14 +24,13 @@ public sealed partial class ShellViewModel
         Hardware.Add(new("\uEDA2", "Armazenamento", $"{inventory.Disks.Length} disco(s) físico(s)",
             string.Join("\n", shown.Select(x => $"Disco {x.Number}: {Size(x.CapacityBytes)} · {x.MediaType}/{x.BusType}\n" +
                 string.Join("; ", x.Volumes.Select(v => $"{v.Name}: {Size(v.FreeBytes)} livres")))) +
-            (inventory.Disks.Length > 2 ? $"\n+{inventory.Disks.Length - 2} dispositivo(s)" : "") + "\nSMART não coletado")
+            (inventory.Disks.Length > 2 ? $"\n+{inventory.Disks.Length - 2} dispositivo(s)" : "") + "\nConfiabilidade conforme capacidade do provedor")
         { Volumes = usage });
         Disks.Clear();
         foreach (var disk in inventory.Disks) Disks.Add(new(disk.Id, $"Disco {disk.Number} · {disk.Model} · {Size(disk.CapacityBytes)}"));
         foreach (var module in Modules)
         {
-            module.IsAvailable = module.Definition.Id is ModuleId.Cpu or ModuleId.Memory or ModuleId.Processes ||
-                module.Definition.Id == ModuleId.Storage && Disks.Count > 0;
+            module.IsAvailable = module.Definition.Id != ModuleId.Storage || Disks.Count > 0;
             module.IsSelected = module.IsAvailable;
         }
         Message = inventory.Limitations.Length > 0 ? string.Join(" ", inventory.Limitations) : "Inventário carregado por fontes de leitura do Windows. Selecione os módulos para iniciar.";

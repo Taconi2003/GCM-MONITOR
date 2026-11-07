@@ -159,7 +159,8 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
         {
             bool valid = x.ReadingCount > 0 || x.Id == ModuleId.Storage && session.Inventory?.Disks.Length > 0;
             bool failed = degraded.Contains(x.Id) || x.State == ModuleState.Error || session.Issues.Any(i => i.Module == x.Id);
-            var state = valid ? session.State == SessionState.Completed && !failed ? ModuleState.Completed : ModuleState.Partial :
+            bool punctualCompleted = !ModuleCatalog.All.Single(m => m.Id == x.Id).Continuous && x.State == ModuleState.Completed && !failed;
+            var state = valid ? punctualCompleted || session.State == SessionState.Completed && !failed ? ModuleState.Completed : ModuleState.Partial :
                 x.State == ModuleState.Error ? ModuleState.Error : x.State == ModuleState.Unavailable || session.State == SessionState.Completed ? ModuleState.Unavailable : ModuleState.Cancelled;
             string summary = x.Id switch
             {

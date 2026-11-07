@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Windows.Controls;
 using GcmMonitor.App;
 using GcmMonitor.Collector;
 using GcmMonitor.Core;
@@ -51,7 +52,7 @@ public sealed class WpfViewTests
                 vm.LoadExamplesCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 foreach (var row in vm.History.ToArray())
                 {
-                    vm.OpenHistoryCommand.Execute(row);
+                    vm.OpenHistoryCommand.ExecuteAsync(row).GetAwaiter().GetResult();
                     foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, row.Session.State.ToString());
                 }
                 foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.History, size, "examples");
@@ -59,6 +60,9 @@ public sealed class WpfViewTests
                 Assert.NotEmpty(vm.MetricCards);
                 foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Monitoring, size, "series");
                 foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, "series-and-rankings");
+                Assert.Equal(3, vm.ModuleResults.Sum(x => x.EvidenceRows.Length));
+                foreach (var expander in Descendants(surface).OfType<Expander>()) expander.IsExpanded = true;
+                foreach (var size in new[] { new Size(1440, 960), new Size(1000, 700) }) Render(Screen.Results, size, "advanced-expanded");
                 window.Close(); Assert.Empty(bindingErrors.Errors);
                 completion.SetResult();
             }
@@ -73,6 +77,14 @@ public sealed class WpfViewTests
         });
         thread.SetApartmentState(ApartmentState.STA); thread.Start();
         await completion.Task.WaitAsync(TimeSpan.FromSeconds(40));
+    }
+    private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i); yield return child;
+            foreach (var descendant in Descendants(child)) yield return descendant;
+        }
     }
     private sealed class BindingErrorListener : TraceListener
     {
@@ -98,6 +110,9 @@ public sealed class WpfViewTests
             yield return session with
             {
                 Measurements = samples.ToArray(), Statistics = accumulator.Snapshot(),
+                Records = [new(ModuleId.WindowsEvents, "fixture-event", "Evento fictício · ID 41", "Ocorrência sintética; nenhuma causa determinada.", session.StartedAt, "Fixture / Windows Event Log", DataQuality.Valid, true),
+                    new(ModuleId.Devices, "fixture-driver", "Dispositivo fictício", "Versão instalada fictícia 1.0. Sem alterações.", session.StartedAt, "Fixture / WMI", DataQuality.Valid, true),
+                    new(ModuleId.Sensors, "fixture-sensor", "Sensor fictício indisponível", "Exemplo de ausência de leitura, sem valor zero.", session.StartedAt, "Fixture / sensor", DataQuality.Unavailable, true)],
                 Processes = [new(42, session.StartedAt, "processo-ficticio.exe", 2, 10, 10, 50.0 * 1024 * 1024 * 10, 10,
                     60 * 1024 * 1024, session.StartedAt, session.StartedAt.AddSeconds(10), true, 6)]
             };

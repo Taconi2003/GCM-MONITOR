@@ -1,7 +1,7 @@
 name: Build e testes GCM Monitor
 on:
   push:
-    branches: [main, 'feat/**']
+    branches: [main, 'feat/**', 'codex/**']
   pull_request:
 permissions:
   contents: read

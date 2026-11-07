@@ -55,6 +55,11 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
                     measurement.Validate();
                     if (measurement.IsDemo != message.Session.IsDemo) throw new InvalidDataException("Origem de medição inconsistente.");
                 }
+                foreach (var record in message.Session.Records)
+                {
+                    record.Validate();
+                    if (record.IsDemo != message.Session.IsDemo) throw new InvalidDataException("Origem de registro inconsistente.");
+                }
                 lastSequence = message.Sequence;
                 yield return message.Session;
                 if (message.Session.IsTerminal) break;

@@ -28,7 +28,7 @@
         <Border Style="{StaticResource Card}" Visibility="{Binding HasNoMetrics, Converter={StaticResource BoolVisibility}}">
           <StackPanel>
             <TextBlock Text="Sem gráficos disponíveis" Style="{StaticResource SectionTitle}" />
-            <TextBlock Text="Aguardando duas amostras válidas de um módulo selecionado. Sensores indisponíveis não produzem pontos ou valores zero. GPU e temperaturas não são coletadas na v0.2." Style="{StaticResource Muted}" />
+            <TextBlock Text="Aguardando duas amostras válidas de um módulo selecionado. Sensores indisponíveis não produzem pontos ou valores zero. Sensores e GPU dependem das fontes disponíveis; zonas ACPI não equivalem à temperatura da CPU." Style="{StaticResource Muted}" />
           </StackPanel>
         </Border>
         <ItemsControl ItemsSource="{Binding MetricCards}">

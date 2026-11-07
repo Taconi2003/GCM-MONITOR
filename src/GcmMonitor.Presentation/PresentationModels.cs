@@ -24,7 +24,7 @@ public sealed partial class ModuleSelection(ModuleDefinition definition) : Obser
     public ModuleDefinition Definition { get; } = definition;
     [ObservableProperty] private bool isSelected = true;
     [ObservableProperty] private bool isAvailable = true;
-    public string Availability => IsAvailable ? "Disponível" : "Indisponível na v0.2 · previsto para v0.3";
+    public string Availability => IsAvailable ? "Verificação por capacidade ao iniciar" : "Indisponível · nenhum disco físico detectado";
     partial void OnIsAvailableChanged(bool value) => OnPropertyChanged(nameof(Availability));
 }
 
@@ -35,7 +35,17 @@ public sealed partial class DiskSelection(string id, string label) : ObservableO
     [ObservableProperty] private bool isSelected = true;
 }
 
-public sealed record ModuleResult(string Code, string Name, string State, string Summary, string Evidence, string Interpretation, string Recommendation, string Color, string Statistics = "");
+public sealed record ModuleResult(string Code, string Name, string State, string Summary, string Evidence, string Interpretation, string Recommendation, string Color, string Statistics = "", DiagnosticRecord[]? Records = null)
+{
+    public DiagnosticRecordRow[] EvidenceRows => (Records ?? []).Select(x => new DiagnosticRecordRow(x)).ToArray();
+}
+public sealed record DiagnosticRecordRow(DiagnosticRecord Record)
+{
+    public string Title => Record.Title;
+    public string Detail => Record.Detail;
+    public string Context => $"{Record.Timestamp.ToLocalTime():dd/MM/yyyy HH:mm:ss} · {Record.Source} · " +
+        (Record.Quality == DataQuality.Valid ? "Disponível" : Record.Quality == DataQuality.Error ? "Erro de coleta" : "Indisponível/limitado");
+}
 public sealed record MetricCard(string Name, string Value, string Unit, string Component, string Source, string[] Labels, double[] Values, bool IsDemo = true)
 {
     public string AxisLabel => IsDemo ? "tempo simulado" : "horário local";

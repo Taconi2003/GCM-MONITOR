@@ -91,7 +91,7 @@
               <Border BorderBrush="#2B415A" BorderThickness="0,1,0,1" Margin="0,20" Padding="0,12">
                 <StackPanel>
                   <CheckBox Content="Estresse da CPU" IsChecked="False" IsEnabled="False" />
-                  <TextBlock Text="Desativado e bloqueado na v0.2. Requer supervisão e sensores de segurança validados na v0.4." Style="{StaticResource Muted}" FontSize="11" Margin="0,5,0,12" />
+                  <TextBlock Text="Desativado e bloqueado na v0.3. Requer supervisão e sensores de segurança validados na v0.4." Style="{StaticResource Muted}" FontSize="11" Margin="0,5,0,12" />
                   <ComboBox ItemsSource="{Binding Durations}" DisplayMemberPath="Label" SelectedItem="{Binding StressDuration}" IsEnabled="False" AutomationProperties.Name="Duração do estresse indisponível" />
                 </StackPanel>
               </Border>
@@ -111,7 +111,7 @@
           <Border Style="{StaticResource Card}" Background="#10263A">
             <StackPanel>
               <TextBlock Text="Esta versão do Windows pode apresentar limitações em determinados diagnósticos. Alguns recursos podem não funcionar corretamente." Style="{StaticResource Muted}" FontSize="11" />
-              <TextBlock Text="Compatibilidade limitada às fontes validadas. Sensores avançados não coletados na v0.2." Foreground="#FFC76A" FontSize="11" Margin="0,10,0,0" />
+              <TextBlock Text="Sensores, SMART, bateria e Wi-Fi dependem de hardware, provedor e permissões. Ausência de leitura não comprova defeito físico." Foreground="#FFC76A" FontSize="11" Margin="0,10,0,0" />
             </StackPanel>
           </Border>
         </StackPanel>
