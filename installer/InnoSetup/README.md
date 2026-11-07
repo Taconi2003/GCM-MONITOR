@@ -1,6 +1,6 @@
 # Distribuição Windows — planejada para v1.0
 
-As versões v0.1, v0.2 e v0.3 entregam builds de desenvolvimento, sem instalador e sem edição portátil.
+As versões v0.1, v0.2, v0.3 e v0.4 entregam builds de desenvolvimento, sem instalador e sem edição portátil.
 Não há script `.iss` executável nesta etapa: implementar e validar instalação/desinstalação
 pertence à v1.0 na seção 14 da Especificação Mestre.
 

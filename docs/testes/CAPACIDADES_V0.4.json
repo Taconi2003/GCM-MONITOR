@@ -1,0 +1,142 @@
+{
+  "Version": "0.4.0",
+  "TimestampUtc": "2026-11-07T01:48:04.2201856+00:00",
+  "WindowsBuild": 26200,
+  "Environment": "M\u00E1quina local de desenvolvimento; identifica\u00E7\u00E3o omitida",
+  "StressExecuted": false,
+  "IdentifiersExcluded": true,
+  "Modules": [
+    {
+      "Module": "Storage",
+      "State": "Unavailable",
+      "ValidMeasurements": 0,
+      "UnavailableMeasurements": 10,
+      "ValidRecords": 0,
+      "UnavailableRecords": 2,
+      "DurationSeconds": 0.2741455,
+      "Sources": [
+        "PDH / PhysicalDisk / Disk Read Bytes/sec",
+        "PDH / PhysicalDisk / Disk Write Bytes/sec",
+        "MSFT_DiskToStorageReliabilityCounter / Temperature",
+        "MSFT_DiskToStorageReliabilityCounter / Wear",
+        "MSFT_DiskToStorageReliabilityCounter / PowerOnHours",
+        "MSFT_DiskToStorageReliabilityCounter / ReadErrorsUncorrected",
+        "MSFT_DiskToStorageReliabilityCounter / WriteErrorsUncorrected",
+        "WMI / Storage Reliability"
+      ]
+    },
+    {
+      "Module": "WindowsEvents",
+      "State": "Partial",
+      "ValidMeasurements": 0,
+      "UnavailableMeasurements": 0,
+      "ValidRecords": 166,
+      "UnavailableRecords": 1,
+      "DurationSeconds": 0.1235945,
+      "Sources": [
+        "Windows Event Log / System",
+        "Windows Event Log / XPath",
+        "Windows Event Log / Application"
+      ]
+    },
+    {
+      "Module": "Battery",
+      "State": "Partial",
+      "ValidMeasurements": 5,
+      "UnavailableMeasurements": 6,
+      "ValidRecords": 2,
+      "UnavailableRecords": 0,
+      "DurationSeconds": 0.2885499,
+      "Sources": [
+        "WMI / Win32_Battery.EstimatedChargeRemaining",
+        "WMI / Win32_Battery.DesignCapacity (0 significa n\u00E3o suportado)",
+        "WMI / Win32_Battery.FullChargeCapacity (0 significa n\u00E3o suportado)",
+        "100 \u00D7 (1 \u2212 FullChargeCapacity / DesignCapacity)",
+        "Win32_Battery.EstimatedRunTime / consumo presente",
+        "BatteryStaticData.DesignedCapacity / unidades absolutas",
+        "BatteryFullChargedCapacity / InstanceName\u002BTag",
+        "100 \u00D7 (1 \u2212 capacidade completa / projeto) / root/WMI",
+        "BatteryStatus / InstanceName\u002BTag / unidades absolutas",
+        "BatteryStatus.DischargeRate",
+        "60 \u00D7 RemainingCapacity(mWh) / DischargeRate(mW)",
+        "WMI / Win32_Battery",
+        "WMI / BatteryCycleCount"
+      ]
+    },
+    {
+      "Module": "WindowsUpdate",
+      "State": "Partial",
+      "ValidMeasurements": 0,
+      "UnavailableMeasurements": 0,
+      "ValidRecords": 34,
+      "UnavailableRecords": 1,
+      "DurationSeconds": 0.1187407,
+      "Sources": [
+        "WUA / GetTotalHistoryCount \u002B QueryHistory",
+        "WUA / QueryHistory local",
+        "WUA / ISystemInformation.RebootRequired",
+        "WUA / limites da consulta"
+      ]
+    },
+    {
+      "Module": "Sensors",
+      "State": "Partial",
+      "ValidMeasurements": 0,
+      "UnavailableMeasurements": 2,
+      "ValidRecords": 0,
+      "UnavailableRecords": 1,
+      "DurationSeconds": 0.0324228,
+      "Sources": [
+        "PDH / GPU Engine",
+        "WMI / capacidades dispon\u00EDveis",
+        "WMI / root/LibreHardwareMonitor"
+      ]
+    },
+    {
+      "Module": "Devices",
+      "State": "Completed",
+      "ValidMeasurements": 0,
+      "UnavailableMeasurements": 0,
+      "ValidRecords": 221,
+      "UnavailableRecords": 0,
+      "DurationSeconds": 4.3047426,
+      "Sources": [
+        "WMI / Win32_PnPEntity \u002B Win32_PnPSignedDriver",
+        "WMI / PnP"
+      ]
+    },
+    {
+      "Module": "Wifi",
+      "State": "Partial",
+      "ValidMeasurements": 4,
+      "UnavailableMeasurements": 0,
+      "ValidRecords": 2,
+      "UnavailableRecords": 1,
+      "DurationSeconds": 0.0270485,
+      "Sources": [
+        "WlanQueryInterface / wlanSignalQuality",
+        "WlanQueryInterface / ulRxRate (kbit/s)",
+        "WlanQueryInterface / ulTxRate (kbit/s)",
+        "Native Wi-Fi / transi\u00E7\u00F5es amostradas a cada 5 s",
+        "Native Wi-Fi / consulta local",
+        "Pol\u00EDtica de coleta passiva",
+        "Native Wi-Fi / limites da consulta"
+      ]
+    },
+    {
+      "Module": "Power",
+      "State": "Running",
+      "ValidMeasurements": 1,
+      "UnavailableMeasurements": 0,
+      "ValidRecords": 1,
+      "UnavailableRecords": 0,
+      "DurationSeconds": 0.000814,
+      "Sources": [
+        "GetSystemPowerStatus",
+        "GetSystemPowerStatus / PowerGetActiveScheme"
+      ]
+    }
+  ],
+  "SecondSensorValidSamples": 21,
+  "SensorHardwareAccuracyValidated": false
+}

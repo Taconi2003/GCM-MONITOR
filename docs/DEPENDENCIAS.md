@@ -1,4 +1,4 @@
-# Dependências da v0.3
+# Dependências da v0.4
 
 SDK de validação: .NET 10.0.403 x64, isolado no workspace. Ferramentas locais não são versionadas.
 Versões diretas em `Directory.Packages.props`; resolução exata e hashes nos `packages.lock.json`.
@@ -45,3 +45,5 @@ de conceito previstas. A auditoria da v0.2 incluiu os transitivos dessa nova ref
 System.Diagnostics.EventLog **10.0.0**, Microsoft, licença **MIT** conferida no nuspec restaurado. Usada apenas para consultas EventLogReader com XPath limitado. Sem novos transitivos de produção no alvo net10.0. Auditoria NuGet direta/transitiva da v0.3 sem avisos conhecidos na data do ensaio.
 
 LibreHardwareMonitor não é empacotado, instalado ou iniciado. A integração WMI opcional usa o contrato público do provedor v0.9.4 existente. A prova de contrato identificou conversão de null para zero; zero externo não é aceito como leitura comprovada. Ver docs/arquitetura/V0.3.md. Não há aprovação de sensor/driver para estresse.
+
+A v0.4 adiciona somente a biblioteca interna GcmMonitor.Execution, sem novos pacotes externos. Job Objects e identidade de pipes usam APIs do Windows. Versões/licenças anteriores mantidas; nova auditoria direta/transitiva sem advisories conhecidos na consulta. Nenhum driver ou biblioteca de geração de carga incorporado.

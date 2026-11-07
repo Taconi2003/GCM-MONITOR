@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 — 06/11/2026
+
+- Infraestrutura de supervisão; estresse real permanece bloqueado por falta de validação térmica/P0.
+- Biblioteca Execution com Job anônimo, KILL_ON_JOB_CLOSE, associação atômica antes da execução e parada confirmada.
+- Supervisor separado para prova ociosa: heartbeat, identidade de pares, nonce, sequência e mensagens de 16 KiB.
+- Recusa de mensagens inválidas, incompletas, atrasadas ou de carga; nenhum gerador de estresse nesta versão.
+- Contratos de fases/tempos/consentimento e extensão explícita, sem liberação de carga por consentimento isolado.
+- Avaliação de bloqueio persistida por sessão, resultado com motivos e protocolo passivo 4; histórico anterior legível.
+- Testes de processos ociosos, queda de supervisor, isolamento e coexistência com coleta passiva.
+- Sensores, política térmica, execução/fases reais e P0 sob carga seguem pendentes; entrega não certificada para clientes.
+
 ## 0.3.0 — 06/11/2026
 
 - Diagnósticos avançados passivos com registros, fontes, qualidade e limites por capacidade.

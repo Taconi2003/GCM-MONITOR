@@ -1,9 +1,9 @@
 # GCM Monitor — Gimenes Coleta e Monitoramento
 
-**v0.3.0 — diagnósticos avançados por capacidade, Windows x64.** Versão de desenvolvimento,
+**v0.4.0 — infraestrutura de supervisão, estresse ainda bloqueado, Windows x64.** Versão de desenvolvimento,
 com coleta passiva real e limitações explícitas; ainda não liberada para diagnóstico de clientes.
 Fonte obrigatória: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md), seção 14.
-O documento original foi preservado. Esta etapa continua a v0.2.
+O documento original foi preservado. Esta etapa continua a v0.3. A ativação do estresse depende das provas térmicas e dos P0 em laboratório.
 
 ## Funcionalidades
 
@@ -36,6 +36,19 @@ O documento original foi preservado. Esta etapa continua a v0.2.
 carga, reparo, atualização de drivers/Windows, alteração de energia ou instalação de driver de sensores.
 PDF, preferências definitivas, histórico completo e Inno Setup permanecem na etapa v1.0 aprovada.
 
+## Segurança acrescentada na v0.4
+
+- Criação atômica de filho próprio dentro de Job Object, ainda suspenso; fechamento encerra o auxiliar.
+- Supervisor separado com identidade local, mensagens limitadas, heartbeat e confirmação de saída.
+- Provas com **processos ociosos**, sem estresse, para queda do supervisor, perda de comunicação,
+  cancelamento, sinais simulados de falha e proteção de processos independentes.
+- Contratos de fases, orçamento e consentimento específico; avaliação de bloqueio gravada na sessão.
+
+Isso é infraestrutura de desenvolvimento, **não estresse liberado**. Não existe gerador de carga nesta
+entrega. O diálogo e as fases de uma execução real, sensores térmicos confiáveis, limites por hardware,
+eventos físicos e matriz P0 sob carga ainda precisam ser integrados/validados em laboratório. A UI não
+oferece o modo de prova. Os ensaios ociosos não aprovam os CT integrais de estresse nem liberam uso em clientes.
+
 ## Compilar, testar e abrir
 
 Windows x64 e SDK **.NET 10.0.403 x64** (`global.json`); acesso ao NuGet no primeiro restore.
@@ -66,10 +79,10 @@ A distribuição futura será instalada, self-contained, por usuário, com Inno 
 6. Histórico filtra computador/data `dd/MM/aaaa`/estado e abre resultados completos preservados.
    Exclusão só de sessões finalizadas, com confirmação, sem remover PDFs externos.
 
-Projetos em `src/`: **Core** (contratos/modelos), **Collector** (fontes), **Persistence** (SQLite),
+Projetos em `src/`: **Execution** (contenção de processos Windows), **Core** (contratos/modelos), **Collector** (fontes), **Persistence** (SQLite),
 **Engine** (coordenação/processo), **Presentation** (MVVM testável), **App** (WPF/DI/IPC),
-**StressSupervisor** (reservado, recusa carga). `tests/` contém testes unitários e integrados Windows.
-Detalhes e fontes: [arquitetura v0.3](docs/arquitetura/V0.3.md),
+**StressSupervisor** (supervisor com prova ociosa, recusa carga real). `tests/` contém testes unitários e integrados Windows.
+Detalhes e fontes: [arquitetura v0.4](docs/arquitetura/V0.4.md),
 [dependências/licenças](docs/DEPENDENCIAS.md), [distribuição](installer/InnoSetup/README.md).
 
 ## Verificação e limites
@@ -88,8 +101,8 @@ $env:GCM_RUN_LONG_PASSIVE_VALIDATION = '1'
 ```
 
 Sem a variável, esse caso aparece como ignorado; não é contado como aprovado nessa execução.
-Evidências: [relatório v0.3](docs/testes/RELATORIO_V0.3.md) e
-[rastreabilidade dos 77 CT](docs/testes/RASTREABILIDADE_V0.3.md).
+Evidências: [relatório v0.4](docs/testes/RELATORIO_V0.4.md) e
+[rastreabilidade dos 77 CT](docs/testes/RASTREABILIDADE_V0.4.md).
 TRX/capturas ficam em `.artifacts/`. O CI publica apenas resultados de testes, imagens sintéticas
 identificadas e resumos sanitizados, nunca bancos locais ou registros brutos do equipamento.
 
@@ -112,5 +125,5 @@ identificadas e resumos sanitizados, nunca bancos locais ou registros brutos do 
 
 Dados por usuário: `%LOCALAPPDATA%\GCM Monitor\Data\gcm-monitor.db`; banco demonstrativo antigo
 não é importado. Não versione bancos, notas, identificadores, relatórios ou capturas reais.
-Próximo marco: provas de sensores/observabilidade e **v0.4 protegida**, condicionada aos P0 de
+Próximo marco: concluir a liberação da **v0.4 protegida**, condicionada às provas térmicas e aos P0 de
 segurança em laboratório. A v0.3 não autoriza liberar estresse antes dessas provas.

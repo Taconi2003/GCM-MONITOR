@@ -1,0 +1,14 @@
+{
+  "Version": "0.4.0",
+  "TimestampUtc": "2026-11-07T01:48:11.3270274+00:00",
+  "Environment": "DEV-LOCAL / Windows x64",
+  "ConfiguredHeartbeatSeconds": 3,
+  "ObservedStopSeconds": 2.9893073,
+  "Reason": "HeartbeatLost",
+  "WorkerExitConfirmedBeforeAcknowledgement": true,
+  "IdleOnly": true,
+  "LoadExecuted": false,
+  "ThermalProtectionValidated": false,
+  "FullStressP0Approved": false,
+  "IdentifiersExcluded": true
+}
