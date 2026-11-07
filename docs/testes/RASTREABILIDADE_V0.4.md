@@ -52,10 +52,10 @@ Evidências abaixo são locais ou parciais. Os 77 critérios integrais de libera
 | CT-046 | Cancelar sessão | P0 | Bloqueado | Cancelamento passivo e parada de auxiliar ocioso testados; carga/relatório parcial final pendentes |
 | CT-047 | `Parar estresse` | P0 | Bloqueado | Parada da prova ociosa preserva uma coleta passiva real independente; fluxo de estresse real não liberado |
 | CT-048 | Falha de sensor | P1 | Pendente | Fonte térmica ausente, leitura nula/repetida, atraso e canal inválido verificados; módulos independentes preservados; falha física pendente |
-| CT-049 | Perda térmica essencial em estresse | P0 | Bloqueado | Sinal simulado sensor-lost encerra auxiliar; sensor térmico físico/carga ainda não validados |
+| CT-049 | Perda térmica essencial em estresse | P0 | Bloqueado | Perda de núcleo e ausência de amostra sintética encerram filho ocioso mesmo com heartbeat. Validação sob carga pendente |
 | CT-050 | Encerramento inesperado da UI | P0 | Bloqueado | EOF/heartbeat e morte real do supervisor ocioso testados sem Kill da árvore; falha da UI sob carga pendente |
-| CT-051 | Falha de comunicação/supervisão | P0 | Bloqueado | Identidade, nonce, sequência, limites, replay, heartbeat e payload incompleto testados com auxiliar ocioso; carga real pendente |
-| CT-052 | Suspensão/retomada do Windows | P0 | Bloqueado | Sinal suspend da prova é terminal, sem reinício; suspensão física/evento OS/carga não validados |
+| CT-051 | Falha de comunicação/supervisão | P0 | Bloqueado | Identidade, mensagens incompletas, heartbeat e atraso de leitura testados com filho ocioso. Validação sob carga pendente |
+| CT-052 | Suspensão/retomada do Windows | P0 | Bloqueado | Inscrição nativa exercitada e comando sintético terminal verificado. Transição física e validação sob carga pendentes |
 | CT-053 | Mudança de alimentação | P1 | Bloqueado | Leitura passiva herdada e sinal power-changed encerram prova; política física sob carga pendente |
 | CT-054 | Sem privilégio requerido | P1 | Pendente | Auxiliar de leitura opcional e temporário, motor e controlador sem elevação; fonte ausente não impede módulos independentes |
 | CT-055 | Verificar efeitos colaterais | P0 | Pendente | Somente handles de filhos criados pelo GCM, Job anônimo, sem shell/driver/serviço; escopo completo de carga/instalação ainda pendente |

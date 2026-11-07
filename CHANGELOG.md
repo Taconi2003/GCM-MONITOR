@@ -1,5 +1,11 @@
 # Changelog
 
+## Continuação 0.4.0 — proteção ambiental, 07/11/2026
+
+- Prova ociosa observa notificações de suspensão e estado de alimentação do Windows.
+- Prazo térmico separado do heartbeat com verificação de continuidade de amostras sintéticas.
+- Prazos do filho independentes do recebimento da confirmação de início.
+
 ## Continuação 0.4.0 — canal térmico passivo, 06/11/2026
 
 - Leitura direta opcional de núcleos Intel e pacote da CPU, com auxiliar temporário e confirmação do Windows.

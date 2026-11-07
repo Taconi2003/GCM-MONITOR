@@ -1,0 +1,40 @@
+{
+  "ImplementationCommit": "d94d63a8f51d8f04a80a1d7cbf76ebe4db69436b",
+  "LocalDate": "2026-11-07",
+  "FastSuite": { "UnitPassed": 91, "WindowsIntegrationPassed": 54, "OptInSkipped": 2, "Failed": 0 },
+  "ThermalDeadline": {
+    "SyntheticFrames": true,
+    "ControllerHeartbeats": 5,
+    "ConfiguredSeconds": 6,
+    "ObservedSecondsAfterStartupNotice": 5.9899603,
+    "Reason": "SensorLost",
+    "WorkerExitConfirmed": true
+  },
+  "NativeWindowsObservation": {
+    "RegistrationExercised": true,
+    "PowerBaselineRead": true,
+    "PhysicalSignalObserved": false,
+    "Reason": "DurationCompleted",
+    "WorkerExitConfirmed": true
+  },
+  "DelayedControllerRead": {
+    "ConfiguredDurationMilliseconds": 250,
+    "ControllerReadDelayMilliseconds": 1600,
+    "WorkerExitMilliseconds": 258.6565,
+    "Reason": "DurationCompleted"
+  },
+  "SeparatePassiveRegression": {
+    "Result": "Passed",
+    "Modules": 11,
+    "ActualSeconds": 300.5119093,
+    "PersistedMeasurements": 3702,
+    "RestoredRecords": 436,
+    "MaxUiSamples": 512,
+    "MaxMessageBytes": 288019,
+    "Messages": 693
+  },
+  "CiRun": { "Id": 42333634221, "Result": "success" },
+  "StressExecuted": false,
+  "FullStressP0Approved": false,
+  "IdentifiersExcluded": true
+}

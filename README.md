@@ -56,6 +56,10 @@ Veja [como preparar o auxiliar](docs/arquitetura/CANAL_TERMICO_V0.4.md) e a
 [prova de acesso, versões e remoção](docs/testes/VALIDACAO_TERMICA_V0.4.md). O
 [relatório da integração](docs/testes/RELATORIO_CANAL_TERMICO_V0.4.md) contém o ensaio local de cinco minutos.
 
+O supervisor também exercita perda de amostras sintéticas, observação de energia e suspensão e
+parada com comunicação atrasada. A prova usa filhos ociosos. Consulte os
+[resultados da proteção ambiental](docs/testes/RELATORIO_PROTECAO_AMBIENTAL_V0.4.md).
+
 ## Compilar, testar e abrir
 
 Windows x64 e SDK **.NET 10.0.403 x64** (`global.json`); acesso ao NuGet no primeiro restore.
