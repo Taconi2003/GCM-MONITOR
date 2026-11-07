@@ -75,12 +75,12 @@ public static class StressReleasePolicy
 }
 
 public enum SafetyStopReason { DurationCompleted, UserStopped, Cancelled, HeartbeatLost, ControllerDisconnected,
-    SensorLost, Suspended, PowerChanged, PersistenceFailed, InvalidProtocol, WorkerExited, SupervisorFailed }
+    SensorLost, Suspended, PowerChanged, PersistenceFailed, InvalidProtocol, WorkerExited, SupervisorFailed, EnvironmentUnavailable }
 
 /// <summary>Contrato exclusivo da prova ociosa de contenção. Não transporta autorização de carga.</summary>
 public static class SafetyProbeProtocol
 {
-    public const int Version = 1;
+    public const int Version = 2;
     public const int MaximumBytes = 16384;
     public static TimeSpan HeartbeatTimeout => TimeSpan.FromSeconds(3);
     public const string Purpose = "IdleContainmentProbe";
@@ -90,8 +90,11 @@ public static class SafetyProbeProtocol
             throw new InvalidDataException("Protocolo ou identidade da prova de contenção inválido.");
     }
 }
-public sealed record SafetyProbeStart(int Version, Guid SessionId, string Nonce, string Purpose, int DurationMilliseconds);
-public sealed record SafetyProbeCommand(int Version, Guid SessionId, string Nonce, long Sequence, string Command);
+public sealed record SafetyProbeStart(int Version, Guid SessionId, string Nonce, string Purpose, int DurationMilliseconds,
+    bool ObserveWindows = false, CpuThermalFrame? InitialThermalFixture = null);
+public sealed record SafetyProbeCommand(int Version, Guid SessionId, string Nonce, long Sequence, string Command,
+    CpuThermalFrame? ThermalFixture = null);
 public sealed record SafetyProbeEvent(int Version, Guid SessionId, long Sequence, string State,
     int? WorkerPid = null, DateTimeOffset? WorkerStartedAt = null, SafetyStopReason? Reason = null,
-    bool IdleOnly = true, bool LoadExecuted = false);
+    bool IdleOnly = true, bool LoadExecuted = false, bool WindowsObservationEnabled = false, bool WindowsSignalObserved = false,
+    double? WorkerExitMilliseconds = null);

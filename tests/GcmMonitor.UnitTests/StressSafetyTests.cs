@@ -79,15 +79,30 @@ public sealed class StressSafetyTests
     public void ProbeProtocolRejectsNullNonceWrongSessionAndWrongVersion()
     {
         var id = Guid.NewGuid(); string nonce = new('A', 64);
-        SafetyProbeProtocol.Validate(1, id, id, nonce, nonce);
-        Assert.Throws<InvalidDataException>(() => SafetyProbeProtocol.Validate(1, id, id, null, null));
-        Assert.Throws<InvalidDataException>(() => SafetyProbeProtocol.Validate(2, id, id, nonce, nonce));
-        Assert.Throws<InvalidDataException>(() => SafetyProbeProtocol.Validate(1, Guid.NewGuid(), id, nonce, nonce));
+        SafetyProbeProtocol.Validate(SafetyProbeProtocol.Version, id, id, nonce, nonce);
+        Assert.Throws<InvalidDataException>(() => SafetyProbeProtocol.Validate(SafetyProbeProtocol.Version, id, id, null, null));
+        Assert.Throws<InvalidDataException>(() => SafetyProbeProtocol.Validate(SafetyProbeProtocol.Version - 1, id, id, nonce, nonce));
+        Assert.Throws<InvalidDataException>(() => SafetyProbeProtocol.Validate(SafetyProbeProtocol.Version, Guid.NewGuid(), id, nonce, nonce));
     }
     [Fact]
     public async Task ProbeMessageLimitRejectsOversizeBeforePayloadRead()
     {
         var bytes = new byte[4]; BinaryPrimitives.WriteInt32LittleEndian(bytes, SafetyProbeProtocol.MaximumBytes + 1);
         await Assert.ThrowsAsync<InvalidDataException>(() => new EngineChannel(new MemoryStream(bytes), SafetyProbeProtocol.MaximumBytes).ReadAsync<SafetyProbeCommand>());
+    }
+
+    [Fact]
+    public void LateThermalFixtureCannotRenewAnExpiredWatch()
+    {
+        var id = Guid.NewGuid();
+        CpuThermalSensor[] sensors =
+        [
+            new("/intelcpu/0", "/intelcpu/0/temperature/0", "CPU Package", CpuThermalRole.Package, 62, 100),
+            new("/intelcpu/0", "/intelcpu/0/temperature/1", "Core #1", CpuThermalRole.Core, 60, 100)
+        ];
+        var frame = new CpuThermalFrame(CpuThermalProtocol.Version, id, 1, 0, 100, CpuThermalStatus.Reading, sensors);
+        var watch = new IdleThermalWatch(id, frame);
+        Assert.False(watch.Observe(frame with { Sequence = 2, ReadStartedMilliseconds = 6000, ReadCompletedMilliseconds = 6100 }, watch.Deadline));
+        Assert.False(watch.Observe(frame with { Sequence = 2, ReadStartedMilliseconds = 200, ReadCompletedMilliseconds = 300 }, TimeSpan.FromSeconds(1)));
     }
 }

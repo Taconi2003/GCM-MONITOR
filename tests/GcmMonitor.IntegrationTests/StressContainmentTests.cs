@@ -68,6 +68,25 @@ public sealed class StressContainmentTests
     }
 
     [Fact]
+    public async Task DelayingStartupMessageReadDoesNotExtendIdleWorkerDeadline()
+    {
+        await using var controller = await Probe.ConnectAsync();
+        await controller.Channel.WriteAsync(new SafetyProbeStart(SafetyProbeProtocol.Version, controller.Id, controller.Nonce,
+            SafetyProbeProtocol.Purpose, 250));
+        await Task.Delay(1600);
+        Assert.Equal("IdleProbeRunning", (await controller.ReadAsync()).State);
+        var stopped = await controller.ReadAsync();
+        Assert.Equal(SafetyStopReason.DurationCompleted, stopped.Reason);
+        Assert.NotNull(stopped.WorkerExitMilliseconds);
+        Assert.InRange(stopped.WorkerExitMilliseconds.Value, 200, 1200);
+        await SaveEnvironmentEvidenceAsync("delayed-controller-read.json", new
+        {
+            ConfiguredDurationMilliseconds = 250, ControllerReadDelayMilliseconds = 1600, stopped.WorkerExitMilliseconds,
+            Reason = stopped.Reason.ToString(), stopped.IdleOnly, stopped.LoadExecuted, IdentifiersExcluded = true
+        });
+    }
+
+    [Fact]
     public async Task ControllerDisconnectionTerminatesItsIdleChild()
     {
         await using var controller = await Probe.StartAsync(); using var worker = controller.OpenWorker();
@@ -89,7 +108,7 @@ public sealed class StressContainmentTests
     {
         await using var controller = await Probe.StartAsync(); using var worker = controller.OpenWorker();
         await controller.CommandAsync("heartbeat");
-        await controller.Channel.WriteAsync(new SafetyProbeCommand(1, controller.Id, controller.Nonce, 1, "heartbeat"));
+        await controller.Channel.WriteAsync(new SafetyProbeCommand(SafetyProbeProtocol.Version, controller.Id, controller.Nonce, 1, "heartbeat"));
         var stopped = await controller.ReadAsync(); Assert.Equal(SafetyStopReason.InvalidProtocol, stopped.Reason); Assert.True(worker.HasExited);
     }
 
@@ -124,8 +143,9 @@ public sealed class StressContainmentTests
 
     [Theory]
     [InlineData(99, "IdleContainmentProbe", 1000)]
-    [InlineData(1, "CpuStress", 1000)]
-    [InlineData(1, "IdleContainmentProbe", 300000)]
+    [InlineData(1, "IdleContainmentProbe", 1000)]
+    [InlineData(SafetyProbeProtocol.Version, "CpuStress", 1000)]
+    [InlineData(SafetyProbeProtocol.Version, "IdleContainmentProbe", 300000)]
     public async Task InvalidStartsDoNotCreateAWorker(int version, string purpose, int duration)
     {
         await using var controller = await Probe.ConnectAsync();
@@ -141,6 +161,81 @@ public sealed class StressContainmentTests
         {
             await using var controller = await Probe.ConnectAsync(wrongControllerStart: true);
             await controller.ReadAsync();
+        });
+    }
+
+    [Fact]
+    public async Task ThermalDeadlineStopsIdleWorkerDespiteValidControllerHeartbeats()
+    {
+        await using var controller = await Probe.StartAsync(12000, thermalFixture: true);
+        using var worker = controller.OpenWorker();
+        var watch = Stopwatch.StartNew();
+        for (int i = 0; i < 5; i++)
+        {
+            await Task.Delay(800);
+            await controller.CommandAsync("heartbeat");
+        }
+        var stopped = await controller.ReadAsync();
+        Assert.Equal(SafetyStopReason.SensorLost, stopped.Reason);
+        Assert.True(worker.HasExited);
+        Assert.InRange(watch.Elapsed.TotalSeconds, 5, 10);
+        await SaveEnvironmentEvidenceAsync("thermal-deadline.json", new
+        {
+            ThermalFramesSynthetic = true, HeartbeatsAccepted = 5, ConfiguredThermalSeconds = CpuThermalProtocol.MaximumAge.TotalSeconds,
+            ObservedStopSeconds = watch.Elapsed.TotalSeconds, Reason = stopped.Reason.ToString(), WorkerExitConfirmed = worker.HasExited,
+            stopped.IdleOnly, stopped.LoadExecuted, IdentifiersExcluded = true
+        });
+    }
+
+    [Fact]
+    public async Task LosingARequiredCoreAfterAValidFixtureStopsTheIdleWorker()
+    {
+        await using var controller = await Probe.StartAsync(12000, thermalFixture: true);
+        using var worker = controller.OpenWorker();
+        await controller.CommandAsync("thermal-fixture", Fixture(controller.Id, 2));
+        var incomplete = Fixture(controller.Id, 3);
+        await controller.CommandAsync("thermal-fixture", incomplete with { Sensors = [incomplete.Sensors[0]] });
+        var stopped = await controller.ReadAsync();
+        Assert.Equal(SafetyStopReason.SensorLost, stopped.Reason);
+        Assert.True(worker.HasExited);
+    }
+
+    [Fact]
+    public async Task IncompleteInitialThermalFixtureIsRejectedBeforeWorkerCreation()
+    {
+        await using var controller = await Probe.ConnectAsync();
+        var incomplete = Fixture(controller.Id, 1);
+        await controller.Channel.WriteAsync(new SafetyProbeStart(SafetyProbeProtocol.Version, controller.Id, controller.Nonce,
+            SafetyProbeProtocol.Purpose, 4000, InitialThermalFixture: incomplete with { Sensors = [incomplete.Sensors[0]] }));
+        var stopped = await controller.ReadAsync();
+        Assert.Equal(SafetyStopReason.InvalidProtocol, stopped.Reason);
+        Assert.Null(stopped.WorkerPid);
+    }
+
+    [Fact]
+    public async Task NativeWindowsObservationIsRegisteredOrTheIdleProbeIsRefused()
+    {
+        await using var controller = await Probe.ConnectAsync();
+        var initial = await controller.SendStartAsync(1600, observeWindows: true);
+        if (initial.State == "IdleProbeStopped")
+        {
+            Assert.Equal(SafetyStopReason.EnvironmentUnavailable, initial.Reason);
+            Assert.Null(initial.WorkerPid);
+            Assert.NotEqual("1", Environment.GetEnvironmentVariable("GCM_REQUIRE_WINDOWS_OBSERVATION"));
+            return;
+        }
+        Assert.True(initial.WindowsObservationEnabled);
+        using var worker = controller.OpenWorker();
+        var stopped = await controller.ReadAsync();
+        Assert.True(worker.HasExited);
+        Assert.True(stopped.WindowsObservationEnabled);
+        if (stopped.WindowsSignalObserved)
+            Assert.Contains(stopped.Reason, new SafetyStopReason?[] { SafetyStopReason.PowerChanged, SafetyStopReason.Suspended, SafetyStopReason.EnvironmentUnavailable });
+        else Assert.Equal(SafetyStopReason.DurationCompleted, stopped.Reason);
+        await SaveEnvironmentEvidenceAsync("native-environment.json", new
+        {
+            NativeRegistrationExercised = true, PowerBaselineRead = true, stopped.WindowsSignalObserved, Reason = stopped.Reason.ToString(),
+            WorkerExitConfirmed = worker.HasExited, stopped.IdleOnly, stopped.LoadExecuted, IdentifiersExcluded = true
         });
     }
 
@@ -200,6 +295,20 @@ public sealed class StressContainmentTests
     }
 
     private static string Executable => EngineProcessTests.Executable("GcmMonitor.StressSupervisor");
+    private static CpuThermalFrame Fixture(Guid id, long sequence) => new(CpuThermalProtocol.Version, id, sequence, sequence * 100, sequence * 100 + 10,
+        CpuThermalStatus.Reading,
+        [
+            new("/intelcpu/0", "/intelcpu/0/temperature/0", "CPU Package", CpuThermalRole.Package, 61, 100),
+            new("/intelcpu/0", "/intelcpu/0/temperature/1", "Core #1", CpuThermalRole.Core, 58, 100)
+        ]);
+
+    private static async Task SaveEnvironmentEvidenceAsync(string name, object evidence)
+    {
+        string directory = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation");
+        Directory.CreateDirectory(directory);
+        await File.WriteAllTextAsync(Path.Combine(directory, name), JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
     private sealed class Probe : IAsyncDisposable
     {
         public Guid Id { get; } = Guid.NewGuid();
@@ -210,16 +319,22 @@ public sealed class StressContainmentTests
         private SafetyProbeEvent started = null!;
         private long sequence;
         private Probe(string name) => Pipe = new(name, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-        public static async Task<Probe> StartAsync(int duration = 10000)
+        public static async Task<Probe> StartAsync(int duration = 10000, bool thermalFixture = false)
         {
             var probe = await ConnectAsync();
             try
             {
-                await probe.Channel.WriteAsync(new SafetyProbeStart(1, probe.Id, probe.Nonce, SafetyProbeProtocol.Purpose, duration));
-                probe.started = await probe.ReadAsync(); Assert.Equal("IdleProbeRunning", probe.started.State);
+                await probe.SendStartAsync(duration, thermalFixture: thermalFixture);
+                Assert.Equal("IdleProbeRunning", probe.started.State);
                 return probe;
             }
             catch { await probe.DisposeAsync(); throw; }
+        }
+        public async Task<SafetyProbeEvent> SendStartAsync(int duration, bool observeWindows = false, bool thermalFixture = false)
+        {
+            await Channel.WriteAsync(new SafetyProbeStart(SafetyProbeProtocol.Version, Id, Nonce, SafetyProbeProtocol.Purpose,
+                duration, observeWindows, thermalFixture ? Fixture(Id, 1) : null));
+            return started = await ReadAsync();
         }
         public static async Task<Probe> ConnectAsync(bool wrongControllerStart = false)
         {
@@ -243,12 +358,13 @@ public sealed class StressContainmentTests
             var worker = Process.GetProcessById(started.WorkerPid!.Value);
             Assert.Equal(started.WorkerStartedAt!.Value.UtcDateTime, worker.StartTime.ToUniversalTime()); return worker;
         }
-        public Task CommandAsync(string command) => Channel.WriteAsync(new SafetyProbeCommand(1, Id, Nonce, ++sequence, command));
+        public Task CommandAsync(string command, CpuThermalFrame? thermal = null) =>
+            Channel.WriteAsync(new SafetyProbeCommand(SafetyProbeProtocol.Version, Id, Nonce, ++sequence, command, thermal));
         public async Task<SafetyProbeEvent> ReadAsync()
         {
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
             var message = await Channel.ReadAsync<SafetyProbeEvent>(timeout.Token);
-            Assert.Equal(Id, message.SessionId); Assert.Equal(1, message.Version); Assert.True(message.IdleOnly); Assert.False(message.LoadExecuted); return message;
+            Assert.Equal(Id, message.SessionId); Assert.Equal(SafetyProbeProtocol.Version, message.Version); Assert.True(message.IdleOnly); Assert.False(message.LoadExecuted); return message;
         }
         public async ValueTask DisposeAsync()
         {
