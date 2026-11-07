@@ -63,11 +63,11 @@ public sealed class PresentationTests
     {
         var repository = new MemoryRepository(); var vm = Create(repository: repository); await vm.InitializeAsync();
         await vm.LoadExamplesCommand.ExecuteAsync(null); Assert.Equal(4, vm.History.Count);
-        vm.HistoryStatus = "Interrompida"; Assert.Single(vm.History);
-        vm.HistorySearch = "missing"; Assert.Empty(vm.History);
-        vm.HistorySearch = "DEMO"; Assert.Single(vm.History);
-        vm.HistoryDateText = vm.History[0].Session.StartedAt.ToLocalTime().ToString("dd/MM/yyyy"); Assert.Single(vm.History);
-        vm.HistoryDateText = "inválida"; Assert.Empty(vm.History);
+        vm.HistoryStatus = "Interrompida"; await vm.ApplyHistoryFiltersCommand.ExecuteAsync(null); Assert.Single(vm.History);
+        vm.HistorySearch = "missing"; await vm.ApplyHistoryFiltersCommand.ExecuteAsync(null); Assert.Empty(vm.History);
+        vm.HistorySearch = "DEMO"; await vm.ApplyHistoryFiltersCommand.ExecuteAsync(null); Assert.Single(vm.History);
+        vm.HistoryDateText = vm.History[0].Session.StartedAt.ToLocalTime().ToString("dd/MM/yyyy"); await vm.ApplyHistoryFiltersCommand.ExecuteAsync(null); Assert.Single(vm.History);
+        vm.HistoryDateText = "inválida"; await vm.ApplyHistoryFiltersCommand.ExecuteAsync(null); Assert.Contains("dd/MM/aaaa", vm.Message);
     }
     [Fact]
     public async Task DeleteRequiresConfirmationAndKeepsActiveSessions()
@@ -145,6 +145,20 @@ internal sealed class MemoryRepository : ISessionRepository
     public Task SaveAsync(DiagnosticSession session, CancellationToken cancellationToken = default) { sessions[session.Id] = session; return Task.CompletedTask; }
     public Task<DiagnosticSession?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(sessions.GetValueOrDefault(id));
     public Task<IReadOnlyList<DiagnosticSession>> ListAsync(int limit = 100, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DiagnosticSession>>(sessions.Values.OrderByDescending(x => x.StartedAt).Take(limit).ToArray());
+    public Task<HistoryPage> QueryHistoryAsync(HistoryQuery query, CancellationToken ct = default)
+    {
+        var matches = sessions.Values.Where(x => x.ComputerName.Contains(query.Computer, StringComparison.OrdinalIgnoreCase) &&
+            (query.State is null || x.State == query.State) && (query.FromUtc is null || x.StartedAt >= query.FromUtc && x.StartedAt < query.UntilUtc))
+            .OrderByDescending(x => x.StartedAt).ThenByDescending(x => x.Id).ToArray();
+        return Task.FromResult(new HistoryPage(matches.Skip(query.Page * HistoryQuery.PageSize).Take(HistoryQuery.PageSize).Select(HistoryEntry.FromSession).ToArray(),
+            matches.Length, sessions.Count, sessions.Values.Count(x => !x.IsTerminal), null));
+    }
+    public Task<int> DeleteTerminalBeforeAsync(DateTimeOffset cutoff, CancellationToken ct = default)
+    {
+        var ids = sessions.Values.Where(x => x.IsTerminal && x.StartedAt < cutoff).Select(x => x.Id).ToArray();
+        foreach (var id in ids) sessions.Remove(id);
+        return Task.FromResult(ids.Length);
+    }
     public Task SaveNotesAsync(Guid id, string notes, CancellationToken cancellationToken = default) { sessions[id] = sessions[id] with { Notes = notes }; return Task.CompletedTask; }
     public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(sessions.TryGetValue(id, out var s) && s.IsTerminal && sessions.Remove(id));
     public Task<int> ClearTerminalAsync(CancellationToken cancellationToken = default) { var keys = sessions.Values.Where(x => x.IsTerminal).Select(x => x.Id).ToArray(); foreach (var key in keys) sessions.Remove(key); return Task.FromResult(keys.Length); }

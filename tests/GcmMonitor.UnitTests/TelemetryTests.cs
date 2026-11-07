@@ -143,6 +143,8 @@ public sealed class TelemetryTests
         { if (++writes >= failAt) throw new IOException("Simulated full disk"); return Task.CompletedTask; }
         public Task<DiagnosticSession?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult<DiagnosticSession?>(null);
         public Task<IReadOnlyList<DiagnosticSession>> ListAsync(int limit = 100, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<DiagnosticSession>>([]);
+        public Task<HistoryPage> QueryHistoryAsync(HistoryQuery query, CancellationToken ct = default) => Task.FromResult(new HistoryPage([], 0, 0, 0, null));
+        public Task<int> DeleteTerminalBeforeAsync(DateTimeOffset cutoff, CancellationToken ct = default) => Task.FromResult(0);
         public Task SaveNotesAsync(Guid id, string notes, CancellationToken cancellationToken = default) => Task.CompletedTask;
         public Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(false);
         public Task<int> ClearTerminalAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);

@@ -53,7 +53,7 @@
       "gcmmonitor.collector": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[0.4.0, )",
+          "GcmMonitor.Core": "[1.0.0-preview.1, )",
           "System.Management": "[10.0.0, )"
         }
       },
@@ -63,7 +63,7 @@
       "gcmmonitor.persistence": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[0.4.0, )",
+          "GcmMonitor.Core": "[1.0.0-preview.1, )",
           "Microsoft.Data.Sqlite": "[10.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
@@ -72,8 +72,8 @@
         "type": "Project",
         "dependencies": {
           "CommunityToolkit.Mvvm": "[8.4.0, )",
-          "GcmMonitor.Collector": "[0.4.0, )",
-          "GcmMonitor.Core": "[0.4.0, )"
+          "GcmMonitor.Collector": "[1.0.0-preview.1, )",
+          "GcmMonitor.Core": "[1.0.0-preview.1, )"
         }
       },
       "CommunityToolkit.Mvvm": {

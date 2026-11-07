@@ -1,7 +1,7 @@
 <UserControl x:Class="GcmMonitor.App.Views.SettingsView" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel>
-      <TextBlock Text="Preferências demonstrativas: alterações de avisos e pasta valem apenas nesta execução. Configurações definitivas e retenção automática serão implementadas na etapa de distribuição." Style="{StaticResource Muted}" Margin="0,0,12,18" />
+      <TextBlock Text="Salve suas preferências neste perfil do Windows." Style="{StaticResource Muted}" Margin="0,0,12,18" />
       <UniformGrid Columns="2">
         <Border Style="{StaticResource Card}">
           <StackPanel>
@@ -22,7 +22,7 @@
           <StackPanel>
             <TextBlock Text="Notificações" Style="{StaticResource SectionTitle}" />
             <CheckBox Content="Avisos informativos" IsChecked="{Binding InformativeNotifications}" />
-            <TextBlock Text="Preferência ilustrativa. Não desativa alertas de segurança." Style="{StaticResource Muted}" FontSize="11" Margin="0,8,0,0" />
+            <TextBlock Text="Exibe um aviso quando o diagnóstico termina. Alertas de segurança são obrigatórios." Style="{StaticResource Muted}" FontSize="11" Margin="0,8,0,0" />
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}">
@@ -36,7 +36,7 @@
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Relatórios" Style="{StaticResource SectionTitle}" />
-          <TextBlock Text="Pasta padrão de exportação PDF (demonstrativa)" Style="{StaticResource Muted}" />
+          <TextBlock Text="Pasta padrão de exportação PDF" Style="{StaticResource Muted}" />
           <DockPanel Margin="0,10,0,0">
             <Button Content="Escolher pasta" Command="{Binding ChooseFolderCommand}" DockPanel.Dock="Right" Margin="12,0,0,0" />
             <TextBox Text="{Binding ReportFolder}" IsReadOnly="True" AutomationProperties.Name="Pasta padrão de relatórios" />
@@ -48,14 +48,20 @@
         <StackPanel>
           <TextBlock Text="Histórico e armazenamento" Style="{StaticResource SectionTitle}" />
           <TextBlock Text="{Binding StorageSummary}" Style="{StaticResource Muted}" />
-          <TextBlock Text="Uso em disco: não calculado nesta etapa. Retenção automática e limpeza de arquivos locais ainda indisponíveis. Nenhuma exclusão retroativa automática." Style="{StaticResource Muted}" Margin="0,8,0,14" />
-          <Button Content="Limpar histórico" Command="{Binding ClearHistoryCommand}" Style="{StaticResource DangerButton}" HorizontalAlignment="Left" />
+          <TextBlock Text="Retenção do histórico" Style="{StaticResource Muted}" Margin="0,8,0,6" />
+          <ComboBox ItemsSource="{Binding RetentionOptions}" DisplayMemberPath="Label" SelectedValuePath="Days" SelectedValue="{Binding RetentionDays, Mode=TwoWay}" HorizontalAlignment="Left" MinWidth="220" />
+          <TextBlock Text="A limpeza por prazo exige confirmação com a data de corte." Style="{StaticResource Muted}" Margin="0,8,0,14" />
+          <WrapPanel>
+            <Button Content="Salvar preferências" Command="{Binding SavePreferencesCommand}" Margin="0,0,8,8" />
+            <Button Content="Aplicar retenção" Command="{Binding ApplyRetentionCommand}" Style="{StaticResource DangerButton}" Margin="0,0,8,8" />
+            <Button Content="Limpar histórico" Command="{Binding ClearHistoryCommand}" Style="{StaticResource DangerButton}" Margin="0,0,0,8" />
+          </WrapPanel>
         </StackPanel>
       </Border>
       <Border Style="{StaticResource Card}">
         <StackPanel>
           <TextBlock Text="Sobre o GCM Monitor" Style="{StaticResource SectionTitle}" />
-          <TextBlock Text="Gimenes Coleta e Monitoramento · v0.4.0" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding WindowTitle}" FontWeight="SemiBold" />
           <TextBlock Text="C# · .NET 10 · WPF/XAML · MVVM · SQLite · Windows x64" Style="{StaticResource Muted}" Margin="0,8,0,0" />
           <TextBlock Text="Execução de desenvolvimento. Distribuição instalada por usuário com Inno Setup prevista para v1.0; não há edição portátil." Style="{StaticResource Muted}" Margin="0,8,0,0" />
           <TextBlock Text="Localização dos binários" Foreground="{StaticResource CyanBrush}" Margin="0,14,0,6" />

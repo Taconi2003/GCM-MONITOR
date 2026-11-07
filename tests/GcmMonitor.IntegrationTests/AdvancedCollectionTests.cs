@@ -103,13 +103,14 @@ public sealed class AdvancedCollectionTests : IDisposable
         await using (var connection = new SqliteConnection($"Data Source={Database};Pooling=False"))
         {
             await connection.OpenAsync(); using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE DiagnosticRecords; PRAGMA user_version=2;"; await command.ExecuteNonQueryAsync();
+            command.CommandText = "DROP TABLE DiagnosticRecords; DROP TABLE SessionHistory; PRAGMA user_version=2;"; await command.ExecuteNonQueryAsync();
         }
         await repo.InitializeAsync(); var restored = await repo.GetAsync(session.Id);
         Assert.Equal("0.2.0", restored!.AppVersion); Assert.Equal(session.Notes, restored.Notes);
         Assert.Empty(restored.Records);
         await using var read = new SqliteConnection($"Data Source={Database};Pooling=False"); await read.OpenAsync();
-        using var version = read.CreateCommand(); version.CommandText = "PRAGMA user_version;"; Assert.Equal(3L, await version.ExecuteScalarAsync());
+        using var version = read.CreateCommand(); version.CommandText = "PRAGMA user_version;"; Assert.Equal(4L, await version.ExecuteScalarAsync());
+        Assert.Equal(session.Id, Assert.Single((await repo.QueryHistoryAsync(new())).Entries).Id);
     }
     public void Dispose() { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
 }

@@ -26,9 +26,11 @@ public partial class App : Application
             MessageBox.Show("O GCM Monitor já está aberto nesta sessão do Windows.", "GCM Monitor");
             Shutdown(); return;
         }
-        var data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCM Monitor", "Data", "gcm-monitor.db");
+        var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCM Monitor");
+        var data = Path.Combine(root, "Data", "gcm-monitor.db");
         var collection = new ServiceCollection();
         collection.AddSingleton<ISessionRepository>(new SqliteSessionRepository(data));
+        collection.AddSingleton<IUserPreferencesStore>(new JsonUserPreferencesStore(Path.Combine(root, "Settings", "preferences.json")));
         collection.AddSingleton<IInventoryProvider, WindowsInventoryProvider>();
         collection.AddSingleton<IDiagnosticEngineClient>(sp => new SessionEngineClient(Path.Combine(AppContext.BaseDirectory, "engine", "GcmMonitor.Engine.exe"), data,
             authorizeCpuTemperature: () => sp.GetRequiredService<IUserDialogs>().Confirm("Temperaturas da CPU",

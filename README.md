@@ -128,10 +128,11 @@ identificadas e resumos sanitizados, nunca bancos locais ou registros brutos do 
   PnP: até 512 dispositivos, problemas primeiro. Nenhum Event ID isolado determina causa.
 - Gráficos: até 32 pontos/série e 512 amostras no snapshot; registros IPC: até 64 por módulo/192
   no total. Os registros completos coletados ficam no banco e são carregados ao abrir o resultado.
-- Histórico lista as 100 sessões mais recentes; paginação/retenção automática não implementadas.
+- Histórico paginado em 25 sessões. As preferências ficam no perfil do Windows, e a limpeza por
+  prazo exige confirmação com a data de corte. [Prévia de histórico e preferências](docs/testes/V1.0-PREVIEW.1.md).
 - CPU representa tempo ocupado, não utilidade ajustada por frequência. Mais de 64 processadores
   lógicos permanece indisponível até validar grupos. Processos protegidos podem ficar parciais.
-- Preferências de avisos/pasta valem apenas na execução; PDF desabilitado. Sem instalador nesta etapa.
+- PDF e instalador são as próximas prévias de distribuição.
 - Validação local não substitui matriz Windows 10/11, máquinas com sensores e ensaios reais de 30 min/1 h/4 h.
 
 Dados por usuário: `%LOCALAPPDATA%\GCM Monitor\Data\gcm-monitor.db`; banco demonstrativo antigo

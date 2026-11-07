@@ -17,17 +17,21 @@ public sealed partial class ShellViewModel : ObservableObject
 
     private readonly IInventoryProvider? inventoryProvider;
     public bool IsDemoMode => inventoryProvider is null;
-    public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · v0.4";
+    public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · " + ProductVersion.Value;
+    public string VersionLabel => "v" + ProductVersion.Value;
+    public string WindowTitle => "GCM Monitor — Gimenes Coleta e Monitoramento · " + VersionLabel;
     public string StressBlockReason => "Estresse bloqueado: sensores térmicos, limites por hardware e matriz P0 ainda precisam de validação em laboratório.";
     public string StressResultSummary => resultSession is null ? "Estresse bloqueado. Selecione um resultado para consultar a avaliação registrada." : resultSession.Stress is { } assessment
         ? "Estresse desativado · nenhuma carga executada.\n" + string.Join(" ", assessment.Reasons)
         : "Estresse não executado. Sessão anterior ou demonstrativa sem avaliação de segurança da v0.4.";
     public string DataBanner => IsDemoMode ? "MODO DEMONSTRAÇÃO · Dados sintéticos. Nenhuma medição real, teste de estresse ou alteração do Windows. O relógio da reprodução é acelerado." :
         "COLETA PASSIVA · Diagnósticos por capacidade e permissão das fontes Windows. Sensores ausentes são identificados. Estresse bloqueado.";
-    public ShellViewModel(IDiagnosticEngineClient engine, ISessionRepository repository, IUserDialogs dialogs, IInventoryProvider? inventoryProvider = null)
+    public ShellViewModel(IDiagnosticEngineClient engine, ISessionRepository repository, IUserDialogs dialogs, IInventoryProvider? inventoryProvider = null,
+        IUserPreferencesStore? preferencesStore = null)
     {
         this.engine = engine; this.repository = repository; this.dialogs = dialogs;
         this.inventoryProvider = inventoryProvider;
+        this.preferencesStore = preferencesStore;
         Modules = new(ModuleCatalog.All.Select(x => new ModuleSelection(x)));
         foreach (var module in Modules) module.PropertyChanged += SelectionChanged;
         if (!IsDemoMode)
@@ -73,7 +77,6 @@ public sealed partial class ShellViewModel : ObservableObject
     [ObservableProperty] private string reportFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "GCM Monitor", "Relatórios");
 
     public ObservableCollection<HistoryRow> History { get; } = [];
-    private IReadOnlyList<DiagnosticSession> storedHistory = [];
     public IReadOnlyList<string> HistoryStatuses { get; } = new[] { "Todos", "Concluída", "Cancelada", "Interrompida", "Erro" };
     public int SelectedModuleCount => Modules.Count(x => x.IsSelected);
     public bool BatteryEnabled => !IsActive && Modules.Single(x => x.Definition.Id == ModuleId.Battery).IsSelected;
@@ -107,7 +110,6 @@ public sealed partial class ShellViewModel : ObservableObject
     public int AttentionCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Attention) ?? 0;
     public int FailureCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Failure) ?? 0;
     public int UnavailableCount => resultSession?.Findings.Count(x => x.Severity == FindingSeverity.Unavailable) ?? 0;
-    public string StorageSummary => $"{storedHistory.Count} sessões carregadas (limite de 100). Retenção: manter até exclusão manual.";
     public string InstallationPath => AppContext.BaseDirectory;
     public string CollectionIssues => resultSession is null ? "Nenhuma coleta realizada." :
         string.Join("\n", resultSession.Modules.Where(x => x.State is ModuleState.Unavailable or ModuleState.Error or ModuleState.Partial)
@@ -128,10 +130,12 @@ public sealed partial class ShellViewModel : ObservableObject
         {
             await repository.InitializeAsync();
             await repository.RecoverInterruptedAsync();
+            string? preferencesError = await LoadPreferencesAsync();
             await RefreshHistoryAsync();
-            if (storedHistory.Any(x => !x.IsTerminal))
+            if (historyPage.ActiveCount != 0)
             { Message = "Há uma sessão anterior com motor ativo ou identidade ainda não verificável. Aguarde o encerramento e reabra o GCM Monitor; outra sessão não será iniciada."; return; }
             if (inventoryProvider is not null) ApplyInventory(await inventoryProvider.ReadAsync());
+            if (preferencesError is not null) Message = preferencesError;
             IsReady = true;
         }
         catch (Exception ex) when (ex is IOException or InvalidOperationException or System.Data.Common.DbException or UnauthorizedAccessException)
@@ -153,9 +157,6 @@ public sealed partial class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(CanConfigure)); OnPropertyChanged(nameof(BatteryEnabled)); OnPropertyChanged(nameof(WifiEnabled)); OnPropertyChanged(nameof(StorageEnabled));
         StartCommand.NotifyCanExecuteChanged(); CancelCommand.NotifyCanExecuteChanged(); OnPropertyChanged(nameof(ResultStatus));
     }
-    partial void OnHistorySearchChanged(string value) => FilterHistory();
-    partial void OnHistoryDateTextChanged(string value) => FilterHistory();
-    partial void OnHistoryStatusChanged(string value) => FilterHistory();
 
     [RelayCommand] private void Navigate(NavigationItem? item) { if (item is not null) CurrentScreen = item.Screen; }
     [RelayCommand] private void OpenMonitoring() => CurrentScreen = Screen.Monitoring;
@@ -201,6 +202,8 @@ public sealed partial class ShellViewModel : ObservableObject
                 if (snapshot.IsTerminal) ShowResult(snapshot);
             }
             if (activeSession?.IsTerminal == true && await repository.GetAsync(activeSession.Id) is { } saved) ShowResult(saved);
+            if (activeSession?.State == SessionState.Completed)
+                Message = InformativeNotifications ? "Diagnóstico concluído. Consulte os resultados." : "";
         }
         catch (Exception ex) when (ex is ArgumentException or IOException or InvalidOperationException or System.Data.Common.DbException or OperationCanceledException or System.ComponentModel.Win32Exception or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
@@ -264,7 +267,7 @@ public sealed partial class ShellViewModel : ObservableObject
         if (IsActive) { Message = "Aguarde o fim da demonstração ativa."; return; }
         try
         {
-            if (storedHistory.Count > 0) { Message = "O histórico já contém sessões. Abra uma linha para revisar."; return; }
+            if (historyPage.TotalCount > 0) { Message = "O histórico já contém sessões. Abra uma linha para revisar."; return; }
             foreach (var state in new[] { SessionState.Completed, SessionState.Cancelled, SessionState.Interrupted, SessionState.Error })
                 await repository.SaveAsync(DemoFixtures.Archived(state, DateTimeOffset.UtcNow.AddDays(-1 - (int)state)));
             await RefreshHistoryAsync(); Message = "Quatro sessões fictícias criadas para revisão visual.";
@@ -272,29 +275,17 @@ public sealed partial class ShellViewModel : ObservableObject
         catch (Exception ex) when (ex is IOException or System.Data.Common.DbException) { Message = "Falha ao salvar exemplos: " + ex.Message; }
     }
 
-    private async Task RefreshHistoryAsync() { storedHistory = await repository.ListAsync(); FilterHistory(); OnPropertyChanged(nameof(StorageSummary)); }
-    private void FilterHistory()
-    {
-        History.Clear();
-        DateTime? date = null;
-        if (!string.IsNullOrWhiteSpace(HistoryDateText))
-        {
-            if (!DateTime.TryParseExact(HistoryDateText, "dd/MM/yyyy", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"), System.Globalization.DateTimeStyles.None, out var parsed))
-            { OnPropertyChanged(nameof(HasNoHistory)); return; }
-            date = parsed;
-        }
-        foreach (var s in storedHistory.Where(x => x.ComputerName.Contains(HistorySearch, StringComparison.CurrentCultureIgnoreCase) &&
-            (date is null || x.StartedAt.ToLocalTime().Date == date.Value.Date) && (HistoryStatus == "Todos" || Labels.Session(x.State) == HistoryStatus)))
-            History.Add(new(s));
-        OnPropertyChanged(nameof(HasNoHistory));
-    }
     [RelayCommand]
     private async Task OpenHistoryAsync(HistoryRow? row)
     {
         row ??= SelectedHistory;
         if (row is not null && row.Session.IsTerminal)
         {
-            try { ShowResult(await repository.GetAsync(row.Session.Id) ?? row.Session); }
+            try
+            {
+                if (await repository.GetAsync(row.Session.Id) is { IsTerminal: true } saved) ShowResult(saved);
+                else { Message = "A sessão selecionada já não está disponível."; await RefreshHistoryAsync(); }
+            }
             catch (Exception ex) when (ex is IOException or System.Data.Common.DbException) { Message = "Não foi possível abrir o resultado salvo."; }
         }
         else Message = row is null ? "Selecione uma sessão do histórico." : "A sessão ainda está ativa; não há resultado consolidado.";
@@ -335,5 +326,4 @@ public sealed partial class ShellViewModel : ObservableObject
         if (resultSession?.Id != id) return;
         resultSession = null; TechnicianNotes = ""; ModuleResults.Clear(); MainFindings.Clear(); NotifyResults();
     }
-    [RelayCommand] private void ChooseFolder() { var path = dialogs.ChooseReportFolder(ReportFolder); if (path is not null) ReportFolder = path; Message = "Preferência de pasta demonstrativa; exportação PDF prevista para v1.0."; }
 }

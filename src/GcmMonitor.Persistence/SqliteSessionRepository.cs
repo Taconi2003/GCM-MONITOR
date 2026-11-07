@@ -34,8 +34,14 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
     {
         await using var connection = await OpenAsync(cancellationToken);
         using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA journal_mode=WAL;";
+        await command.ExecuteNonQueryAsync(cancellationToken);
+        using var transaction = connection.BeginTransaction();
+        command.Transaction = transaction;
+        command.CommandText = "PRAGMA user_version;";
+        int version = Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));
+        if (version > 4) throw new InvalidDataException("Banco de dados criado por uma versão posterior do GCM Monitor.");
         command.CommandText = """
-            PRAGMA journal_mode=WAL;
             CREATE TABLE IF NOT EXISTS Sessions (
                 Id TEXT PRIMARY KEY, StartedAt TEXT NOT NULL, Terminal INTEGER NOT NULL,
                 Snapshot TEXT NOT NULL, Notes TEXT NOT NULL DEFAULT '');
@@ -69,9 +75,26 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
                 SessionId TEXT NOT NULL REFERENCES Sessions(Id) ON DELETE CASCADE, Module INTEGER NOT NULL,
                 RecordKey TEXT NOT NULL, Timestamp TEXT NOT NULL, Payload TEXT NOT NULL,
                 PRIMARY KEY(SessionId,Module,RecordKey));
-            PRAGMA user_version=3;
+            CREATE TABLE IF NOT EXISTS SessionHistory (
+                SessionId TEXT PRIMARY KEY REFERENCES Sessions(Id) ON DELETE CASCADE,
+                StartedAt TEXT NOT NULL, ComputerName TEXT NOT NULL, State INTEGER NOT NULL,
+                Duration TEXT NOT NULL, IsDemo INTEGER NOT NULL);
+            CREATE INDEX IF NOT EXISTS IX_History_Date ON SessionHistory(StartedAt DESC,SessionId DESC);
+            CREATE INDEX IF NOT EXISTS IX_History_StateDate ON SessionHistory(State,StartedAt DESC,SessionId DESC);
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
+        if (version < 4)
+        {
+            command.CommandText = """
+                INSERT OR REPLACE INTO SessionHistory(SessionId,StartedAt,ComputerName,State,Duration,IsDemo)
+                SELECT Id,StartedAt,coalesce(json_extract(Snapshot,'$.ComputerName'),'Não disponível'),
+                    coalesce(json_extract(Snapshot,'$.State'),0),coalesce(json_extract(Snapshot,'$.EffectiveDuration'),'00:00:00'),
+                    coalesce(json_extract(Snapshot,'$.IsDemo'),1) FROM Sessions;
+                PRAGMA user_version=4;
+                """;
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        transaction.Commit();
     }
 
     public Task SaveAsync(DiagnosticSession session, CancellationToken cancellationToken = default)
@@ -121,6 +144,12 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
             foreach (var parameter in parameters) statement.Parameters.AddWithValue(parameter.Name, parameter.Value ?? DBNull.Value);
             await statement.ExecuteNonQueryAsync(cancellationToken);
         }
+        await Execute("""
+            INSERT INTO SessionHistory(SessionId,StartedAt,ComputerName,State,Duration,IsDemo)
+            VALUES($id,$started,$name,$state,$duration,$demo)
+            ON CONFLICT(SessionId) DO UPDATE SET ComputerName=$name, State=$state, Duration=$duration, IsDemo=$demo;
+            """, ("$id", session.Id.ToString()), ("$started", session.StartedAt.UtcDateTime.ToString("O")),
+            ("$name", session.ComputerName), ("$state", (int)session.State), ("$duration", session.EffectiveDuration.ToString("c")), ("$demo", session.IsDemo ? 1 : 0));
         foreach (var sample in batch.Measurements)
             await Execute("INSERT INTO Measurements(SessionId,Module,Metric,Component,Timestamp,Value,Unit,Source,Quality,IsDemo,Reason) VALUES($id,$module,$metric,$component,$time,$value,$unit,$source,$quality,$demo,$reason);",
                 ("$id", session.Id.ToString()), ("$module", (int)sample.Module), ("$metric", sample.Metric), ("$component", sample.Component),
@@ -200,6 +229,62 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
         (JsonSerializer.Deserialize<DiagnosticSession>(reader.GetString(0), EngineProtocol.Json)
             ?? throw new InvalidDataException("Snapshot inválido.")) with
         { Notes = reader.GetString(1) };
+
+    public async Task<HistoryPage> QueryHistoryAsync(HistoryQuery query, CancellationToken ct = default)
+    {
+        query.Validate();
+        await using var connection = await OpenAsync(ct);
+        using var transaction = connection.BeginTransaction(deferred: true);
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        const string filter = """
+            FROM SessionHistory WHERE ($name='' OR instr(lower(ComputerName),lower($name))>0)
+            AND ($state IS NULL OR State=$state) AND ($start IS NULL OR (StartedAt >= $start AND StartedAt < $end))
+            """;
+        command.Parameters.AddWithValue("$name", query.Computer);
+        command.Parameters.AddWithValue("$state", query.State is { } state ? (int)state : DBNull.Value);
+        command.Parameters.AddWithValue("$start", (object?)query.FromUtc?.UtcDateTime.ToString("O") ?? DBNull.Value);
+        command.Parameters.AddWithValue("$end", (object?)query.UntilUtc?.UtcDateTime.ToString("O") ?? DBNull.Value);
+        command.CommandText = "SELECT (SELECT COUNT(*) " + filter + "), COUNT(*), coalesce(SUM(1-Terminal),0) FROM Sessions;";
+        int matching, total, active;
+        using (var counts = await command.ExecuteReaderAsync(ct))
+        {
+            await counts.ReadAsync(ct);
+            matching = counts.GetInt32(0); total = counts.GetInt32(1); active = counts.GetInt32(2);
+        }
+        command.Parameters.AddWithValue("$limit", HistoryQuery.PageSize);
+        command.Parameters.AddWithValue("$offset", (long)query.Page * HistoryQuery.PageSize);
+        command.CommandText = "SELECT SessionId,ComputerName,StartedAt,Duration,State,IsDemo " + filter +
+            " ORDER BY StartedAt DESC, SessionId DESC LIMIT $limit OFFSET $offset;";
+        var entries = new List<HistoryEntry>();
+        using (var reader = await command.ExecuteReaderAsync(ct))
+        {
+            while (await reader.ReadAsync(ct))
+                entries.Add(new(Guid.Parse(reader.GetString(0)), reader.GetString(1), DateTimeOffset.Parse(reader.GetString(2), System.Globalization.CultureInfo.InvariantCulture),
+                    TimeSpan.ParseExact(reader.GetString(3), "c", System.Globalization.CultureInfo.InvariantCulture), (SessionState)reader.GetInt32(4), reader.GetBoolean(5)));
+        }
+        transaction.Commit();
+        return new(entries.ToArray(), matching, total, active, DatabaseSize());
+    }
+
+    private long? DatabaseSize()
+    {
+        try
+        {
+            return new[] { DatabasePath, DatabasePath + "-wal", DatabasePath + "-shm" }
+                .Select(path => new FileInfo(path)).Where(file => file.Exists).Sum(file => file.Length);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { return null; }
+    }
+
+    public async Task<int> DeleteTerminalBeforeAsync(DateTimeOffset cutoff, CancellationToken ct = default)
+    {
+        await using var connection = await OpenAsync(ct);
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM Sessions WHERE Terminal=1 AND StartedAt < $cutoff;";
+        command.Parameters.AddWithValue("$cutoff", cutoff.UtcDateTime.ToString("O"));
+        return await command.ExecuteNonQueryAsync(ct);
+    }
 
     public async Task SaveNotesAsync(Guid id, string notes, CancellationToken cancellationToken = default)
     {

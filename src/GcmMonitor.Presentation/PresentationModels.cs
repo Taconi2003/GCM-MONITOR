@@ -51,7 +51,7 @@ public sealed record MetricCard(string Name, string Value, string Unit, string C
     public string AxisLabel => IsDemo ? "tempo simulado" : "horário local";
 }
 public sealed record ProcessRow(string Identity, string Values);
-public sealed record HistoryRow(DiagnosticSession Session)
+public sealed record HistoryRow(HistoryEntry Session)
 {
     public string Date => Session.StartedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
     public string Computer => Session.ComputerName + (Session.IsDemo ? " · demonstração" : "");

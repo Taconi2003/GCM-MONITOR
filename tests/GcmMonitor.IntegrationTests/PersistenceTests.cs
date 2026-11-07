@@ -11,6 +11,47 @@ public sealed class PersistenceTests : IDisposable
     private SqliteSessionRepository Repository => new(Path.Combine(folder, "demo.db"));
 
     [Fact]
+    public async Task HistoryPaginatesAcrossOldLimitAndRetentionKeepsActiveSessions()
+    {
+        var repo = Repository;
+        await repo.InitializeAsync();
+        var today = new DateTimeOffset(2026, 11, 7, 12, 0, 0, TimeSpan.Zero);
+        for (int i = 0; i < 127; i++)
+            await repo.SaveAsync(new DiagnosticSession { ComputerName = "FIXTURE " + i, StartedAt = today.AddMinutes(-i), State = SessionState.Completed });
+        var older = new DiagnosticSession { ComputerName = "FIXTURE % antigo", StartedAt = today.AddDays(-120), State = SessionState.Completed };
+        var active = older with { Id = Guid.NewGuid(), ComputerName = "FIXTURE ativo", State = SessionState.Running };
+        await repo.SaveAsync(older); await repo.SaveAsync(active);
+        var ids = new HashSet<Guid>();
+        for (int page = 0; page < 6; page++)
+        {
+            var current = await repo.QueryHistoryAsync(new(Page: page));
+            Assert.Equal(129, current.TotalCount); Assert.Equal(1, current.ActiveCount);
+            Assert.InRange(current.Entries.Length, 1, 25);
+            Assert.All(current.Entries, x => Assert.True(ids.Add(x.Id)));
+        }
+        Assert.Equal(129, ids.Count);
+        var filtered = await repo.QueryHistoryAsync(new(Computer: "%", State: SessionState.Completed,
+            FromUtc: older.StartedAt.AddHours(-1), UntilUtc: older.StartedAt.AddHours(1)));
+        Assert.Equal(older.Id, Assert.Single(filtered.Entries).Id);
+        Assert.Equal(1, await repo.DeleteTerminalBeforeAsync(today.AddDays(-90)));
+        Assert.Null(await repo.GetAsync(older.Id)); Assert.Equal(SessionState.Running, (await repo.GetAsync(active.Id))!.State);
+        Assert.Equal(128, (await repo.QueryHistoryAsync(new())).TotalCount);
+    }
+
+    [Fact]
+    public async Task PreferencesSurviveReopeningAndAnInvalidSavePreservesThePreviousValues()
+    {
+        string settings = Path.Combine(folder, "Settings", "preferences.json");
+        var store = new JsonUserPreferencesStore(settings);
+        Assert.Null(await store.LoadAsync());
+        var expected = new UserPreferences(false, Path.Combine(folder, "Relatórios"), 90);
+        await store.SaveAsync(expected);
+        await Assert.ThrowsAsync<InvalidDataException>(() => store.SaveAsync(expected with { RetentionDays = 3 }));
+        Assert.Equal(expected, await new JsonUserPreferencesStore(settings).LoadAsync());
+        Assert.Single(Directory.EnumerateFiles(Path.GetDirectoryName(settings)!));
+    }
+
+    [Fact]
     public async Task ReopeningDatabasePreservesSessionTransitionsAndTechnicianNotes()
     {
         var repo = Repository; await repo.InitializeAsync();

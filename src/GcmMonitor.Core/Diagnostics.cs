@@ -80,7 +80,7 @@ public sealed record DiagnosticSession
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string ComputerName { get; init; } = "DEMO-GCM01";
-    public string AppVersion { get; init; } = "0.4.0";
+    public string AppVersion { get; init; } = ProductVersion.Value;
     public bool IsDemo { get; init; } = true;
     public DiagnosticOptions Options { get; init; } = new();
     public SessionState State { get; init; } = SessionState.NotStarted;

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-preview.1 — 07/11/2026
+
+- Histórico paginado no SQLite, filtros sobre todas as sessões e total com tamanho do banco.
+- Migração aditiva para esquema 4 e preferências persistentes por usuário.
+- Retenção com prazo selecionável e limpeza confirmada das sessões finalizadas.
+
 ## Continuação 0.4.0 — proteção ambiental, 07/11/2026
 
 - Prova ociosa observa notificações de suspensão e estado de alimentação do Windows.

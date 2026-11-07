@@ -9,11 +9,11 @@
         </Grid.ColumnDefinitions>
         <StackPanel Margin="0,0,14,0">
           <TextBlock Text="Computador" Style="{StaticResource Muted}" Margin="0,0,0,8" />
-          <TextBox Text="{Binding HistorySearch, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Pesquisar computador" />
+          <TextBox Text="{Binding HistorySearch, UpdateSourceTrigger=PropertyChanged}" MaxLength="256" AutomationProperties.Name="Pesquisar computador" />
         </StackPanel>
         <StackPanel Grid.Column="1" Margin="0,0,14,0">
           <TextBlock Text="Data · dd/MM/aaaa" Style="{StaticResource Muted}" Margin="0,0,0,8" />
-          <TextBox Text="{Binding HistoryDateText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Filtrar por data no formato dd/MM/aaaa" />
+          <TextBox Text="{Binding HistoryDateText, UpdateSourceTrigger=PropertyChanged}" MaxLength="10" AutomationProperties.Name="Filtrar por data no formato dd/MM/aaaa" />
         </StackPanel>
         <StackPanel Grid.Column="2">
           <TextBlock Text="Status" Style="{StaticResource Muted}" Margin="0,0,0,8" />
@@ -24,10 +24,14 @@
     <Border DockPanel.Dock="Bottom" Style="{StaticResource Card}" Margin="0,12,12,0">
       <StackPanel>
         <WrapPanel>
+          <Button Content="Aplicar filtros" Command="{Binding ApplyHistoryFiltersCommand}" Margin="0,0,12,8" />
+          <Button Content="Anterior" Command="{Binding PreviousHistoryCommand}" Margin="0,0,6,8" />
+          <Button Content="Próxima" Command="{Binding NextHistoryCommand}" Margin="0,0,12,8" />
           <Button Content="Limpar histórico" Command="{Binding ClearHistoryCommand}" Style="{StaticResource DangerButton}" Margin="0,0,12,8" />
           <Button Content="Carregar exemplos fictícios" Command="{Binding LoadExamplesCommand}" Margin="0,0,0,8" Visibility="{Binding IsDemoMode, Converter={StaticResource BoolVisibility}}" />
         </WrapPanel>
-        <TextBlock Text="{Binding StorageSummary}" Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
+        <TextBlock Text="{Binding HistoryPageLabel}" Style="{StaticResource Muted}" FontSize="11" Margin="0,6,0,0" />
+        <TextBlock Text="{Binding StorageSummary}" Style="{StaticResource Muted}" FontSize="11" />
         <TextBlock Text="Exclusões pedem confirmação. PDFs externos e sessões ativas são preservados." Style="{StaticResource Muted}" FontSize="11" />
       </StackPanel>
     </Border>
