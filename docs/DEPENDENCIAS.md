@@ -35,8 +35,9 @@ Antes de distribuir, incluir os avisos/licenças necessários, revisar dependên
 executar a matriz Windows e assinar os artefatos conforme planejamento. NuGet audit é uma verificação
 pontual de advisories conhecidos, não uma garantia de ausência de vulnerabilidades.
 
-ScottPlot.WPF, LibreHardwareMonitorLib e PDFsharp/MigraDoc
-continuam candidatos aprovados, ainda sem versões congeladas ou prova de conceito nesta etapa.
+ScottPlot.WPF e PDFsharp/MigraDoc continuam candidatos aprovados, ainda sem versões congeladas ou
+prova de conceito nesta etapa. LibreHardwareMonitorLib 0.9.6 foi fixada apenas para a prova passiva
+de laboratório descrita abaixo; não foi adicionada aos pacotes do aplicativo.
 
 System.Management 10.0.0 foi fixado e exercitado em consultas de inventário somente de leitura.
 Sensores/drivers, compatibilidade ampla e qualidade de cada metadado continuam sujeitos às provas
@@ -47,3 +48,10 @@ System.Diagnostics.EventLog **10.0.0**, Microsoft, licença **MIT** conferida no
 LibreHardwareMonitor não é empacotado, instalado ou iniciado. A integração WMI opcional usa o contrato público do provedor v0.9.4 existente. A prova de contrato identificou conversão de null para zero; zero externo não é aceito como leitura comprovada. Ver docs/arquitetura/V0.3.md. Não há aprovação de sensor/driver para estresse.
 
 A v0.4 adiciona somente a biblioteca interna GcmMonitor.Execution, sem novos pacotes externos. Job Objects e identidade de pipes usam APIs do Windows. Versões/licenças anteriores mantidas; nova auditoria direta/transitiva sem advisories conhecidos na consulta. Nenhum driver ou biblioteca de geração de carga incorporado.
+
+Continuação térmica: ferramenta separada usa o arquivo oficial LHM .NET 10 **0.9.6**, verificado por
+SHA-256, sem novos pacotes NuGet na solução. **PawnIO 2.2.0** foi instalado localmente com autorização
+expressa; instalador/driver com assinatura válida. Não é instalado, empacotado ou distribuído pelo
+GCM. LHM declara MPL-2.0; PawnIO GPL-2.0-or-later com exceção própria, além das licenças dos módulos
+e dependências. Revisão de redistribuição pendente. Hashes, origem, limites e remoção em
+[validação térmica](testes/VALIDACAO_TERMICA_V0.4.md).

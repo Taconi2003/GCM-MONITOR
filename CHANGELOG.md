@@ -1,5 +1,13 @@
 # Changelog
 
+## Continuação 0.4.0 — validação térmica, 06/11/2026
+
+- Prova passiva local com LHM 0.9.6/PawnIO 2.2.0: temperaturas acessíveis com elevação específica.
+- Ferramenta de laboratório separada, arquivos oficiais verificados e capturas locais privadas.
+- Correção de `Distance to TjMax`, excluída dos gráficos de temperatura absoluta; teste de regressão.
+- Driver instalado somente no notebook autorizado; sem empacotamento, elevação da UI ou carga real.
+- Precisão, frescor, política térmica, integração e P0 sob carga continuam pendentes.
+
 ## 0.4.0 — 06/11/2026
 
 - Infraestrutura de supervisão; estresse real permanece bloqueado por falta de validação térmica/P0.

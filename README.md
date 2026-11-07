@@ -49,6 +49,10 @@ entrega. O diálogo e as fases de uma execução real, sensores térmicos confi�
 eventos físicos e matriz P0 sob carga ainda precisam ser integrados/validados em laboratório. A UI não
 oferece o modo de prova. Os ensaios ociosos não aprovam os CT integrais de estresse nem liberam uso em clientes.
 
+A continuação de laboratório confirmou acesso passivo às temperaturas com LHM 0.9.6/PawnIO 2.2.0 e
+elevação específica. O driver foi instalado neste notebook com autorização; o aplicativo não o instala
+nem usa essa leitura direta ainda. [Prova, ferramenta, resultados e remoção](docs/testes/VALIDACAO_TERMICA_V0.4.md).
+
 ## Compilar, testar e abrir
 
 Windows x64 e SDK **.NET 10.0.403 x64** (`global.json`); acesso ao NuGet no primeiro restore.
