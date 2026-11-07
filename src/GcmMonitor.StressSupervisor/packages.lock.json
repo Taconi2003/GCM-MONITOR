@@ -8,9 +8,10 @@
       "gcmmonitor.execution": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[1.0.0-preview.2, )"
+          "GcmMonitor.Core": "[1.0.0-preview.3, )"
         }
       }
-    }
+    },
+    "net10.0/win-x64": {}
   }
 }

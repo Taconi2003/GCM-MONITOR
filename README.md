@@ -1,9 +1,9 @@
 # GCM Monitor — Gimenes Coleta e Monitoramento
 
-**v0.4.0 — infraestrutura de supervisão, estresse ainda bloqueado, Windows x64.** Versão de desenvolvimento,
-com coleta passiva real e limitações explícitas; ainda não liberada para diagnóstico de clientes.
+**v1.0.0-preview.3 — prévia de desenvolvimento para Windows x64.** Coleta passiva, histórico
+paginado, preferências locais, relatórios PDF e instalador de prévia.
 Fonte obrigatória: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md), seção 14.
-O documento original foi preservado. Esta etapa continua a v0.3. A ativação do estresse depende das provas térmicas e dos P0 em laboratório.
+A ativação do estresse depende das provas térmicas e dos P0 em laboratório.
 
 ## Funcionalidades
 
@@ -29,12 +29,12 @@ O documento original foi preservado. Esta etapa continua a v0.3. A ativação do
   download/instalação nem afirma conhecer todas as pendências ou que o sistema está atualizado.
 - Motor separado, relógio real, cadências automáticas, consultas pontuais uma vez, cancelamento,
   estados parciais e recuperação. Sessões somente pontuais terminam ao concluir as consultas.
-- SQLite WAL schema 3, migração aditiva da v0.2, amostras e evidências incrementais, notas e histórico.
+- SQLite WAL esquema 5, com migração aditiva, amostras e evidências incrementais, notas e histórico.
   Resultados reabertos recuperam os registros persistidos, além do snapshot limitado enviado à UI.
 
 **Estresse permanece desligado e bloqueado**, inclusive após Habilitar todos. Não há geração de
 carga, reparo, atualização de drivers/Windows, alteração de energia ou instalação de driver de sensores.
-PDF, preferências definitivas, histórico completo e Inno Setup permanecem na etapa v1.0 aprovada.
+Consulte a [compilação e validação do instalador de prévia](installer/InnoSetup/README.md).
 
 ## Segurança acrescentada na v0.4
 
@@ -76,7 +76,7 @@ O SDK 8 não compila esta solução. PowerShell 7 recomendado. Um SDK local em `
 Restore usa versões travadas. Caches ficam em `.tools/`; motor/dependências são copiados para
 `engine/` ao lado da UI. Abrir o executável diretamente exige .NET Desktop 10 ou `DOTNET_ROOT`
 configurado. Não copie somente o `.exe`: o build de desenvolvimento **não é uma edição portátil**.
-A distribuição futura será instalada, self-contained, por usuário, com Inno Setup.
+O pacote de prévia usa instalação self-contained por usuário com Inno Setup.
 
 ## Uso e estrutura
 
@@ -91,7 +91,7 @@ A distribuição futura será instalada, self-contained, por usuário, com Inno 
    Exclusão só de sessões finalizadas, com confirmação, sem remover PDFs externos.
 
 Projetos em `src/`: **Execution** (contenção de processos Windows), **Core** (contratos/modelos), **Collector** (fontes), **Persistence** (SQLite),
-**Engine** (coordenação/processo), **Presentation** (MVVM testável), **App** (WPF/DI/IPC),
+**Engine** (coordenação/processo), **Presentation** (MVVM testável), **Reporting** (PDF), **App** (WPF/DI/IPC),
 **StressSupervisor** (supervisor com prova ociosa, recusa carga real). `tests/` contém testes unitários e integrados Windows.
 Detalhes e fontes: [arquitetura v0.4](docs/arquitetura/V0.4.md),
 [dependências/licenças](docs/DEPENDENCIAS.md), [distribuição](installer/InnoSetup/README.md).
@@ -117,9 +117,9 @@ Evidências: [relatório v0.4](docs/testes/RELATORIO_V0.4.md) e
 TRX/capturas ficam em `.artifacts/`. O CI publica apenas resultados de testes, imagens sintéticas
 identificadas e resumos sanitizados, nunca bancos locais ou registros brutos do equipamento.
 
-- Sensores CPU/GPU/RPM: **não validados em hardware real nesta entrega**. Fonte WMI externa pode
-  estar ausente ou desatualizada. Zero desse contrato externo é ambíguo e fica indisponível.
-  Nenhuma proteção térmica/estresse é liberada a partir dessas leituras.
+- A leitura direta de temperatura CPU foi exercitada em laboratório. GPU, RPM e fontes WMI
+  dependem das capacidades expostas. Zero do contrato WMI externo é ambíguo e fica indisponível.
+  A qualificação para proteção térmica está pendente.
 - GPU PDH é por engine; não se somam engines diferentes como porcentagem global. Não há
   correlação validada entre LUID e modelo, VRAM ou classificação integrada/dedicada.
 - SMART indisponível não significa saudável. Controladoras/RAID/USB e associações podem limitar dados.

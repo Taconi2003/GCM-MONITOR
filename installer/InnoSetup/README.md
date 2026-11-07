@@ -1,22 +1,36 @@
-# Distribuição Windows — planejada para v1.0
+# Instalador Windows da prévia 3
 
-As versões v0.1, v0.2, v0.3 e v0.4 entregam builds de desenvolvimento, sem instalador e sem edição portátil.
-Não há script `.iss` executável nesta etapa: implementar e validar instalação/desinstalação
-pertence à v1.0 na seção 14 da Especificação Mestre.
+O script `GCMMonitor.iss` empacota a interface e o motor self-contained do .NET 10.0.14 x64.
+O destino padrão por usuário é `%LOCALAPPDATA%\Programs\GCM Monitor`. O instalador cria um
+atalho no menu Iniciar e um registro em Aplicativos instalados. A configuração exige Windows x64
+com build a partir de 19045. A matriz de compatibilidade continua pendente.
 
-Contrato a preservar na implementação futura:
+Use o [Inno Setup 7.1.1 oficial](https://github.com/jrsoftware/issrc/releases/tag/is-7_1_1).
+O compilador local pode ficar em `.tools/inno-7.1.1/ISCC.exe`. Confirme a assinatura do fornecedor
+e o hash informado na release antes da instalação. Para reproduzir o pacote:
 
-1. Publicar App e Engine com .NET 10 **self-contained**, RID `win-x64`, incluindo os runtimes
-   e dependências de cada processo. Não usar publicação de arquivo único sem validar os componentes nativos.
-2. Empacotar com Inno Setup como `GCMMonitor-Setup.exe`, instalação por usuário,
-   `PrivilegesRequired=lowest`, destino `%LOCALAPPDATA%\Programs\GCM Monitor\`.
-3. Registrar atalhos e Aplicativos instalados. Validar arquitetura e requisitos do Windows antes de instalar.
-4. Preservar/migrar dados próprios em atualização somente com procedimento testado.
-5. Na remoção, encerrar sessões/processos próprios, avisar sobre dados não exportados e oferecer
-   preservar/remover dados locais. Validar caminhos e propriedade antes de qualquer remoção recursiva.
-6. Nunca remover PDFs externos, dados de terceiros, processos alheios ou alterar Windows/energia/drivers.
-7. Executar CT-001 a CT-007 e demais P0/P1 aplicáveis, incluindo máquina sem runtime instalado.
+```powershell
+.\scripts\package.ps1
+# Para usar o compilador de outra pasta
+.\scripts\package.ps1 -CompilerPath 'C:\caminho\ISCC.exe'
+```
 
-Um comando `dotnet publish` isolado não é um instalador nem comprova que o motor, o banco,
-as permissões ou a desinstalação estão corretos. Publicação, pacote e testes do instalador
-**não foram executados na v0.1**.
+A saída fica em `.artifacts/installer/<versão>-<id>/GCMMonitor-Setup.exe`. O script publica com
+restauração travada, valida os binários e inclui os avisos do runtime. `-PublishOnly` verifica a
+publicação sem compilar o instalador. A prévia gera um executável local sem assinatura do produto.
+
+O App e o motor mantêm um marcador de uso por perfil durante sua execução. O Inno Setup pede
+encerramento antes de instalar ou remover os arquivos. Fechar o GCM durante uma sessão usa o fluxo
+de cancelamento e preservação dos dados parciais. Na desinstalação interativa, o usuário escolhe
+preservar ou remover dados locais. A limpeza trabalha com nomes fixos de banco e preferências,
+valida os diretórios e preserva arquivos desconhecidos. A desinstalação silenciosa preserva dados.
+
+Para o ensaio em perfil sem instalação ou atalho anterior:
+
+```powershell
+.\scripts\dev.ps1 Build -Configuration Release
+.\scripts\test-installer.ps1 -InstallerPath '.artifacts/installer/<pasta>/GCMMonitor-Setup.exe'
+```
+
+O teste usa uma pasta isolada no workspace, registra a instalação por usuário, executa o motor e
+remove a instalação de ensaio. Veja [resultados e pendências](../../docs/testes/V1.0-PREVIEW.3.md).

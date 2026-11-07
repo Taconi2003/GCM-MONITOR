@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.0-preview.3 — 07/11/2026
+
+- Instalador Windows x64 por usuário com runtime .NET 10 incluído.
+- Proteção de instalação em uso e desinstalação com opção de preservar dados.
+- Ensaio isolado de instalação, execução do motor e remoção.
+
 ## 1.0.0-preview.2 — 07/11/2026
 
 - Exportação PDF em Resultados e Histórico, com identificação de sessões parciais e dados sintéticos.

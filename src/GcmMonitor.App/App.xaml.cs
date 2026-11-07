@@ -13,6 +13,7 @@ public partial class App : Application
 {
     private ServiceProvider? services;
     private Mutex? instanceMutex;
+    private Mutex? installationUse;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -27,6 +28,7 @@ public partial class App : Application
             MessageBox.Show("O GCM Monitor já está aberto nesta sessão do Windows.", "GCM Monitor");
             Shutdown(); return;
         }
+        installationUse = InstallationUse.OpenMarker();
         var root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "GCM Monitor");
         var data = Path.Combine(root, "Data", "gcm-monitor.db");
         var collection = new ServiceCollection();
@@ -49,6 +51,7 @@ public partial class App : Application
     {
         // Encerramento assíncrono dos processos acontece em MainWindow antes de fechar a UI.
         if (services is not null) services.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        installationUse?.Dispose();
         instanceMutex?.Dispose(); base.OnExit(e);
     }
 }

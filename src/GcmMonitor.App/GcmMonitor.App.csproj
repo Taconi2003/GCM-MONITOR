@@ -13,9 +13,9 @@
     <ProjectReference Include="../GcmMonitor.Engine/GcmMonitor.Engine.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
-  <Target Name="CopyDemoEngine" AfterTargets="Build">
+  <Target Name="CopyDevelopmentEngine" AfterTargets="Build" Condition="'$(SelfContained)' != 'true'">
     <ItemGroup>
-      <EngineFiles Include="../GcmMonitor.Engine/bin/$(Configuration)/net10.0/**/*" Exclude="../GcmMonitor.Engine/bin/$(Configuration)/net10.0/**/*.pdb" />
+      <EngineFiles Include="../GcmMonitor.Engine/bin/$(Configuration)/net10.0/**/*" Exclude="../GcmMonitor.Engine/bin/$(Configuration)/net10.0/**/*.pdb;../GcmMonitor.Engine/bin/$(Configuration)/net10.0/win-x64/**/*" />
     </ItemGroup>
     <Copy SourceFiles="@(EngineFiles)" DestinationFiles="@(EngineFiles-&gt;'$(OutDir)engine/%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>

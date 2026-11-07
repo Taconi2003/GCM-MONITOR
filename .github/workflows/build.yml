@@ -29,6 +29,9 @@ jobs:
       - name: Testar contratos e coleta passiva
         shell: pwsh
         run: ./scripts/dev.ps1 Test -Configuration Release
+      - name: Verificar publicação self-contained x64
+        shell: pwsh
+        run: ./scripts/package.ps1 -PublishOnly
       - name: Guardar evidências sanitizadas
         if: always()
         uses: actions/upload-artifact@v4

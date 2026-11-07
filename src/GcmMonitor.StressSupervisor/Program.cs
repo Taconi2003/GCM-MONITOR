@@ -25,7 +25,7 @@ if (args.Length != 9 || args[0] != "--safety-probe" || args[1] != "--pipe" || ar
     return 3;
 }
 
-using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(35));
 using var pipe = new NamedPipeClientStream(".", args[2], PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 OwnedProcessJob? worker = null;
 WindowsSafetyObservation? environment = null;
@@ -43,7 +43,8 @@ try
     SafetyProbeStart start;
     using (var handshake = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token))
     {
-        handshake.CancelAfter(TimeSpan.FromSeconds(3));
+        // Orçamento de inicialização antes de criar o filho. O heartbeat começa após Resume.
+        handshake.CancelAfter(TimeSpan.FromSeconds(8));
         start = await channel.ReadAsync<SafetyProbeStart>(handshake.Token);
     }
     SafetyProbeProtocol.Validate(start.Version, start.SessionId, sessionId, start.Nonce, start.Nonce);

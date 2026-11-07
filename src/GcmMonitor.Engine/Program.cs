@@ -14,6 +14,7 @@ if (args.Length != 6 || args[0] != "--pipe" || args[2] != "--session" || args[4]
     return 2;
 }
 
+using var installationUse = InstallationUse.OpenMarker();
 var repository = new SqliteSessionRepository(args[5]);
 DiagnosticSession? session = null;
 using var lifetime = new CancellationTokenSource(TimeSpan.FromHours(4.1));

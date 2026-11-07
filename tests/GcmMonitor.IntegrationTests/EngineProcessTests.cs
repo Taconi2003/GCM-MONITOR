@@ -87,5 +87,48 @@ public sealed class EngineProcessTests : IDisposable
         try { await process.WaitForExitAsync(timeout.Token); Assert.Equal(3, process.ExitCode); }
         finally { if (!process.HasExited) { process.Kill(true); await process.WaitForExitAsync(); } }
     }
+
+    [InstalledEngineFact]
+    public async Task InstalledEngineUsesBundledRuntimeAndReopensPassiveSession()
+    {
+        string path = Environment.GetEnvironmentVariable("GCM_VALIDATE_INSTALLED_ENGINE")!;
+        Assert.True(File.Exists(Path.Combine(Path.GetDirectoryName(path)!, "coreclr.dll")));
+        string[] variables = ["DOTNET_ROOT", "DOTNET_ROOT_X64", "DOTNET_HOST_PATH", "PATH"];
+        var previous = variables.ToDictionary(x => x, Environment.GetEnvironmentVariable);
+        try
+        {
+            foreach (string variable in variables)
+                Environment.SetEnvironmentVariable(variable, variable == "PATH" ? Environment.SystemDirectory : null);
+            await using var client = new SessionEngineClient(path, Database);
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            DiagnosticSession? last = null;
+            bool ramObserved = false;
+            await foreach (var snapshot in client.RunAsync(new() { Modules = [ModuleId.Memory], MonitoringMinutes = 5 }, timeout.Token))
+            {
+                last = snapshot;
+                if (ramObserved || !snapshot.Measurements.Any(x => x.Metric == "RAM" && x.Quality == DataQuality.Valid)) continue;
+                ramObserved = true;
+                Assert.True(Mutex.TryOpenExisting(InstallationUse.MutexName, out var marker));
+                marker.Dispose();
+                await client.CancelAsync(timeout.Token);
+            }
+            Assert.True(ramObserved); Assert.NotNull(last); Assert.Equal(SessionState.Cancelled, last.State);
+            Assert.Equal(ProductVersion.Value, last.AppVersion);
+            Assert.False(last.Stress!.LoadExecuted);
+            var saved = await new SqliteSessionRepository(Database).GetAsync(last.Id);
+            Assert.Equal(SessionState.Cancelled, saved!.State);
+            Assert.Contains(saved.Measurements, x => x.Metric == "RAM" && x.Quality == DataQuality.Valid);
+        }
+        finally { foreach (var variable in previous) Environment.SetEnvironmentVariable(variable.Key, variable.Value); }
+    }
     public void Dispose() { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+}
+
+public sealed class InstalledEngineFactAttribute : FactAttribute
+{
+    public InstalledEngineFactAttribute()
+    {
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GCM_VALIDATE_INSTALLED_ENGINE")))
+            Skip = "Verificação separada do motor instalado em uma pasta isolada.";
+    }
 }

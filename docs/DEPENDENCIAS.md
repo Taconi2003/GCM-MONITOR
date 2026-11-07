@@ -64,3 +64,7 @@ processo. O auxiliar e o driver ainda não integram a distribuição Inno Setup.
 A prévia 2 fixa **PDFsharp-MigraDoc-WPF 6.2.4** e **PDFsharp-WPF 6.2.4**, ambos com licença MIT
 declarada. A resolução .NET 10 inclui Microsoft.Extensions.Logging.Abstractions 8.0.3. Os hashes
 estão nos lockfiles. Versões posteriores requerem revisão de licença. [Fornecedor](https://docs.pdfsharp.net/General/History.html).
+
+A prévia 3 usa runtime **.NET 10.0.14 win-x64** na publicação self-contained e **Inno Setup 7.1.1**
+como ferramenta externa de compilação. O instalador oficial do compilador foi conferido com
+Authenticode e SHA-256. O compilador fica no perfil de desenvolvimento. [Origem oficial](https://github.com/jrsoftware/issrc/releases/tag/is-7_1_1).

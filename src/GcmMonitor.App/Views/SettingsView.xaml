@@ -63,7 +63,7 @@
           <TextBlock Text="Sobre o GCM Monitor" Style="{StaticResource SectionTitle}" />
           <TextBlock Text="{Binding WindowTitle}" FontWeight="SemiBold" />
           <TextBlock Text="C# · .NET 10 · WPF/XAML · MVVM · SQLite · Windows x64" Style="{StaticResource Muted}" Margin="0,8,0,0" />
-          <TextBlock Text="Execução de desenvolvimento. Distribuição instalada por usuário com Inno Setup prevista para v1.0; não há edição portátil." Style="{StaticResource Muted}" Margin="0,8,0,0" />
+          <TextBlock Text="Prévia de desenvolvimento para Windows x64." Style="{StaticResource Muted}" Margin="0,8,0,0" />
           <TextBlock Text="Localização dos binários" Foreground="{StaticResource CyanBrush}" Margin="0,14,0,6" />
           <TextBlock Text="{Binding InstallationPath}" Style="{StaticResource Muted}" FontSize="11" />
           <TextBlock Text="Sensores térmicos e matriz P0 de estresse não validados em hardware real" Foreground="#FFC76A" Margin="0,14,0,0" />
