@@ -20,6 +20,12 @@ jobs:
       - name: Compilar Release
         shell: pwsh
         run: ./scripts/dev.ps1 Build -Configuration Release
+      - name: Compilar auxiliar passivo revisado (sem instalar driver)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path '.tools/sensors/lhm-0.9.6' -Force | Out-Null
+          Invoke-WebRequest -Uri 'https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/releases/download/v0.9.6/LibreHardwareMonitor.NET.10.zip' -OutFile '.tools/sensors/lhm-0.9.6/LibreHardwareMonitor.NET.10.zip'
+          ./scripts/thermal-probe.ps1 -BuildOnly
       - name: Testar contratos e coleta passiva
         shell: pwsh
         run: ./scripts/dev.ps1 Test -Configuration Release

@@ -5,6 +5,8 @@
     <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../src/GcmMonitor.Core/GcmMonitor.Core.csproj" />
+    <ProjectReference Include="../../src/GcmMonitor.Execution/GcmMonitor.Execution.csproj" />
     <Reference Include="LibreHardwareMonitorLib">
       <HintPath>$(SensorLibraryDirectory)/LibreHardwareMonitorLib.dll</HintPath>
     </Reference>

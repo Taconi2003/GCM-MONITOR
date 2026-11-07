@@ -6,8 +6,9 @@ using GcmMonitor.Core;
 namespace GcmMonitor.Collector;
 
 [SupportedOSPlatform("windows")]
-public sealed class WindowsPassiveSource : IPassiveCollectionSource
+public sealed class WindowsPassiveSource(ICpuThermalFeed? thermalFeed = null) : IPassiveCollectionSource
 {
+    private readonly CpuThermalCollection? thermal = thermalFeed is null ? null : new(thermalFeed);
     public const string DiskReadCounter = @"\PhysicalDisk(*)\Disk Read Bytes/sec";
     public const string DiskWriteCounter = @"\PhysicalDisk(*)\Disk Write Bytes/sec";
     private CpuTimes? previousCpu;
@@ -21,7 +22,7 @@ public sealed class WindowsPassiveSource : IPassiveCollectionSource
     public Task<ComputerInventory> ReadInventoryAsync(CancellationToken cancellationToken) => new WindowsInventoryProvider().ReadAsync(cancellationToken);
 
     public Task<CollectionBatch> SampleAsync(DiagnosticOptions options, DateTimeOffset timestamp, bool includeProcesses,
-        bool resetBaselines, CancellationToken cancellationToken) => Task.Run(() =>
+        bool resetBaselines, CancellationToken cancellationToken) => Task.Run(async () =>
     {
         var measurements = new List<Measurement>(); var issues = new List<CollectionIssue>();
         void Reading(ModuleId module, string metric, string component, double? value, string unit, string source, string? reason = null,
@@ -129,6 +130,20 @@ public sealed class WindowsPassiveSource : IPassiveCollectionSource
         var extra = advanced.Sample(options, timestamp, cancellationToken);
         if (options.Modules.Contains(ModuleId.Sensors))
         {
+            if (thermal is not null)
+            {
+                var direct = await thermal.SampleAsync(timestamp, cancellationToken);
+                extra = extra with
+                {
+                    Measurements = [.. extra.Measurements, .. direct.Measurements],
+                    Records = [.. extra.Records, .. direct.Records],
+                    Assessments = [.. extra.Assessments, .. direct.Assessments.Select(a => a with
+                    {
+                        State = a.State == ModuleState.Unavailable && extra.Measurements.Any(m => m.Quality == DataQuality.Valid)
+                            ? ModuleState.Partial : a.State
+                    })]
+                };
+            }
             const string path = @"\GPU Engine(*)\Utilization Percentage";
             var current = new HashSet<string>();
             try

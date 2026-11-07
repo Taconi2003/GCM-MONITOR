@@ -6,6 +6,7 @@ using LibreHardwareMonitor.Hardware;
 using Microsoft.Win32;
 
 // Prova passiva separada da solução/produto. Nenhum caminho inicia carga ou ajusta parâmetros.
+if (args.Length > 0 && args[0] == "--bridge") return await CpuSensorBridge.RunAsync(args);
 if (args.Length != 2 || args[0] != "--output") return 2;
 var output = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(output);

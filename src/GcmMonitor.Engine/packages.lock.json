@@ -52,6 +52,12 @@
       "gcmmonitor.core": {
         "type": "Project"
       },
+      "gcmmonitor.execution": {
+        "type": "Project",
+        "dependencies": {
+          "GcmMonitor.Core": "[0.4.0, )"
+        }
+      },
       "gcmmonitor.persistence": {
         "type": "Project",
         "dependencies": {

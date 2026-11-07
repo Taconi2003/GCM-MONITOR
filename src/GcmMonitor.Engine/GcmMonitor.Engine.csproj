@@ -6,5 +6,6 @@
     <ProjectReference Include="../GcmMonitor.Core/GcmMonitor.Core.csproj" />
     <ProjectReference Include="../GcmMonitor.Collector/GcmMonitor.Collector.csproj" />
     <ProjectReference Include="../GcmMonitor.Persistence/GcmMonitor.Persistence.csproj" />
+    <ProjectReference Include="../GcmMonitor.Execution/GcmMonitor.Execution.csproj" />
   </ItemGroup>
 </Project>

@@ -3,6 +3,7 @@ using GcmMonitor.Collector;
 using GcmMonitor.Core;
 using GcmMonitor.Persistence;
 using GcmMonitor.Engine;
+using GcmMonitor.Execution;
 
 // Motor local: modo passivo real por padrão. Demonstração reservada aos testes, explicitamente identificada.
 if (!OperatingSystem.IsWindows()) return 2;
@@ -29,6 +30,8 @@ try
     if (start.Options is null) throw new InvalidDataException("Opções ausentes.");
     if (!Enum.IsDefined(start.Mode)) throw new InvalidDataException("Modo de coleta inválido.");
     start.Options.Validate();
+    if (start.UseCpuThermalBridge && (start.Mode != CollectionMode.Passive || !start.Options.Modules.Contains(ModuleId.Sensors)))
+        throw new InvalidDataException("Auxiliar térmico aceito somente para coleta passiva de sensores selecionados.");
     await repository.InitializeAsync(lifetime.Token);
     long sequence = 0;
     async Task SendAsync()
@@ -52,7 +55,10 @@ try
 
     if (start.Mode == CollectionMode.Passive)
     {
-        await using var source = new WindowsPassiveSource();
+        string dotnetPath = Path.GetFullPath(Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", "..", "dotnet.exe"));
+        await using var thermal = start.UseCpuThermalBridge ? new CpuThermalBridge(sessionId,
+            Path.Combine(AppContext.BaseDirectory, "thermal", "GcmMonitor.SensorProbe.dll"), dotnetPath) : null;
+        await using var source = new WindowsPassiveSource(thermal);
         using var runLifetime = CancellationTokenSource.CreateLinkedTokenSource(cancel.Token, lifetime.Token);
         session = await new PassiveSessionRunner(repository, source).RunAsync(sessionId, start.Options, async snapshot =>
         {

@@ -1,12 +1,15 @@
-param([switch]$Elevated)
+param([switch]$Elevated, [switch]$BuildOnly, [switch]$PrepareBridge)
 $ErrorActionPreference = 'Stop'
+if (([int]$Elevated.IsPresent + [int]$BuildOnly.IsPresent + [int]$PrepareBridge.IsPresent) -gt 1) {
+    throw 'Escolha somente um modo: Elevated, BuildOnly ou PrepareBridge.'
+}
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $projectRoot
 try {
 $archive = Join-Path $projectRoot '.tools/sensors/lhm-0.9.6/LibreHardwareMonitor.NET.10.zip'
 $expectedArchive = '29739C4959B01B348FDDAD87664066634BCFD4F46E9BF41E4E916C318BCFDB99'
 $expectedLibrary = '984B539048880D37257A5EDEAB36378152C54943069F400D68A34565292D35DA'
-if ($Elevated) {
+if ($Elevated -or $PrepareBridge) {
     $installed = Get-ItemProperty -LiteralPath 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO'
     $service = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Services\PawnIO'
     $driverPath = $service.ImagePath.Replace('\SystemRoot', $env:SystemRoot)
@@ -48,6 +51,22 @@ if ($LASTEXITCODE -ne 0) { throw 'A compilação da prova passiva falhou.' }
 $probe = Join-Path $projectRoot 'tools/GcmMonitor.SensorProbe/bin/Release/net10.0-windows/GcmMonitor.SensorProbe.dll'
 if ((Get-FileHash -LiteralPath (Join-Path (Split-Path -Parent $probe) 'LibreHardwareMonitorLib.dll') -Algorithm SHA256).Hash -ne $expectedLibrary) {
     throw 'Biblioteca de saída divergente; execução cancelada.'
+}
+if ($BuildOnly) { return }
+if ($PrepareBridge) {
+    $destination = Join-Path $projectRoot 'src/GcmMonitor.App/bin/Release/net10.0-windows/engine/thermal'
+    if (!(Test-Path -LiteralPath (Join-Path (Split-Path -Parent $destination) 'GcmMonitor.Engine.exe'))) {
+        throw 'Compile a solução Release antes de preparar o auxiliar.'
+    }
+    [System.IO.Directory]::CreateDirectory($destination) | Out-Null
+    $files = @((Get-ChildItem -LiteralPath $review -File -Filter '*.dll').Name) + @(
+        'GcmMonitor.SensorProbe.dll','GcmMonitor.SensorProbe.deps.json','GcmMonitor.SensorProbe.runtimeconfig.json',
+        'GcmMonitor.Core.dll','GcmMonitor.Execution.dll')
+    foreach ($file in ($files | Select-Object -Unique)) {
+        Copy-Item -LiteralPath (Join-Path (Split-Path -Parent $probe) $file) -Destination (Join-Path $destination $file) -Force
+    }
+    Write-Output 'Auxiliar passivo preparado. Ao iniciar uma sessão com Sensores, o GCM oferecerá a leitura privilegiada opcional. Nenhuma carga será executada.'
+    return
 }
 $output = Join-Path $projectRoot ('.artifacts/thermal-validation/' + $runId)
 [System.IO.Directory]::CreateDirectory($output) | Out-Null

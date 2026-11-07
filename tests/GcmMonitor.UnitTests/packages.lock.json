@@ -148,7 +148,14 @@
         "dependencies": {
           "GcmMonitor.Collector": "[0.4.0, )",
           "GcmMonitor.Core": "[0.4.0, )",
+          "GcmMonitor.Execution": "[0.4.0, )",
           "GcmMonitor.Persistence": "[0.4.0, )"
+        }
+      },
+      "gcmmonitor.execution": {
+        "type": "Project",
+        "dependencies": {
+          "GcmMonitor.Core": "[0.4.0, )"
         }
       },
       "gcmmonitor.persistence": {

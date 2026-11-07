@@ -6,7 +6,8 @@ using GcmMonitor.Core;
 namespace GcmMonitor.App;
 
 /// <summary>Canal local restrito ao usuário; um processo próprio por sessão passiva.</summary>
-public sealed class SessionEngineClient(string enginePath, string databasePath, CollectionMode mode = CollectionMode.Passive) : IDiagnosticEngineClient
+public sealed class SessionEngineClient(string enginePath, string databasePath, CollectionMode mode = CollectionMode.Passive,
+    Func<bool>? authorizeCpuTemperature = null) : IDiagnosticEngineClient
 {
     private Process? process;
     private EngineChannel? channel;
@@ -19,6 +20,9 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
     {
         options.Validate();
         if (running) throw new InvalidOperationException("Já existe uma sessão ativa.");
+        bool thermalRequested = mode == CollectionMode.Passive && options.Modules.Contains(ModuleId.Sensors) &&
+            File.Exists(Path.Combine(Path.GetDirectoryName(enginePath)!, "thermal", "GcmMonitor.SensorProbe.dll")) &&
+            authorizeCpuTemperature?.Invoke() == true;
         running = true; cancelRequested = false; cancelSent = 0; sessionId = Guid.NewGuid();
         var pipeName = "gcm-session-" + Guid.NewGuid().ToString("N");
         await using var server = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte,
@@ -37,7 +41,7 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
             if (!GetNamedPipeClientProcessId(server.SafePipeHandle, out uint clientPid) || clientPid != expectedPid)
                 throw new InvalidDataException("A identidade do cliente do canal não corresponde ao motor iniciado.");
             channel = new EngineChannel(server);
-            await channel.WriteAsync(new StartSessionMessage(EngineProtocol.Version, sessionId, options, mode), cancellationToken);
+            await channel.WriteAsync(new StartSessionMessage(EngineProtocol.Version, sessionId, options, mode, thermalRequested), cancellationToken);
             if (cancelRequested) await CancelAsync(cancellationToken);
             long lastSequence = 0;
             while (true)

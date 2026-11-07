@@ -30,7 +30,11 @@ public partial class App : Application
         var collection = new ServiceCollection();
         collection.AddSingleton<ISessionRepository>(new SqliteSessionRepository(data));
         collection.AddSingleton<IInventoryProvider, WindowsInventoryProvider>();
-        collection.AddSingleton<IDiagnosticEngineClient>(new SessionEngineClient(Path.Combine(AppContext.BaseDirectory, "engine", "GcmMonitor.Engine.exe"), data));
+        collection.AddSingleton<IDiagnosticEngineClient>(sp => new SessionEngineClient(Path.Combine(AppContext.BaseDirectory, "engine", "GcmMonitor.Engine.exe"), data,
+            authorizeCpuTemperature: () => sp.GetRequiredService<IUserDialogs>().Confirm("Temperaturas da CPU",
+                "Permitir uma leitura passiva dos sensores da CPU por um auxiliar temporário com permissão de administrador?\n\n" +
+                "A confirmação do Windows será exibida. Nenhum estresse será executado e nenhuma configuração será alterada.\n\n" +
+                "Escolhendo Não, o diagnóstico continua com as fontes já disponíveis.")));
         collection.AddSingleton<IUserDialogs, UserDialogs>();
         collection.AddSingleton<ShellViewModel>(); collection.AddSingleton<MainWindow>();
         services = collection.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
