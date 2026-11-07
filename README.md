@@ -1,7 +1,7 @@
 # GCM Monitor — Gimenes Coleta e Monitoramento
 
-**v1.0.0-preview.5 — prévia de desenvolvimento para Windows x64.** Coleta passiva, histórico
-paginado, preferências locais, relatórios PDF e instalador com ensaio de atualização.
+**v1.0.0-preview.6 — prévia de desenvolvimento para Windows x64.** Coleta passiva, revisão
+visual das cinco telas, histórico paginado, relatórios PDF e simulação térmica de laboratório.
 Fonte obrigatória: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md), seção 14.
 A ativação do estresse depende das provas térmicas e dos P0 em laboratório.
 
@@ -77,6 +77,10 @@ Restore usa versões travadas. Caches ficam em `.tools/`; motor/dependências s�
 `engine/` ao lado da UI. Abrir o executável diretamente exige .NET Desktop 10 ou `DOTNET_ROOT`
 configurado. Não copie somente o `.exe`: o build de desenvolvimento **não é uma edição portátil**.
 O pacote de prévia usa instalação self-contained por usuário com Inno Setup.
+
+O ensaio térmico demonstrativo é reproduzido no pacote separado de laboratório. O roteiro,
+a comparação passiva deste notebook e a revisão das telas estão no
+[relatório da prévia 6](docs/testes/V1.0-PREVIEW.6.md).
 
 ## Uso e estrutura
 
