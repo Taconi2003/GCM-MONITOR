@@ -49,9 +49,12 @@ entrega. O diálogo e as fases de uma execução real, sensores térmicos confi�
 eventos físicos e matriz P0 sob carga ainda precisam ser integrados/validados em laboratório. A UI não
 oferece o modo de prova. Os ensaios ociosos não aprovam os CT integrais de estresse nem liberam uso em clientes.
 
-A continuação de laboratório confirmou acesso passivo às temperaturas com LHM 0.9.6/PawnIO 2.2.0 e
-elevação específica. O driver foi instalado neste notebook com autorização; o aplicativo não o instala
-nem usa essa leitura direta ainda. [Prova, ferramenta, resultados e remoção](docs/testes/VALIDACAO_TERMICA_V0.4.md).
+A continuação de laboratório integra temperaturas diretas da CPU ao monitoramento, resultados e histórico
+com LHM 0.9.6/PawnIO 2.2.0. A interface permanece sem elevação; somente o auxiliar temporário de leitura
+usa a confirmação do Windows, se autorizado para a sessão. O build padrão continua funcionando sem ele.
+Veja [como preparar o auxiliar](docs/arquitetura/CANAL_TERMICO_V0.4.md) e a
+[prova de acesso, versões e remoção](docs/testes/VALIDACAO_TERMICA_V0.4.md). O
+[relatório da integração](docs/testes/RELATORIO_CANAL_TERMICO_V0.4.md) contém o ensaio local de cinco minutos.
 
 ## Compilar, testar e abrir
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## Continuação 0.4.0 — canal térmico passivo, 06/11/2026
+
+- Leitura direta opcional de núcleos Intel e pacote da CPU, com auxiliar temporário e confirmação do Windows.
+- Canal autenticado e limitado, com mesma conta, isolamento do token elevado, heartbeat e recusa de leituras antigas.
+- Temperaturas com fonte e horário nos gráficos, resultados e histórico; falhas não interrompem módulos independentes.
+- Protocolo do motor 5; banco e cinco telas preservados. Sem instalação automática de driver ou liberação de estresse.
+
 ## Continuação 0.4.0 — validação térmica, 06/11/2026
 
 - Prova passiva local com LHM 0.9.6/PawnIO 2.2.0: temperaturas acessíveis com elevação específica.

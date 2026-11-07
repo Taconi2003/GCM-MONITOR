@@ -25,7 +25,7 @@ Evidências abaixo são locais ou parciais. Os 77 critérios integrais de libera
 | CT-019 | Coleta dos processos | P1 | Pendente | PID + início, contadores nativos e cobertura parcial por permissão |
 | CT-020 | Top 10 CPU | P1 | Pendente | Acumulador, reutilização de PID e ranking encerrado persistido testados |
 | CT-021 | Top 10 RAM | P1 | Pendente | Working set, média ponderada, pico e cobertura testados |
-| CT-022 | Temperatura CPU | P1 | Pendente | Contrato WMI/sensor simulado e ausência local tratados; leitura térmica CPU não validada em hardware real |
+| CT-022 | Temperatura CPU | P1 | Pendente | 572 leituras diretas em notebook, com fonte, horário, unidade e reabertura de gráficos; comparação com referência pendente |
 | CT-023 | GPU e temperatura | P1 | Pendente | Identificação GPU real e PDH por engine local; agrupamento testado; temperatura e correlação LUID-modelo não validadas em hardware |
 | CT-024 | Ventoinhas | P1 | Pendente | Fixture RPM, perda de sensor e zero ambíguo cobertos; RPM não validado em hardware real |
 | CT-025 | Discos físicos e volumes | P1 | Pendente | Mapeamento WMI físico/partição/volume conferido localmente; cenários complexos pendentes |
@@ -51,13 +51,13 @@ Evidências abaixo são locais ou parciais. Os 77 critérios integrais de libera
 | CT-045 | Encerrar estresse no tempo definido | P0 | Bloqueado | Prazo de auxiliar ocioso e saída confirmada testados; encerramento sob carga real não validado |
 | CT-046 | Cancelar sessão | P0 | Bloqueado | Cancelamento passivo e parada de auxiliar ocioso testados; carga/relatório parcial final pendentes |
 | CT-047 | `Parar estresse` | P0 | Bloqueado | Parada da prova ociosa preserva uma coleta passiva real independente; fluxo de estresse real não liberado |
-| CT-048 | Falha de sensor | P1 | Pendente | Falhas isoladas, perda de sensor/adaptador e invalidação de séries testadas; segurança térmica não validada |
+| CT-048 | Falha de sensor | P1 | Pendente | Fonte térmica ausente, leitura nula/repetida, atraso e canal inválido verificados; módulos independentes preservados; falha física pendente |
 | CT-049 | Perda térmica essencial em estresse | P0 | Bloqueado | Sinal simulado sensor-lost encerra auxiliar; sensor térmico físico/carga ainda não validados |
 | CT-050 | Encerramento inesperado da UI | P0 | Bloqueado | EOF/heartbeat e morte real do supervisor ocioso testados sem Kill da árvore; falha da UI sob carga pendente |
 | CT-051 | Falha de comunicação/supervisão | P0 | Bloqueado | Identidade, nonce, sequência, limites, replay, heartbeat e payload incompleto testados com auxiliar ocioso; carga real pendente |
 | CT-052 | Suspensão/retomada do Windows | P0 | Bloqueado | Sinal suspend da prova é terminal, sem reinício; suspensão física/evento OS/carga não validados |
 | CT-053 | Mudança de alimentação | P1 | Bloqueado | Leitura passiva herdada e sinal power-changed encerram prova; política física sob carga pendente |
-| CT-054 | Sem privilégio requerido | P1 | Pendente | Fontes recusadas/ausentes geram indisponibilidade; não solicita elevação nem altera permissões |
+| CT-054 | Sem privilégio requerido | P1 | Pendente | Auxiliar de leitura opcional e temporário, motor e controlador sem elevação; fonte ausente não impede módulos independentes |
 | CT-055 | Verificar efeitos colaterais | P0 | Pendente | Somente handles de filhos criados pelo GCM, Job anônimo, sem shell/driver/serviço; escopo completo de carga/instalação ainda pendente |
 | CT-056 | Privacidade da coleta | P0 | Pendente | Artefatos sanitizados sem nonce/PID/dados brutos; privacidade das fontes passivas preservada |
 | CT-057 | Persistência incremental | P0 | Pendente | Avaliação de bloqueio persistida por sessão; amostras/registros e ensaio passivo preservados |

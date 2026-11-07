@@ -1,0 +1,23 @@
+{
+  "ImplementationCommit": "ad56ce30f644f3973c3e74832eb3fc12a259d529",
+  "LocalDate": "2026-11-06",
+  "FastSuite": { "UnitPassed": 90, "WindowsIntegrationPassed": 48, "OptInSkipped": 2, "Failed": 0 },
+  "SeparateThermalSession": {
+    "Result": "Passed",
+    "SessionSeconds": 300.2565358,
+    "SecondsIncludingReopen": 302.2261456,
+    "ControllerElevated": false,
+    "Messages": 336,
+    "MaximumUiSamples": 512,
+    "PersistedDirectReadings": 572,
+    "PersistedDirectNonNullReadings": 572,
+    "RestoredDirectReadingsInWindow": 99,
+    "DirectSensorSeries": 11,
+    "RestoredThermalCharts": 11,
+    "StressExecuted": false,
+    "SafetyQualified": false
+  },
+  "CiRun": { "Id": 42331205010, "Result": "success" },
+  "IndependentSensorComparison": "Pending",
+  "IdentifiersExcluded": true
+}

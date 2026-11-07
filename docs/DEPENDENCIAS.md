@@ -55,3 +55,8 @@ expressa; instalador/driver com assinatura válida. Não é instalado, empacotad
 GCM. LHM declara MPL-2.0; PawnIO GPL-2.0-or-later com exceção própria, além das licenças dos módulos
 e dependências. Revisão de redistribuição pendente. Hashes, origem, limites e remoção em
 [validação térmica](testes/VALIDACAO_TERMICA_V0.4.md).
+
+O [canal térmico passivo](arquitetura/CANAL_TERMICO_V0.4.md) usa o mesmo arquivo revisado para o auxiliar
+local, sem novas dependências NuGet na solução. Os lockfiles mudaram apenas por referências internas.
+No CI, o auxiliar é compilado com o arquivo oficial verificado; não se instala driver nem se eleva o
+processo. O auxiliar e o driver ainda não integram a distribuição Inno Setup.
