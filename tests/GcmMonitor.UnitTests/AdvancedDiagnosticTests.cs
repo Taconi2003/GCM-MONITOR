@@ -217,6 +217,17 @@ public sealed class AdvancedDiagnosticTests
     }
 
     [Fact]
+    public async Task UnavailableSmartAndFirstPdhBaselineDoNotDisableContinuousDiskActivity()
+    {
+        var source = new DiskBaselineSource();
+        var session = await new PassiveSessionRunner(new MemoryRepository(), source, new AdvancingClock()).RunAsync(Guid.NewGuid(),
+            new() { Modules = [ModuleId.Storage], DiskIds = ["disk:0"], MonitoringMinutes = 5 }, _ => Task.CompletedTask, default);
+        Assert.Equal(150, source.Calls); Assert.Equal(TimeSpan.FromMinutes(5), session.EffectiveDuration);
+        Assert.Equal(149, session.Statistics.Single().ValidSamples);
+        Assert.Equal(ModuleState.Partial, session.Modules.Single().State);
+    }
+
+    [Fact]
     public void DiagnosticRecordRejectsOversizedPayloads()
     {
         var record = new DiagnosticRecord(ModuleId.Devices, "fixture", "fixture", new string('x', 2049), Time, "fixture", DataQuality.Valid);
@@ -265,6 +276,25 @@ public sealed class AdvancedDiagnosticTests
             Calls++; var module = options.Modules.Single();
             return Task.FromResult(new CollectionBatch([], [], [])
             { Records = [new(module, "fixture", "fixture", "fixture", timestamp, "fixture", DataQuality.Valid)], Assessments = [new(module, ModuleState.Completed, "fixture", "Consulta concluída.")] });
+        }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+    private sealed class AdvancingClock : ISessionClock
+    {
+        public DateTimeOffset UtcNow => Time + Elapsed;
+        public TimeSpan Elapsed { get; private set; }
+        public Task DelayAsync(TimeSpan delay, CancellationToken ct) { ct.ThrowIfCancellationRequested(); Elapsed += delay; return Task.CompletedTask; }
+    }
+    private sealed class DiskBaselineSource : IPassiveCollectionSource
+    {
+        public int Calls { get; private set; }
+        public Task<ComputerInventory> ReadInventoryAsync(CancellationToken ct) => new FixtureInventory().ReadAsync(ct);
+        public Task<CollectionBatch> SampleAsync(DiagnosticOptions options, DateTimeOffset timestamp, bool includeProcesses, bool resetBaselines, CancellationToken ct)
+        {
+            Calls++;
+            return Task.FromResult(new CollectionBatch([new(ModuleId.Storage, "Leitura do disco", "disk:0", Calls == 1 ? null : 1,
+                "MB/s", timestamp, "fixture / PDH", Calls == 1 ? DataQuality.Insufficient : DataQuality.Valid, false)], [], [])
+            { Assessments = Calls == 1 ? [new(ModuleId.Storage, ModuleState.Unavailable, "fixture / SMART", "Sem SMART; PDH aguarda segunda amostra.")] : [] });
         }
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }

@@ -114,7 +114,7 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
             foreach (var module in options.Modules) await Collect(module);
             // Ausências verificadas na primeira consulta não impõem espera artificial quando não resta fonte contínua.
             var continuous = session.Modules.Where(x => ModuleCatalog.All.Single(m => m.Id == x.Id).Continuous &&
-                (x.State != ModuleState.Unavailable || x.ReadingCount > 0)).Select(x => x.Id).ToArray();
+                (x.State != ModuleState.Unavailable || x.ReadingCount > 0 || x.Id == ModuleId.Storage && inventory.Disks.Length > 0)).Select(x => x.Id).ToArray();
             TimeSpan nextFast = clock.Elapsed + TimeSpan.FromSeconds(2), nextSlow = clock.Elapsed + TimeSpan.FromSeconds(5);
             bool hasFast = continuous.Any(x => x is ModuleId.Cpu or ModuleId.Memory or ModuleId.Storage);
             bool hasSlow = continuous.Any(x => x is not (ModuleId.Cpu or ModuleId.Memory or ModuleId.Storage));

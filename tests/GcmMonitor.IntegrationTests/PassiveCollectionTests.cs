@@ -163,6 +163,7 @@ public sealed class PassiveCollectionTests : IDisposable
         }
         Assert.Equal(SessionState.Completed, last!.State); Assert.InRange(watch.Elapsed.TotalSeconds, 300, 345);
         Assert.True(maxSamples <= 512); Assert.NotEmpty(last.Processes); Assert.False(last.IsDemo);
+        if (inventory.Disks.Length > 0) Assert.Contains(last.Statistics, x => x.Module == ModuleId.Storage && x.Metric == "Leitura do disco" && x.ValidSamples > 1);
         var repo = new SqliteSessionRepository(Database); var restored = await repo.GetAsync(last.Id);
         Assert.Equal(SessionState.Completed, restored!.State); Assert.NotEmpty(restored.Records);
         Assert.Equal(11, restored.Modules.Length); Assert.True(maxBytes < EngineProtocol.MaxMessageLength);
