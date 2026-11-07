@@ -58,6 +58,7 @@ public sealed class SessionEngineClient(string enginePath, string databasePath, 
                 if (message.Sequence != lastSequence + 1 || message.Session is null || message.Session.Id != sessionId || message.Session.IsDemo != (mode == CollectionMode.Demonstration) ||
                     message.Session.Options is null || message.Session.Options.StressEnabled || !Enum.IsDefined(message.Session.State) ||
                     message.Session.ThermalRehearsal is not null && !rehearseThermal ||
+                    rehearseThermal && message.Session.AppVersion != ProductVersion.Value ||
                     message.Session.Stress is { } safety && (safety.Available || safety.LoadExecuted))
                     throw new InvalidDataException("Snapshot de sessão inválido.");
                 message.Session.Options.Validate();

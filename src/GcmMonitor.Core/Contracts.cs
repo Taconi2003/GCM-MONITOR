@@ -46,7 +46,7 @@ public interface IThermalRehearsalClient
 
 public static class EngineProtocol
 {
-    public const int Version = 6;
+    public const int Version = 5;
     public const int MaxMessageLength = 1024 * 1024;
     public static JsonSerializerOptions Json { get; } = new() { PropertyNameCaseInsensitive = false };
     public static void Validate(int version, Guid sessionId, Guid expectedId)
