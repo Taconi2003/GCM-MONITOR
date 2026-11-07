@@ -89,6 +89,25 @@ public sealed class AdvancedDiagnosticTests
     }
 
     [Fact]
+    public void ThermalHeadroomIsNotPlottedOrStoredAsAbsoluteTemperature()
+    {
+        var reader = new Reader((_, query) => query.Contains("FROM Hardware") ?
+            [Row(("Identifier", "/cpu/0"), ("Name", "Fixture CPU"), ("HardwareType", "Cpu"))] :
+            query.Contains("FROM Sensor") ?
+            [Row(("Identifier", "/cpu/0/temperature/0"), ("Parent", "/cpu/0"), ("Name", "CPU Package"), ("SensorType", "Temperature"), ("Value", 64)),
+             Row(("Identifier", "/cpu/0/temperature/1"), ("Parent", "/cpu/0"), ("Name", "P-Core #1 Distance to TjMax"), ("SensorType", "Temperature"), ("Value", 36))] : []);
+        var source = new WindowsAdvancedSource(reader, new Native(), new History());
+        var batch = source.Sample(Options(ModuleId.Sensors), Time, default);
+        Assert.Equal(64, Assert.Single(batch.Measurements).Value);
+        Assert.Contains(batch.Records, x => x.Key.StartsWith("headroom:") && x.Detail.Contains("não temperatura absoluta"));
+        reader.Failure = true;
+        var lost = source.Sample(Options(ModuleId.Sensors), Time.AddSeconds(5), default);
+        Assert.Null(Assert.Single(lost.Measurements, x => x.Metric == "Temperatura · CPU Package").Value);
+        Assert.All(lost.Measurements, x => Assert.Null(x.Value));
+        Assert.DoesNotContain(lost.Measurements, x => x.Metric.Contains("Distance"));
+    }
+
+    [Fact]
     public void SmartCounterRequiresAssociationAndTreatsUnexposedTemperatureAsUnavailable()
     {
         var reader = new Reader((_, query) => query.Contains("FROM MSFT_Disk") ? [Row(("Number", 0), ("__RELPATH", "MSFT_Disk.ObjectId=\"fixture\""))] :

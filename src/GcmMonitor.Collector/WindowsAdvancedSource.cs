@@ -233,6 +233,16 @@ public sealed class WindowsAdvancedSource(IWindowsDiagnosticReader? reader = nul
                                 string kind = Text(sensor, "SensorType"), type = Text(parent, "HardwareType");
                                 bool gpu = type.StartsWith("Gpu", StringComparison.Ordinal);
                                 if (kind is not ("Temperature" or "Fan") && !(gpu && kind == "Load")) continue;
+                                // LHM também publica margens térmicas como SensorType.Temperature.
+                                // Distance to TjMax é uma diferença, não a temperatura do componente.
+                                if (kind == "Temperature" && Text(sensor, "Name").Contains("Distance to TjMax", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    Record(module, "headroom:" + Clean(Identity(sensor, "Identifier"), 200),
+                                        "Margem até TjMax · " + Text(sensor, "Name"),
+                                        "Diferença até o limite do sensor, não temperatura absoluta. Excluída das séries de temperatura; não autoriza estresse.",
+                                        "WMI / LibreHardwareMonitor");
+                                    continue;
+                                }
                                 string metric = kind == "Temperature" ? "Temperatura · " + Text(sensor, "Name") : kind == "Fan" ? "Ventoinha · " + Text(sensor, "Name") : "GPU · " + Text(sensor, "Name");
                                 string unit = kind == "Temperature" ? "°C" : kind == "Fan" ? "RPM" : "%";
                                 string component = Clean(Text(parent, "Name") + " · " + Text(sensor, "Identifier"), 256);
@@ -250,7 +260,7 @@ public sealed class WindowsAdvancedSource(IWindowsDiagnosticReader? reader = nul
                             if (sensors.Count > 64) Record(module, "limit", "Sensores limitados", "Mais de 64 sensores expostos; coleta parcial.", "WMI / LibreHardwareMonitor", DataQuality.Unavailable);
                         }
                         catch (Exception ex) when (Unavailable(ex))
-                        { Record(module, "external", "Temperaturas/RPM do provedor indisponíveis", "Provedor LibreHardwareMonitor WMI não acessível. Nenhum driver instalado e nenhuma temperatura/RPM inventados. GPU por PDH é uma fonte independente.", "WMI / root/LibreHardwareMonitor", DataQuality.Unavailable); }
+                        { Record(module, "external", "Temperaturas/RPM do provedor indisponíveis", "Provedor LibreHardwareMonitor WMI não acessível. GCM não instala drivers nem inventa temperatura/RPM. GPU por PDH é uma fonte independente.", "WMI / root/LibreHardwareMonitor", DataQuality.Unavailable); }
                         try
                         {
                             var zones = Query(@"root\wmi", "SELECT InstanceName, CurrentTemperature FROM MSAcpi_ThermalZoneTemperature");
