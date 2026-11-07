@@ -135,15 +135,15 @@
       "gcmmonitor.app": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Persistence": "[0.2.0, )",
-          "GcmMonitor.Presentation": "[0.2.0, )",
+          "GcmMonitor.Persistence": "[0.3.0, )",
+          "GcmMonitor.Presentation": "[0.3.0, )",
           "Microsoft.Extensions.DependencyInjection": "[10.0.0, )"
         }
       },
       "gcmmonitor.collector": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[0.2.0, )",
+          "GcmMonitor.Core": "[0.3.0, )",
           "System.Management": "[10.0.0, )"
         }
       },
@@ -153,7 +153,7 @@
       "gcmmonitor.persistence": {
         "type": "Project",
         "dependencies": {
-          "GcmMonitor.Core": "[0.2.0, )",
+          "GcmMonitor.Core": "[0.3.0, )",
           "Microsoft.Data.Sqlite": "[10.0.0, )",
           "SQLitePCLRaw.bundle_e_sqlite3": "[3.0.5, )"
         }
@@ -162,8 +162,8 @@
         "type": "Project",
         "dependencies": {
           "CommunityToolkit.Mvvm": "[8.4.0, )",
-          "GcmMonitor.Collector": "[0.2.0, )",
-          "GcmMonitor.Core": "[0.2.0, )"
+          "GcmMonitor.Collector": "[0.3.0, )",
+          "GcmMonitor.Core": "[0.3.0, )"
         }
       },
       "CommunityToolkit.Mvvm": {

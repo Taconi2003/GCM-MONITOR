@@ -2,5 +2,6 @@
   <ItemGroup>
     <ProjectReference Include="../GcmMonitor.Core/GcmMonitor.Core.csproj" />
     <PackageReference Include="System.Management" />
+    <PackageReference Include="System.Diagnostics.EventLog" />
   </ItemGroup>
 </Project>

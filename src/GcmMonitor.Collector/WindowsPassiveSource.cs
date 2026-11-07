@@ -13,8 +13,11 @@ public sealed class WindowsPassiveSource : IPassiveCollectionSource
     private CpuTimes? previousCpu;
     private WindowsPerformanceQuery? diskQuery;
     private WindowsPerformanceQuery? memoryQuery;
+    private WindowsPerformanceQuery? gpuQuery;
+    private readonly HashSet<string> gpuComponents = [];
     private ProcessAccumulator? processAccumulator;
     private readonly Dictionary<int, ProcessObservation> knownProcesses = [];
+    private readonly WindowsAdvancedSource advanced = new();
     public Task<ComputerInventory> ReadInventoryAsync(CancellationToken cancellationToken) => new WindowsInventoryProvider().ReadAsync(cancellationToken);
 
     public Task<CollectionBatch> SampleAsync(DiagnosticOptions options, DateTimeOffset timestamp, bool includeProcesses,
@@ -123,8 +126,38 @@ public sealed class WindowsPassiveSource : IPassiveCollectionSource
             processes = processAccumulator.Add(observations, resetBaselines);
             if (restricted > 0) issues.Add(new(timestamp, ModuleId.Processes, $"{restricted} leituras de processos indisponíveis por encerramento ou restrição de acesso. Sem leitura de conteúdo dos processos."));
         }
-        return new CollectionBatch(measurements.ToArray(), processes, issues.ToArray());
+        var extra = advanced.Sample(options, timestamp, cancellationToken);
+        if (options.Modules.Contains(ModuleId.Sensors))
+        {
+            const string path = @"\GPU Engine(*)\Utilization Percentage";
+            var current = new HashSet<string>();
+            try
+            {
+                bool baseline = gpuQuery is null || resetBaselines;
+                gpuQuery ??= new(path);
+                foreach (var engine in GpuEngineUsage.Aggregate(gpuQuery.Sample()[path]))
+                {
+                    current.Add(engine.Component);
+                    Reading(ModuleId.Sensors, "GPU por engine", engine.Component, baseline ? null : engine.Percent, "%",
+                        "PDH / GPU Engine / soma por LUID+físico+engine (modelo não correlacionado)",
+                        "Contador sem intervalo válido ou agregado fora de 0–100%. Não soma engines diferentes.", baseline ? DataQuality.Insufficient : null);
+                }
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidDataException)
+            { gpuQuery?.Dispose(); gpuQuery = null; }
+            foreach (var component in gpuComponents.Where(x => !current.Contains(x)))
+                Reading(ModuleId.Sensors, "GPU por engine", component, null, "%", "PDH / GPU Engine", "Engine anteriormente observado indisponível; não substituído por zero.");
+            gpuComponents.Clear(); foreach (var component in current) gpuComponents.Add(component);
+            if (gpuQuery is not null) extra = extra with
+            {
+                Assessments = extra.Assessments.Select(x => x.Module == ModuleId.Sensors && x.State == ModuleState.Unavailable
+                    ? x with { State = ModuleState.Partial, Summary = "GPU por PDH disponível para amostragem; temperaturas e RPM dependem de outras fontes." } : x).ToArray()
+            };
+            if (current.Count == 0) Reading(ModuleId.Sensors, "GPU por engine", "GPU / PDH", null, "%", "PDH / GPU Engine", "Fonte WDDM não exposta nesta execução.");
+        }
+        return new CollectionBatch([.. measurements, .. extra.Measurements], processes, [.. issues, .. extra.Issues])
+        { Records = extra.Records, Assessments = extra.Assessments };
     }, cancellationToken);
 
-    public ValueTask DisposeAsync() { diskQuery?.Dispose(); memoryQuery?.Dispose(); return ValueTask.CompletedTask; }
+    public ValueTask DisposeAsync() { diskQuery?.Dispose(); memoryQuery?.Dispose(); gpuQuery?.Dispose(); return ValueTask.CompletedTask; }
 }

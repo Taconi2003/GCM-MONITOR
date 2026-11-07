@@ -7,7 +7,10 @@ public sealed record PhysicalDiskInfo(string Id, int Number, string Model, strin
 public sealed record ComputerInventory(string ComputerName, string WindowsEdition, string WindowsVersion,
     string Architecture, DateTimeOffset? LastBoot, string CpuName, int? Cores, int LogicalProcessors,
     long? PhysicalMemoryBytes, long[] MemoryModulesBytes, PhysicalDiskInfo[] Disks, string[] Limitations,
-    DateTimeOffset Timestamp, bool IsDemo = false);
+    DateTimeOffset Timestamp, bool IsDemo = false)
+{
+    public GpuInfo[] Gpus { get; init; } = [];
+}
 public sealed record ProcessObservation(int Pid, DateTimeOffset StartedAt, string Name, TimeSpan? CpuTime,
     long? WorkingSetBytes, DateTimeOffset Timestamp);
 public sealed record ProcessAggregate(int Pid, DateTimeOffset StartedAt, string Name, double CpuSeconds,
@@ -26,7 +29,11 @@ public sealed record MetricStatistics(ModuleId Module, string Metric, string Com
     public double? TimeWeightedMean => ObservedSeconds > 0 ? WeightedSum / ObservedSeconds : null;
 }
 public sealed record CollectionIssue(DateTimeOffset Timestamp, ModuleId? Module, string Message);
-public sealed record CollectionBatch(Measurement[] Measurements, ProcessAggregate[] Processes, CollectionIssue[] Issues);
+public sealed record CollectionBatch(Measurement[] Measurements, ProcessAggregate[] Processes, CollectionIssue[] Issues)
+{
+    public DiagnosticRecord[] Records { get; init; } = [];
+    public ModuleAssessment[] Assessments { get; init; } = [];
+}
 
 public interface IInventoryProvider
 {
@@ -50,6 +57,7 @@ public sealed class MetricAccumulator
         reading.Validate();
         var key = (reading.Module, reading.Metric, reading.Component);
         if (reading.Quality != DataQuality.Valid) { previous.Remove(key); return; }
+        if (!statistics.ContainsKey(key) && statistics.Count >= 4096) throw new InvalidOperationException("Limite de séries distintas atingido; coleta interrompida sem descartar silenciosamente estatísticas.");
         if (!statistics.TryGetValue(key, out var item))
             item = new(reading.Module, reading.Metric, reading.Component, reading.Unit, reading.Value!.Value,
                 reading.Value.Value, 0, 0, 0, reading.Timestamp, reading.Timestamp);

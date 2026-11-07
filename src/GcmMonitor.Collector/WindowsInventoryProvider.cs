@@ -63,14 +63,17 @@ public sealed class WindowsInventoryProvider : IInventoryProvider
             string type = mediaMatches.Length != 1 ? "Não disponível" : Number(mediaMatches[0], "MediaType") switch { 3 => "HDD", 4 => "SSD", 5 => "SCM", _ => "Não disponível" };
             var mapped = volumes.Where(x => x.DiskIds.Contains(id)).ToArray();
             return new PhysicalDiskInfo(id, index, Text(disk, "Model"), bus, type, Number(disk, "Size"), mapped,
-                "SMART/temperatura/desgaste não coletados na v0.2. Espaço livre pertence aos volumes, não ao disco físico." +
+                "Indicadores de confiabilidade dependem da consulta ao módulo de armazenamento. Espaço livre pertence aos volumes, não ao disco físico." +
                 (mapped.Any(x => x.DiskIds.Length > 1) ? " Volume associado a mais de um disco; espaço não deve ser somado." : ""));
         }).ToArray();
         limitations.AddRange(volumes.Where(x => x.DiskIds.Length == 0).Select(x => $"Volume {x.Name}: associação física não disponível."));
-        return new(Environment.MachineName, Text(os, "Caption"), Text(os, "Version", Environment.OSVersion.VersionString),
+        var gpus = Query("root\\cimv2", "SELECT Name, DriverVersion FROM Win32_VideoController")
+            .Take(16).Select(x => new GpuInfo(Text(x, "Name"), Text(x, "DriverVersion"),
+                "Tipo integrada/dedicada e VRAM não determinados por Win32_VideoController. Métricas dependem do módulo de sensores.")).ToArray();
+        return new ComputerInventory(Environment.MachineName, Text(os, "Caption"), Text(os, "Version", Environment.OSVersion.VersionString),
             RuntimeInformation.OSArchitecture.ToString(), boot, string.Join(" / ", cpus.Select(x => Text(x, "Name"))),
             cpus.Count > 0 ? checked((int)cpus.Sum(x => Number(x, "NumberOfCores") ?? 0)) : null,
-            WindowsNativeMetrics.LogicalProcessors, totalRam, memory, disks, limitations.ToArray(), DateTimeOffset.UtcNow);
+            WindowsNativeMetrics.LogicalProcessors, totalRam, memory, disks, limitations.ToArray(), DateTimeOffset.UtcNow) { Gpus = gpus };
     }
 
     private static string ReferenceId(string path)

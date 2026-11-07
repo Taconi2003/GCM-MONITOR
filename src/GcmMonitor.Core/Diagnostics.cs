@@ -80,7 +80,7 @@ public sealed record DiagnosticSession
 {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string ComputerName { get; init; } = "DEMO-GCM01";
-    public string AppVersion { get; init; } = "0.2.0";
+    public string AppVersion { get; init; } = "0.3.0";
     public bool IsDemo { get; init; } = true;
     public DiagnosticOptions Options { get; init; } = new();
     public SessionState State { get; init; } = SessionState.NotStarted;
@@ -97,6 +97,7 @@ public sealed record DiagnosticSession
     public MetricStatistics[] Statistics { get; init; } = [];
     public ProcessAggregate[] Processes { get; init; } = [];
     public CollectionIssue[] Issues { get; init; } = [];
+    public DiagnosticRecord[] Records { get; init; } = [];
     public int? EngineProcessId { get; init; }
     public DateTimeOffset? EngineProcessStartedAt { get; init; }
     public bool IsTerminal => State is SessionState.Completed or SessionState.Cancelled or SessionState.Interrupted or SessionState.Error;

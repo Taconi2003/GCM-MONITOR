@@ -71,7 +71,7 @@ public sealed class TelemetryTests
     [Fact]
     public async Task UnsupportedModulesFinishImmediatelyAndAreNotHealthy()
     {
-        var last = await new PassiveSessionRunner(new MemoryRepository(), new FakeSource(), new FastClock()).RunAsync(Guid.NewGuid(),
+        var last = await new PassiveSessionRunner(new MemoryRepository(), new FakeSource { SensorsUnavailable = true }, new FastClock()).RunAsync(Guid.NewGuid(),
             new() { Modules = [ModuleId.Sensors], MonitoringMinutes = 240 }, _ => Task.CompletedTask, default);
         Assert.Equal(TimeSpan.Zero, last.EffectiveDuration); Assert.Equal(ModuleState.Unavailable, last.Modules.Single().State);
         Assert.Empty(last.Measurements); Assert.DoesNotContain(last.Findings, x => x.Severity == FindingSeverity.Normal);
@@ -119,12 +119,15 @@ public sealed class TelemetryTests
     private sealed class FakeSource : IPassiveCollectionSource
     {
         public bool FailCpu { get; init; }
+        public bool SensorsUnavailable { get; init; }
         public int Calls { get; private set; }
         public Task<ComputerInventory> ReadInventoryAsync(CancellationToken cancellationToken) => Task.FromResult(
             new ComputerInventory("FIXTURE", "Windows fixture", "test", "x64", Epoch, "CPU fixture", 2, 4, 16L * 1024 * 1024 * 1024, [], [], [], Epoch));
         public Task<CollectionBatch> SampleAsync(DiagnosticOptions options, DateTimeOffset timestamp, bool includeProcesses, bool resetBaselines, CancellationToken cancellationToken)
         {
             Calls++;
+            if (SensorsUnavailable && options.Modules.Contains(ModuleId.Sensors)) return Task.FromResult(new CollectionBatch([], [], [])
+            { Assessments = [new(ModuleId.Sensors, ModuleState.Unavailable, "fixture", "Sem sensor na fixture.")] });
             if (FailCpu && options.Modules.Contains(ModuleId.Cpu)) throw new System.ComponentModel.Win32Exception(5);
             return Task.FromResult(new CollectionBatch(options.Modules.Select(x => new Measurement(x, x.ToString(), "fixture", 20, "%", timestamp, "fixture source", DataQuality.Valid, false)).ToArray(), [], []));
         }

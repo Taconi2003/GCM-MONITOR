@@ -65,7 +65,11 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
                 MemoryMean REAL, Payload TEXT NOT NULL, PRIMARY KEY(SessionId,Pid,StartedAt));
             CREATE INDEX IF NOT EXISTS IX_ProcessCpu ON ProcessAggregates(SessionId,CpuSeconds DESC);
             CREATE INDEX IF NOT EXISTS IX_ProcessMemory ON ProcessAggregates(SessionId,MemoryMean DESC);
-            PRAGMA user_version=2;
+            CREATE TABLE IF NOT EXISTS DiagnosticRecords (
+                SessionId TEXT NOT NULL REFERENCES Sessions(Id) ON DELETE CASCADE, Module INTEGER NOT NULL,
+                RecordKey TEXT NOT NULL, Timestamp TEXT NOT NULL, Payload TEXT NOT NULL,
+                PRIMARY KEY(SessionId,Module,RecordKey));
+            PRAGMA user_version=3;
             """;
         await command.ExecuteNonQueryAsync(cancellationToken);
     }
@@ -80,6 +84,11 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
             throw new InvalidOperationException("Dados reais e sintéticos não podem ser misturados na mesma sessão.");
         foreach (var measurement in session.Measurements) measurement.Validate();
         foreach (var measurement in batch.Measurements) measurement.Validate();
+        foreach (var record in session.Records.Concat(batch.Records))
+        {
+            record.Validate();
+            if (record.IsDemo != session.IsDemo) throw new InvalidOperationException("Origem do registro inconsistente.");
+        }
         await using var connection = await OpenAsync(cancellationToken);
         using var transaction = connection.BeginTransaction();
         using var command = connection.CreateCommand();
@@ -124,6 +133,10 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
         foreach (var issue in batch.Issues)
             await Execute("INSERT INTO CollectionIssues(SessionId,Timestamp,Payload) VALUES($id,$time,$payload);",
                 ("$id", session.Id.ToString()), ("$time", issue.Timestamp.UtcDateTime.ToString("O")), ("$payload", JsonSerializer.Serialize(issue)));
+        foreach (var record in batch.Records)
+            await Execute("INSERT INTO DiagnosticRecords VALUES($id,$module,$key,$time,$payload) ON CONFLICT(SessionId,Module,RecordKey) DO UPDATE SET Timestamp=$time,Payload=$payload;",
+                ("$id", session.Id.ToString()), ("$module", (int)record.Module), ("$key", record.Key),
+                ("$time", record.Timestamp.UtcDateTime.ToString("O")), ("$payload", JsonSerializer.Serialize(record)));
         foreach (var process in batch.Processes)
             await Execute("""
                 INSERT INTO ProcessAggregates VALUES($id,$pid,$start,$cpu,$observed,$memory,$payload)
@@ -155,8 +168,17 @@ public sealed class SqliteSessionRepository(string databasePath) : ISessionRepos
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT Snapshot, Notes FROM Sessions WHERE Id=$id;";
         command.Parameters.AddWithValue("$id", id.ToString());
-        using var reader = await command.ExecuteReaderAsync(cancellationToken);
-        return await reader.ReadAsync(cancellationToken) ? Read(reader) : null;
+        DiagnosticSession? session;
+        using (var reader = await command.ExecuteReaderAsync(cancellationToken))
+            session = await reader.ReadAsync(cancellationToken) ? Read(reader) : null;
+        if (session is null) return null;
+        using var details = connection.CreateCommand();
+        details.CommandText = "SELECT Payload FROM DiagnosticRecords WHERE SessionId=$id ORDER BY Module,Timestamp DESC,RecordKey LIMIT 4096;";
+        details.Parameters.AddWithValue("$id", id.ToString());
+        var records = new List<DiagnosticRecord>();
+        using (var reader = await details.ExecuteReaderAsync(cancellationToken))
+            while (await reader.ReadAsync(cancellationToken)) records.Add(JsonSerializer.Deserialize<DiagnosticRecord>(reader.GetString(0))!);
+        return records.Count > 0 ? session with { Records = records.ToArray() } : session;
     }
 
     public async Task<IReadOnlyList<DiagnosticSession>> ListAsync(int limit = 100, CancellationToken cancellationToken = default)
