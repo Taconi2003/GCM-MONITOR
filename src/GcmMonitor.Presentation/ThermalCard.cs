@@ -23,9 +23,10 @@ public sealed record ThermalCard(string Phase, string Sensor, string Baseline, s
             $"No fim da carga {Number(review.AtLoadEnd, "°C")} · última {Number(review.Recovery.Last, "°C")} · {review.ObservedRecovery:mm\\:ss}\n{Context(review.Recovery)}",
             $"Queda {Number(review.Drop, "°C")} · taxa {Number(review.CoolingPerMinute, "°C/min")} · recuperação {Number(review.RecoveredPercent, "%")} · diferença da referência {Number(review.DifferenceFromBaseline, "°C")}",
             string.Join(" ", review.Limitations.Append("Critérios de classificação térmica pendentes.")),
-            string.Join("\n", trace.Notices.Select(n => $"{n.At:HH:mm:ss} (simulado) · {n.Message}" +
+            string.Join("\n", trace.Notices.Select(n => $"{n.At.ToLocalTime():HH:mm:ss} (simulado) · {n.Message}" +
                 (n.Choice is { } choice ? $" Escolha {ChoiceLabel(choice)} às {n.ChoiceRecordedAt?.ToLocalTime():HH:mm:ss}." : ""))
-                .Append(trace.StopReason).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct()),
+                .Append(trace.Notices.Any(n => n.Message == trace.StopReason) ? null : trace.StopReason)
+                .Where(n => !string.IsNullOrWhiteSpace(n))),
             notice is null ? "" : notice.Level == ThermalAlertLevel.Critical ? "Crítico · parada obrigatória simulada" : "Atenção · temperatura elevada na simulação",
             notice?.Level == ThermalAlertLevel.Critical,
             trace.Phase == StressPhase.Active && notice is { Level: ThermalAlertLevel.Attention, Choice: null },

@@ -284,6 +284,13 @@
   </Style>
   <Style x:Key="DurationPicker" TargetType="ListBox" BasedOn="{StaticResource {x:Type ListBox}}">
     <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBox">
+          <Border Background="{TemplateBinding Background}"><ItemsPresenter /></Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
     <Setter Property="ItemsPanel">
       <Setter.Value><ItemsPanelTemplate><UniformGrid Columns="4" /></ItemsPanelTemplate></Setter.Value>
     </Setter>

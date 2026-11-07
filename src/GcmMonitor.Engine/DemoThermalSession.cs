@@ -43,7 +43,7 @@ internal sealed class DemoThermalSession
             EffectiveDuration = observed - started,
             Modules = options.Modules.Select(module => new ModuleRun(module,
                 session.State == SessionState.Completed ? ModuleState.Completed : session.IsTerminal ? ModuleState.Partial : ModuleState.Running,
-                Source, "Observação sintética.", points.Count)).ToArray(),
+                Source, "Observação sintética.", points.Count, started, session.IsTerminal ? observed : null)).ToArray(),
             Measurements = points.TakeLast(32).SelectMany(p => new[]
             {
                 new Measurement(ModuleId.Sensors, "Temperatura CPU", Sensor, p.Celsius, "°C", p.ObservedAt,

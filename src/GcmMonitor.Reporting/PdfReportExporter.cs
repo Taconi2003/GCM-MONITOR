@@ -213,7 +213,7 @@ public sealed class PdfReportExporter : IPdfReportExporter
             section.AddParagraph($"{Time(notice.At)} (simulado) · {notice.Message}" +
                 (notice.Choice is not null ? $" Escolha {choice}. Registro local {Time(notice.ChoiceRecordedAt)}." : ""));
         }
-        if (trace.StopReason is { } reason) section.AddParagraph(reason);
+        if (trace.StopReason is { } reason && !trace.Notices.Any(n => n.Message == reason)) section.AddParagraph(reason);
         ReportCharts.AddThermal(section, trace);
     }
 

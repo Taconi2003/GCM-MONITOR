@@ -20,7 +20,7 @@ public sealed partial class ShellViewModel : ObservableObject
     public string DataBadge => IsDemoMode ? "DADOS DEMONSTRATIVOS" : "COLETA PASSIVA · " + ProductVersion.Value;
     public string VersionLabel => "v" + ProductVersion.Value;
     public string WindowTitle => "GCM Monitor — Gimenes Coleta e Monitoramento · " + VersionLabel;
-    public string StressBlockReason => "Estresse bloqueado: sensores térmicos, limites por hardware e matriz P0 ainda precisam de validação em laboratório.";
+    public string StressBlockReason => "Bloqueado até validar sensores, limites térmicos e testes críticos.";
     public string StressResultSummary => resultSession?.ThermalRehearsal is not null ? "Simulação térmica · estresse físico bloqueado." :
         resultSession is null ? "Estresse bloqueado. Selecione um resultado para consultar a avaliação registrada." : resultSession.Stress is { } assessment
         ? "Estresse desativado · nenhuma carga executada.\n" + string.Join(" ", assessment.Reasons)
