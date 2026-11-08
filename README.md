@@ -1,7 +1,8 @@
 # GCM Monitor — Gimenes Coleta e Monitoramento
 
-**v1.0.0-preview.6 — prévia de desenvolvimento para Windows x64.** Coleta passiva, revisão
-visual das cinco telas, histórico paginado, relatórios PDF e simulação térmica de laboratório.
+**v1.0.0-preview.7 — prévia de desenvolvimento para Windows x64.** Coleta passiva, histórico
+paginado, relatórios PDF e simulação térmica de laboratório. A prévia acrescenta a consulta
+de cadastros de inicialização e melhora o tratamento de falhas de gravação.
 Fonte obrigatória: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md), seção 14.
 A ativação do estresse depende das provas térmicas e dos P0 em laboratório.
 

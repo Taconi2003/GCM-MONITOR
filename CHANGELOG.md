@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0-preview.7 — 08/11/2026
+
+- A consulta pontual de Eventos do Windows acrescenta os cadastros de inicialização acessíveis, com fonte e estado de habilitação explicitamente desconhecido.
+- A coleta passiva conserva apenas os totais, estatísticas e leituras confirmados quando o SQLite rejeita um lote.
+- O supervisor ocioso recebe notificações nativas de mudança de alimentação e exige a leitura inicial do Windows antes de iniciar a prova.
+- O estresse real permanece bloqueado. O pacote comum não inclui o supervisor de prova nem o auxiliar térmico privilegiado.
+
 ## 1.0.0-preview.3 — 07/11/2026
 
 - Instalador Windows x64 por usuário com runtime .NET 10 incluído.
