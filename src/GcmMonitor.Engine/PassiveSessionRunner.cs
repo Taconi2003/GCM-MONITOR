@@ -74,7 +74,7 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
                 .GroupBy(x => x.Module).SelectMany(x => x.OrderByDescending(r => r.Severity == FindingSeverity.Attention).ThenByDescending(r => r.Timestamp).Take(64)).Take(192).ToArray();
             foreach (var assessment in batch.Assessments.Where(x => x.State is ModuleState.Partial or ModuleState.Unavailable or ModuleState.Error)) degraded.Add(assessment.Module);
             foreach (var item in batch.Measurements.Where(x => x.Quality is DataQuality.Unavailable or DataQuality.Error)) degraded.Add(item.Module);
-            session = session with
+            var candidate = session with
             {
                 Measurements = window.ToArray(), Records = records, Statistics = accumulator.Snapshot(),
                 Issues = session.Issues.Concat(batch.Issues).TakeLast(64).ToArray(),
@@ -93,7 +93,8 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
                 }).ToArray()
             };
             // Confirma dados antes de publicar rankings. Só snapshots limitados atravessam o canal.
-            await repository.SaveBatchAsync(session with { EffectiveDuration = clock.Elapsed - start }, batch);
+            await repository.SaveBatchAsync(candidate with { EffectiveDuration = clock.Elapsed - start }, batch);
+            session = candidate;
             if (batch.Processes.Length > 0) session = session with { Processes = await repository.ReadProcessRankingsAsync(id) };
             await SaveAndPublish();
             previous[module] = clock.Elapsed;

@@ -1,3 +1,4 @@
+using GcmMonitor.App;
 using GcmMonitor.Collector;
 using GcmMonitor.Core;
 using GcmMonitor.Persistence;
@@ -12,6 +13,58 @@ public sealed class PersistenceTests : IDisposable
 {
     private readonly string folder = Path.Combine(Path.GetTempPath(), "GcmMonitor.Tests", Guid.NewGuid().ToString("N"));
     private SqliteSessionRepository Repository => new(Path.Combine(folder, "demo.db"));
+
+    [Fact]
+    public async Task RejectedSqliteBatchStopsCollectionAndPreservesOnlyCommittedSamples()
+    {
+        var repo = Repository;
+        await repo.InitializeAsync();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = repo.DatabasePath, Pooling = false }.ToString()))
+        {
+            await connection.OpenAsync(deadline.Token);
+            using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TRIGGER RejectSecondMeasurement BEFORE INSERT ON Measurements
+                WHEN EXISTS (SELECT 1 FROM Measurements WHERE SessionId=NEW.SessionId AND Metric=NEW.Metric AND Component=NEW.Component)
+                BEGIN SELECT RAISE(ABORT, 'Falha de persistência do ensaio'); END;
+                """;
+            await command.ExecuteNonQueryAsync(deadline.Token);
+        }
+        await using var client = new SessionEngineClient(EngineProcessTests.Executable("GcmMonitor.Engine"), repo.DatabasePath);
+        DiagnosticSession? first = null, terminal = null;
+        await foreach (var snapshot in client.RunAsync(new() { Modules = [ModuleId.Memory] }, deadline.Token))
+        {
+            if (snapshot is { State: SessionState.Running, Measurements.Length: > 0 })
+            {
+                Assert.Null(first);
+                first = snapshot;
+            }
+            if (snapshot.IsTerminal) terminal = snapshot;
+        }
+        Assert.NotNull(first);
+        Assert.NotNull(terminal);
+        Assert.Equal(SessionState.Error, terminal.State);
+        Assert.Contains("SqliteException", terminal.Transitions.Last().Reason);
+        Assert.Equal(first.Measurements, terminal.Measurements);
+        Assert.Equal(first.Statistics, terminal.Statistics);
+        Assert.Equal(first.Modules.Single().ReadingCount, terminal.Modules.Single().ReadingCount);
+
+        var reopened = await repo.GetAsync(first.Id, deadline.Token);
+        Assert.NotNull(reopened);
+        Assert.Equal(SessionState.Error, reopened.State);
+        Assert.Equal(first.Measurements.Length, reopened.Measurements.Length);
+        Assert.Equal(first.Statistics, reopened.Statistics);
+        Assert.False(reopened.Stress!.LoadExecuted);
+
+        await using var verification = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = repo.DatabasePath, Pooling = false }.ToString());
+        await verification.OpenAsync(deadline.Token);
+        using var verify = verification.CreateCommand();
+        verify.CommandText = "SELECT COUNT(*) FROM Measurements;";
+        Assert.Equal((long)first.Measurements.Length, await verify.ExecuteScalarAsync(deadline.Token));
+        verify.CommandText = "PRAGMA quick_check;";
+        Assert.Equal("ok", await verify.ExecuteScalarAsync(deadline.Token));
+    }
 
     [Fact]
     public async Task HistoryPaginatesAcrossOldLimitAndRetentionKeepsActiveSessions()
