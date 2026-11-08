@@ -50,7 +50,7 @@ periódica que chegou primeiro. A prova de suspensão exige a notificação.
 | Mesmo contador no Windows | O contador reportado pelo subprocesso ficou dentro da janela medida pelo controlador. A frequência observada foi 10 MHz. |
 | Alimentação estável | Notificação inicial registrada. Saída do filho confirmada em 4,021 s, com `DurationCompleted` e sem evento de mudança. |
 | Controle negativo de mudança de energia | O teste pediu `PowerChanged` com a fonte estável. Após 15,025 s, confirmou a saída do filho, registrou `DurationCompleted` e recusou a aprovação. |
-| Leitura passiva no contexto normal | A sonda concluiu 30 ciclos, com zero valores numéricos. O auxiliar em protocolo 2 ainda precisa ser exercitado com a confirmação normal do Windows neste notebook. |
+| Leitura passiva no contexto normal | A sonda concluiu 30 ciclos, com zero valores numéricos. A prova com confirmação do Windows foi feita separadamente e está registrada abaixo. |
 | Capacidade térmica Intel | A consulta passiva de CPUID confirmou que a CPU anuncia sensor térmico digital e gerenciamento térmico de pacote. A leitura direta do sinal térmico ativo segue pendente. [Manual Intel, volume 3B, §17.9](https://cdrdv2-public.intel.com/874250/253669-090-sdm-vol-3b.pdf). |
 | Suspensão disponível | `powercfg /a` identificou Modern Standby conectado (S0), com S3 indisponível. A prova física deve confirmar o comportamento do supervisor nesse modo. [Estados de Modern Standby](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/modern-standby-states). |
 
@@ -83,10 +83,37 @@ O SQLite passou na verificação de integridade. O resumo e o TRX ficam em
 aprovadas na rodada, contando os 171 testes da suíte, a prova ociosa em estado estável
 e a sessão de uma hora. O controle negativo recusou a aprovação como previsto.
 
+## Prova física passiva do canal 2
+
+Na sessão acompanhada de 8 de novembro de 2026, o auxiliar foi iniciado pela confirmação
+normal do Windows. O controlador executou com privilégios normais. O teste de integração do
+canal 2 passou em 303,33 s com CPU, RAM, Sensores e Energia. O SQLite registrou 572 temperaturas
+diretas válidas em 11 séries, incluindo 52 leituras de CPU Package. O `quick_check` retornou
+`ok`. O Histórico reabriu 99 leituras da janela de apresentação e 11 gráficos térmicos.
+
+Durante a mesma sessão, foram observados 21 valores correntes de CPU Package no HWMonitor.
+Cada observação teve os horários UTC de início e fim da captura da janela. A comparação
+usou o recebimento da medição no GCM e exigiu que as duas extremidades da janela da captura
+estivessem a até 1.200 ms desse horário. Cada amostra foi usada uma vez.
+
+| Medida | Resultado |
+| --- | ---: |
+| Pares dentro da janela | 7 de 21 observações |
+| Maior diferença entre horário do GCM e o ponto médio da captura | 1.039,16 ms |
+| Maior separação considerando as duas extremidades | 1.096,16 ms |
+| Diferença absoluta média | 2,71 °C |
+| Maior diferença absoluta | 8 °C |
+
+Os horários delimitam a observação na tela. A cadência de atualização interna do HWMonitor
+e a idade da leitura física ainda precisam ser determinadas. A amostra é exploratória e
+não estabelece tolerância de precisão ou de proteção térmica. Os dados brutos ficaram no
+notebook. O teste e os resumos locais estão em `.artifacts/TestResults/thermal-protocol2/`
+e `.artifacts/thermal-validation/session-93de5c0a66164f1d9a8e5d5ba7e4117b/`.
+
 ## Escopo de aprovação
 
-A comparação física do CPU Package ainda precisa de referência com horários de leitura
-independentes. Os resultados exploratórios do HWMonitor estão no
-[relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md). São pendentes a qualificação
-do frescor de firmware, os limites por hardware e as transições físicas observadas com o
-técnico presente. O estresse real permanece bloqueado.
+A leitura direta pelo canal 2 passou no notebook. A comparação de precisão do CPU Package
+ainda precisa de uma série mais longa com horários de aquisição da referência. Os ensaios
+anteriores do HWMonitor estão no [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md).
+Seguem pendentes a qualificação do frescor do sensor, os limites por hardware e as transições
+físicas de alimentação e suspensão S0 com o técnico presente. O estresse real permanece bloqueado.
