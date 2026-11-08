@@ -13,7 +13,6 @@ namespace GcmMonitor.Execution;
 public sealed class CpuThermalBridge(Guid sessionId, string helperPath, string dotnetPath) : ICpuThermalFeed
 {
     private readonly CpuThermalBuffer buffer = new(sessionId);
-    private readonly Stopwatch clock = Stopwatch.StartNew();
     private readonly CancellationTokenSource lifetime = new();
     private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly string nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -28,7 +27,7 @@ public sealed class CpuThermalBridge(Guid sessionId, string helperPath, string d
         ObjectDisposedException.ThrowIf(disposed, this);
         pump ??= RunAsync(); // O motor serializa amostras; uma tentativa por sessão, sem novos prompts após falha.
         await ready.Task.WaitAsync(ct);
-        return buffer.Read(clock.Elapsed);
+        return buffer.Read(Stopwatch.GetTimestamp());
     }
 
     private async Task RunAsync()
@@ -59,19 +58,19 @@ public sealed class CpuThermalBridge(Guid sessionId, string helperPath, string d
                 CpuThermalProtocol.ValidateIdentity(hello.Version, hello.SessionId, sessionId, hello.Nonce, nonce);
                 if (!hello.Elevated || hello.LibraryVersion != "0.9.6.0" || hello.DriverVersion != "2.2.0.0")
                     throw new InvalidDataException("Privilégio ou versão da fonte térmica não revisados.");
-                await channel.WriteAsync(new CpuThermalControl(CpuThermalProtocol.Version, sessionId, nonce, 1, "start"), linked.Token);
+                await channel.WriteAsync(new CpuThermalControl(CpuThermalProtocol.BridgeVersion, sessionId, nonce, 1, "start"), linked.Token);
             }
             heartbeat = HeartbeatAsync();
             while (!lifetime.IsCancellationRequested)
             {
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
                 timeout.CancelAfter(CpuThermalProtocol.HeartbeatTimeout);
-                var frame = await channel.ReadAsync<CpuThermalFrame>(timeout.Token);
-                buffer.Accept(frame, clock.Elapsed, DateTimeOffset.UtcNow);
+                var transfer = await channel.ReadAsync<CpuThermalTransfer>(timeout.Token);
+                buffer.Accept(transfer, Stopwatch.GetTimestamp(), DateTimeOffset.UtcNow);
                 ready.TrySetResult();
             }
         }
-        catch (Exception ex) when (ex is IOException or OperationCanceledException or Win32Exception or UnauthorizedAccessException or JsonException or InvalidOperationException)
+        catch (Exception ex) when (ex is IOException or InvalidDataException or OperationCanceledException or Win32Exception or UnauthorizedAccessException or JsonException or InvalidOperationException)
         {
             buffer.Fail(ex is Win32Exception { NativeErrorCode: 1223 }
                 ? "Permissão de administrador recusada; coleta direta não iniciada." :
@@ -96,7 +95,7 @@ public sealed class CpuThermalBridge(Guid sessionId, string helperPath, string d
                 await Task.Delay(TimeSpan.FromSeconds(2), lifetime.Token);
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
                 timeout.CancelAfter(TimeSpan.FromSeconds(2));
-                await channel!.WriteAsync(new CpuThermalControl(CpuThermalProtocol.Version, sessionId, nonce, ++sequence, "heartbeat"), timeout.Token);
+                await channel!.WriteAsync(new CpuThermalControl(CpuThermalProtocol.BridgeVersion, sessionId, nonce, ++sequence, "heartbeat"), timeout.Token);
             }
         }
         finally { lifetime.Cancel(); }

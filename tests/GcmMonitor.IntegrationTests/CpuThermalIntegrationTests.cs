@@ -27,7 +27,7 @@ public sealed class CpuThermalIntegrationTests
         LocalPipePeer.ValidateClient(server.SafePipeHandle, own.Id, start);
         Assert.Throws<InvalidDataException>(() => LocalPipePeer.ValidateClient(server.SafePipeHandle, own.Id, start.AddSeconds(1)));
         var header = new byte[4]; BinaryPrimitives.WriteInt32LittleEndian(header, CpuThermalProtocol.MaximumBytes + 1);
-        var receive = new EngineChannel(server, CpuThermalProtocol.MaximumBytes, CpuThermalProtocol.Json).ReadAsync<CpuThermalFrame>(timeout.Token);
+        var receive = new EngineChannel(server, CpuThermalProtocol.MaximumBytes, CpuThermalProtocol.Json).ReadAsync<CpuThermalTransfer>(timeout.Token);
         await client.WriteAsync(header, timeout.Token);
         await Assert.ThrowsAsync<InvalidDataException>(() => receive);
         TokenImpersonationLevel? level = null;

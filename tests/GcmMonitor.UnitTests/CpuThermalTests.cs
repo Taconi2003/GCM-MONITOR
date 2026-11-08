@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using GcmMonitor.Collector;
 using GcmMonitor.Core;
@@ -10,6 +11,7 @@ public sealed class CpuThermalTests
     private static readonly DateTimeOffset Time = new(2026, 11, 6, 12, 0, 0, TimeSpan.Zero);
     private static CpuThermalSensor Sensor => new("/intelcpu/0", "/intelcpu/0/temperature/0", "CPU Package", CpuThermalRole.Package, 64, 100);
     private static CpuThermalFrame Frame => new(1, Id, 1, 0, 100, CpuThermalStatus.Reading, [Sensor]);
+    private static long Counter(long milliseconds) => Stopwatch.Frequency + Stopwatch.Frequency * milliseconds / 1000;
 
     [Theory]
     [InlineData("CPU Package", CpuThermalRole.Package)]
@@ -25,15 +27,47 @@ public sealed class CpuThermalTests
         Assert.Equal(expected, CpuThermalProtocol.ClassifyIntel(name));
 
     [Fact]
-    public void ReceiptAgeUsesMonotonicTimeAndNeverQualifiesSafety()
+    public void QueryAgeIncludesTimeBeforeReceiptAndNeverQualifiesSafety()
     {
         var buffer = new CpuThermalBuffer(Id);
-        buffer.Accept(Frame, TimeSpan.FromSeconds(2), Time);
-        Assert.True(buffer.Read(TimeSpan.FromSeconds(8)).Available);
-        Assert.False(buffer.Read(TimeSpan.FromSeconds(8.001)).Available);
-        Assert.False(buffer.Read(TimeSpan.FromSeconds(1)).Available);
-        Assert.Equal(Time, buffer.Read(TimeSpan.FromSeconds(3)).ReceivedAt);
-        Assert.False(buffer.Read(TimeSpan.FromSeconds(3)).Frame!.SafetyQualified);
+        buffer.Accept(new(Frame, Counter(0), Counter(100)), Counter(2000), Time);
+        Assert.True(buffer.Read(Counter(6000)).Available);
+        Assert.False(buffer.Read(Counter(6001)).Available);
+        Assert.False(buffer.Read(Counter(1000)).Available);
+        Assert.Equal(Time, buffer.Read(Counter(3000)).ReceivedAt);
+        Assert.False(buffer.Read(Counter(3000)).Frame!.SafetyQualified);
+    }
+
+    [Theory]
+    [InlineData(0, 100, 6001)]
+    [InlineData(900, 1100, 1000)]
+    [InlineData(1000, 900, 2000)]
+    [InlineData(-1000, -900, 500)]
+    public void AQueuedOrInconsistentQueryIsRejectedEvenWithValidSequence(long start, long end, long receipt)
+    {
+        var buffer = new CpuThermalBuffer(Id);
+        var invalid = new CpuThermalTransfer(Frame, Counter(start), Counter(end));
+        Assert.Throws<InvalidDataException>(() => buffer.Accept(invalid, Counter(receipt), Time));
+        Assert.False(buffer.Read(Counter(receipt)).Available);
+        Assert.Throws<InvalidDataException>(() => buffer.Accept(new(Frame, Counter(7000), Counter(7100)), Counter(7200), Time));
+    }
+
+    [Fact]
+    public void HostQueryWindowsCannotOverlapEvenWhenRelativeSequenceIsValid()
+    {
+        var buffer = new CpuThermalBuffer(Id);
+        buffer.Accept(new(Frame, Counter(0), Counter(100)), Counter(110), Time);
+        var next = Frame with { Sequence = 2, ReadStartedMilliseconds = 2000, ReadCompletedMilliseconds = 2100 };
+        Assert.Throws<InvalidDataException>(() => buffer.Accept(new(next, Counter(99), Counter(200)), Counter(210), Time));
+        Assert.False(buffer.Read(Counter(210)).Available);
+    }
+
+    [Fact]
+    public void HandshakeRefusesPreviousBridgeWithoutSharedQueryTimestamps()
+    {
+        string nonce = new('A', 64);
+        CpuThermalProtocol.ValidateIdentity(CpuThermalProtocol.BridgeVersion, Id, Id, nonce, nonce);
+        Assert.Throws<InvalidDataException>(() => CpuThermalProtocol.ValidateIdentity(1, Id, Id, nonce, nonce));
     }
 
     [Theory]
@@ -42,11 +76,12 @@ public sealed class CpuThermalTests
     public void ReplayOrSequenceGapLatchesFaultAndPreservesOldFrameForUnavailableSeries(long sequence)
     {
         var buffer = new CpuThermalBuffer(Id);
-        buffer.Accept(Frame, TimeSpan.Zero, Time);
-        Assert.Throws<InvalidDataException>(() => buffer.Accept(Frame with { Sequence = sequence, ReadStartedMilliseconds = 2000, ReadCompletedMilliseconds = 2100 }, TimeSpan.FromSeconds(2), Time.AddSeconds(2)));
-        Assert.False(buffer.Read(TimeSpan.FromSeconds(2)).Available);
-        Assert.Equal(64, buffer.Read(TimeSpan.FromSeconds(2)).Frame!.Sensors.Single().Celsius);
-        Assert.Throws<InvalidDataException>(() => buffer.Accept(Frame with { Sequence = 2 }, TimeSpan.FromSeconds(3), Time.AddSeconds(3)));
+        buffer.Accept(new(Frame, Counter(0), Counter(100)), Counter(110), Time);
+        var next = Frame with { Sequence = sequence, ReadStartedMilliseconds = 2000, ReadCompletedMilliseconds = 2100 };
+        Assert.Throws<InvalidDataException>(() => buffer.Accept(new(next, Counter(2000), Counter(2100)), Counter(2110), Time.AddSeconds(2)));
+        Assert.False(buffer.Read(Counter(2200)).Available);
+        Assert.Equal(64, buffer.Read(Counter(2200)).Frame!.Sensors.Single().Celsius);
+        Assert.Throws<InvalidDataException>(() => buffer.Accept(new(next with { Sequence = 2 }, Counter(3000), Counter(3100)), Counter(3110), Time.AddSeconds(3)));
     }
 
     [Fact]
@@ -57,7 +92,9 @@ public sealed class CpuThermalTests
             Frame with { Version = 99 }, Frame with { SessionId = Guid.NewGuid() }, Frame with { SafetyQualified = true },
             Frame with { ReadCompletedMilliseconds = 6001 }, Frame with { ReadStartedMilliseconds = double.NaN },
             Frame with { Sensors = [Sensor, Sensor] }, Frame with { Status = CpuThermalStatus.SourceFailed },
+            Frame with { Sensors = [Sensor, Sensor with { SensorId = "/intelcpu/0/temperature/1" }] },
             Frame with { Sensors = [Sensor with { Celsius = double.NaN }] },
+            Frame with { Sensors = [Sensor with { Celsius = -273.15 }] },
             Frame with { Sensors = [Sensor with { Celsius = 101 }] },
             Frame with { Sensors = [Sensor with { TjMaxCelsius = null }] },
             Frame with { Sensors = [Sensor with { Name = "Core Max" }] },
@@ -74,9 +111,9 @@ public sealed class CpuThermalTests
     public void BufferCopiesArraysAndRejectsUnknownJsonMembers()
     {
         var buffer = new CpuThermalBuffer(Id); var frame = Frame;
-        buffer.Accept(frame, TimeSpan.Zero, Time); frame.Sensors[0] = Sensor with { Celsius = 99 };
-        var snapshot = buffer.Read(TimeSpan.Zero); snapshot.Frame!.Sensors[0] = Sensor with { Celsius = 98 };
-        Assert.Equal(64, buffer.Read(TimeSpan.Zero).Frame!.Sensors.Single().Celsius);
+        buffer.Accept(new(frame, Counter(0), Counter(100)), Counter(110), Time); frame.Sensors[0] = Sensor with { Celsius = 99 };
+        var snapshot = buffer.Read(Counter(110)); snapshot.Frame!.Sensors[0] = Sensor with { Celsius = 98 };
+        Assert.Equal(64, buffer.Read(Counter(110)).Frame!.Sensors.Single().Celsius);
         string json = JsonSerializer.Serialize(Frame, CpuThermalProtocol.Json);
         Assert.Throws<JsonException>(() => JsonSerializer.Deserialize<CpuThermalFrame>(json[..^1] + ",\"StartLoad\":true}", CpuThermalProtocol.Json));
     }

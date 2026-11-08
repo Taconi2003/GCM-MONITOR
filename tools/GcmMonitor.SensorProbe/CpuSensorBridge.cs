@@ -27,7 +27,7 @@ internal static class CpuSensorBridge
             var channel = new EngineChannel(pipe, CpuThermalProtocol.MaximumBytes, CpuThermalProtocol.Json);
             bool elevated = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
             string driverVersion = VerifyReviewedFiles();
-            await channel.WriteAsync(new CpuThermalHello(CpuThermalProtocol.Version, session, args[3],
+            await channel.WriteAsync(new CpuThermalHello(CpuThermalProtocol.BridgeVersion, session, args[3],
                 typeof(Computer).Assembly.GetName().Version!.ToString(), driverVersion, elevated), lifetime.Token);
             using (var timeout = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token))
             {
@@ -46,7 +46,7 @@ internal static class CpuSensorBridge
             await Task.WhenAll(reading, controls);
             return 0;
         }
-        catch (Exception ex) when (ex is IOException or OperationCanceledException or UnauthorizedAccessException or
+        catch (Exception ex) when (ex is IOException or InvalidDataException or OperationCanceledException or UnauthorizedAccessException or
             System.ComponentModel.Win32Exception or System.Text.Json.JsonException or InvalidOperationException or System.Security.SecurityException)
         { return 3; }
         finally { lifetime.Cancel(); }
@@ -77,14 +77,14 @@ internal static class CpuSensorBridge
             IsStorageEnabled = false, IsNetworkEnabled = false, IsControllerEnabled = false,
             IsPsuEnabled = false, IsBatteryEnabled = false
         };
-        var clock = Stopwatch.StartNew();
+        long origin = Stopwatch.GetTimestamp();
         try
         {
             computer.Open();
             long sequence = 0;
             while (!ct.IsCancellationRequested)
             {
-                double started = clock.Elapsed.TotalMilliseconds;
+                long started = Stopwatch.GetTimestamp();
                 var sensors = new List<CpuThermalSensor>();
                 foreach (var cpu in computer.Hardware.Where(x => x.HardwareType == HardwareType.Cpu &&
                     x.Identifier.ToString().StartsWith("/intelcpu/", StringComparison.Ordinal)))
@@ -102,11 +102,13 @@ internal static class CpuSensorBridge
                         if (sensors.Count > CpuThermalProtocol.MaximumSensors) throw new InvalidDataException("Limite de sensores da fonte direta excedido.");
                     }
                 }
+                long completed = Stopwatch.GetTimestamp();
+                var frame = new CpuThermalFrame(CpuThermalProtocol.Version, session, ++sequence,
+                    Stopwatch.GetElapsedTime(origin, started).TotalMilliseconds, Stopwatch.GetElapsedTime(origin, completed).TotalMilliseconds,
+                    sensors.Count == 0 ? CpuThermalStatus.UnsupportedHardware : CpuThermalStatus.Reading, sensors.ToArray());
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
                 timeout.CancelAfter(TimeSpan.FromSeconds(2));
-                await channel.WriteAsync(new CpuThermalFrame(CpuThermalProtocol.Version, session, ++sequence,
-                    started, clock.Elapsed.TotalMilliseconds, sensors.Count == 0 ? CpuThermalStatus.UnsupportedHardware : CpuThermalStatus.Reading,
-                    sensors.ToArray()), timeout.Token);
+                await channel.WriteAsync(new CpuThermalTransfer(frame, started, completed), timeout.Token);
                 await Task.Delay(TimeSpan.FromSeconds(2), ct);
             }
         }

@@ -46,9 +46,13 @@ o bloqueio de carga permanecem.
 - Só entram núcleos Intel individuais e `CPU Package` reconhecidos, com metadados plausíveis.
   Agregados, distância até TjMax, sensores sem identificação e outros fabricantes não entram nessa
   fonte direta. TjMax é metadado da conversão, nunca limite operacional universal.
-- O auxiliar amostra a cada 2 s; o motor usa a última amostra nova em sua cadência de sensores de
-  referência de 5 s. O receptor verifica idade de até 6 s por relógio monotônico e o coletor evita
-  usar duas vezes a mesma sequência. Isso mede a idade do recebimento, sem provar frescor de firmware.
+- O auxiliar amostra a cada 2 s. O motor usa a última amostra nova na cadência de referência de
+  5 s e evita usar duas vezes a mesma sequência. O protocolo 2 do canal térmico transporta o
+  início e o fim da consulta no contador monotônico compartilhado pelo Windows. O receptor
+  recusa sequência com tempos incoerentes ou idade superior a 6 s desde o início, incluindo
+  atrasos de transporte e de consumo. Um auxiliar do protocolo anterior é recusado no início.
+  Os pontos de gráfico ainda usam o horário de recebimento. O limite mede a consulta feita
+  pelo software e não qualifica a atualização do firmware.
 - Permissão recusada, fonte ausente, conexão interrompida, valor nulo ou atraso não produzem zero
   artificial nem repetição de temperatura. Séries conhecidas recebem lacuna; valores anteriores
   permanecem no histórico. A indisponibilidade da fonte direta não desativa outros módulos.
@@ -77,4 +81,5 @@ ferramenta não baixa/instala o driver. Não copiar esse build como distribuiç�
 - [PipeOptions — verificação de elevação no Windows](https://learn.microsoft.com/dotnet/api/system.io.pipes.pipeoptions).
 - [Níveis de representação no Windows](https://learn.microsoft.com/en-us/windows/win32/secauthz/impersonation-levels).
 - [NamedPipeClientStream — opções do cliente](https://learn.microsoft.com/dotnet/api/system.io.pipes.namedpipeclientstream.-ctor).
+- [Contador monotônico de alta resolução do Windows](https://learn.microsoft.com/en-us/windows/win32/sysinfo/acquiring-high-resolution-time-stamps).
 - [Fontes, versões, hashes e remoção do PawnIO](../testes/VALIDACAO_TERMICA_V0.4.md).
