@@ -234,7 +234,9 @@ public sealed class StressContainmentTests
         var initial = await controller.SendStartAsync(1600, observeWindows: true);
         if (initial.State == "IdleProbeStopped")
         {
-            Assert.Equal(SafetyStopReason.EnvironmentUnavailable, initial.Reason);
+            if (initial.WindowsSignalObserved)
+                Assert.Contains(initial.Reason, new SafetyStopReason?[] { SafetyStopReason.PowerChanged, SafetyStopReason.Suspended, SafetyStopReason.EnvironmentUnavailable });
+            else Assert.Equal(SafetyStopReason.EnvironmentUnavailable, initial.Reason);
             Assert.Null(initial.WorkerPid);
             Assert.NotEqual("1", Environment.GetEnvironmentVariable("GCM_REQUIRE_WINDOWS_OBSERVATION"));
             return;
@@ -249,7 +251,7 @@ public sealed class StressContainmentTests
         else Assert.Equal(SafetyStopReason.DurationCompleted, stopped.Reason);
         await SaveEnvironmentEvidenceAsync("native-environment.json", new
         {
-            NativeRegistrationExercised = true, PowerBaselineRead = true, stopped.WindowsSignalObserved, Reason = stopped.Reason.ToString(),
+            NativeRegistrationExercised = true, NativePowerBaselineReceived = true, stopped.WindowsSignalObserved, Reason = stopped.Reason.ToString(),
             WorkerExitConfirmed = worker.HasExited, stopped.IdleOnly, stopped.LoadExecuted, IdentifiersExcluded = true
         });
     }

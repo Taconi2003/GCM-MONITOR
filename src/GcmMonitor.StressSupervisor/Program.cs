@@ -56,8 +56,12 @@ try
         throw new InvalidDataException("Condição crítica inicial ou limiar inválido na prova ociosa.");
     if (start.ObserveWindows)
     {
-        try { environment = new WindowsSafetyObservation(); }
-        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or EntryPointNotFoundException or DllNotFoundException)
+        try
+        {
+            environment = new WindowsSafetyObservation();
+            await Task.WhenAny(environment.InitialPower, environment.Signal).WaitAsync(TimeSpan.FromSeconds(2), lifetime.Token);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or EntryPointNotFoundException or DllNotFoundException or TimeoutException)
         { reason = SafetyStopReason.EnvironmentUnavailable; throw new InvalidOperationException("Observação do Windows indisponível.", ex); }
     }
     SafetyStopReason? WindowsSignal()
