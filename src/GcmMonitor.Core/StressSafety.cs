@@ -98,4 +98,4 @@ public sealed record SafetyProbeCommand(int Version, Guid SessionId, string Nonc
 public sealed record SafetyProbeEvent(int Version, Guid SessionId, long Sequence, string State,
     int? WorkerPid = null, DateTimeOffset? WorkerStartedAt = null, SafetyStopReason? Reason = null,
     bool IdleOnly = true, bool LoadExecuted = false, bool WindowsObservationEnabled = false, bool WindowsSignalObserved = false,
-    double? WorkerExitMilliseconds = null);
+    double? WorkerExitMilliseconds = null, bool WindowsCallbackObserved = false);

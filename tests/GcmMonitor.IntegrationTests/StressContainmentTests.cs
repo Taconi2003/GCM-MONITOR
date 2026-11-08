@@ -256,6 +256,57 @@ public sealed class StressContainmentTests
         });
     }
 
+    [WindowsSignalValidationFact]
+    public async Task RequestedWindowsEventStopsOnlyTheOwnedIdleWorker()
+    {
+        string output = Environment.GetEnvironmentVariable("GCM_WINDOWS_SIGNAL_OUTPUT")!;
+        var expected = Enum.Parse<SafetyStopReason>(Environment.GetEnvironmentVariable("GCM_WINDOWS_SIGNAL_EXPECTED")!);
+        bool requireTransition = expected != SafetyStopReason.DurationCompleted;
+        await using var controller = await Probe.ConnectAsync();
+        var started = await controller.SendStartAsync(requireTransition ? 15000 : 4000, observeWindows: true);
+        Assert.Equal("IdleProbeRunning", started.State);
+        Assert.True(started.WindowsObservationEnabled);
+        using var worker = controller.OpenWorker();
+        using var heartbeats = new CancellationTokenSource();
+        var sending = SendHeartbeatsAsync();
+        SafetyProbeEvent stopped;
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(output, "ready"), "idle-only");
+            stopped = await controller.ReadAsync(TimeSpan.FromSeconds(25));
+        }
+        finally
+        {
+            await heartbeats.CancelAsync();
+            await sending;
+        }
+
+        bool confirmed = worker.HasExited;
+        bool passed = stopped.State == "IdleProbeStopped" && stopped.Reason == expected &&
+            stopped.WindowsObservationEnabled && stopped.WindowsSignalObserved == requireTransition && confirmed &&
+            (expected != SafetyStopReason.Suspended || stopped.WindowsCallbackObserved);
+        await File.WriteAllTextAsync(Path.Combine(output, "result.json"), JsonSerializer.Serialize(new
+        {
+            WindowsBuild = Environment.OSVersion.Version.Build, TimestampUtc = DateTimeOffset.UtcNow,
+            Expected = expected.ToString(), Observed = stopped.Reason?.ToString(), stopped.WindowsSignalObserved, stopped.WindowsCallbackObserved,
+            stopped.WindowsObservationEnabled, WorkerExitConfirmed = confirmed, stopped.WorkerExitMilliseconds,
+            stopped.IdleOnly, stopped.LoadExecuted, Passed = passed
+        }));
+        Assert.True(passed, $"Evento esperado: {expected}. Encerramento observado: {stopped.Reason}.");
+
+        async Task SendHeartbeatsAsync()
+        {
+            try
+            {
+                using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(500));
+                while (await timer.WaitForNextTickAsync(heartbeats.Token))
+                    await controller.CommandAsync("heartbeat", ct: heartbeats.Token);
+            }
+            catch (OperationCanceledException) when (heartbeats.IsCancellationRequested) { }
+            catch (IOException) { /* O motivo do encerramento vem do supervisor. */ }
+        }
+    }
+
     [Fact]
     public async Task StoppingIdleProbeDoesNotCancelIndependentPassiveSession()
     {
@@ -376,11 +427,11 @@ public sealed class StressContainmentTests
             var worker = Process.GetProcessById(started.WorkerPid!.Value);
             Assert.Equal(started.WorkerStartedAt!.Value.UtcDateTime, worker.StartTime.ToUniversalTime()); return worker;
         }
-        public Task CommandAsync(string command, CpuThermalFrame? thermal = null) =>
-            Channel.WriteAsync(new SafetyProbeCommand(SafetyProbeProtocol.Version, Id, Nonce, ++sequence, command, thermal));
-        public async Task<SafetyProbeEvent> ReadAsync()
+        public Task CommandAsync(string command, CpuThermalFrame? thermal = null, CancellationToken ct = default) =>
+            Channel.WriteAsync(new SafetyProbeCommand(SafetyProbeProtocol.Version, Id, Nonce, ++sequence, command, thermal), ct);
+        public async Task<SafetyProbeEvent> ReadAsync(TimeSpan? readTimeout = null)
         {
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            using var timeout = new CancellationTokenSource(readTimeout ?? TimeSpan.FromSeconds(12));
             var message = await Channel.ReadAsync<SafetyProbeEvent>(timeout.Token);
             Assert.Equal(Id, message.SessionId); Assert.Equal(SafetyProbeProtocol.Version, message.Version); Assert.True(message.IdleOnly); Assert.False(message.LoadExecuted); return message;
         }
@@ -391,5 +442,15 @@ public sealed class StressContainmentTests
             catch (OperationCanceledException) { if (!Supervisor.HasExited) Supervisor.Kill(entireProcessTree: false); await Supervisor.WaitForExitAsync(); }
             finally { Supervisor.Dispose(); }
         }
+    }
+}
+
+public sealed class WindowsSignalValidationFactAttribute : FactAttribute
+{
+    public WindowsSignalValidationFactAttribute()
+    {
+        if (Environment.GetEnvironmentVariable("GCM_WINDOWS_SIGNAL_EXPECTED") is not ("PowerChanged" or "Suspended" or "DurationCompleted") ||
+            !Directory.Exists(Environment.GetEnvironmentVariable("GCM_WINDOWS_SIGNAL_OUTPUT")))
+            Skip = "Prova ociosa separada para sinal nativo do Windows, executada com opt-in local.";
     }
 }
