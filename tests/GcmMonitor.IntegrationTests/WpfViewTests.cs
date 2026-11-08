@@ -37,7 +37,8 @@ public sealed class WpfViewTests
                 var window = new MainWindow(vm, new NoEngine());
                 var surface = (FrameworkElement)window.Content;
                 surface.DataContext = vm;
-                var artifacts = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "ui", "preview.6"); Directory.CreateDirectory(artifacts);
+                var versionFolder = ProductVersion.Value.Split('-', 2)[^1];
+                var artifacts = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "ui", versionFolder); Directory.CreateDirectory(artifacts);
                 void Render(Screen screen, Size size, string scenario)
                 {
                     vm.CurrentScreen = screen; window.Width = size.Width; window.Height = size.Height;
@@ -64,9 +65,14 @@ public sealed class WpfViewTests
                 Assert.NotEmpty(vm.MetricCards);
                 foreach (var size in sizes) Render(Screen.Monitoring, size, "series");
                 foreach (var size in sizes) Render(Screen.Results, size, "series-and-rankings");
-                Assert.Equal(3, vm.ModuleResults.Sum(x => x.EvidenceRows.Length));
+                Assert.Equal(4, vm.ModuleResults.Sum(x => x.EvidenceRows.Length));
                 foreach (var expander in Descendants(surface).OfType<Expander>()) expander.IsExpanded = true;
                 foreach (var size in sizes) Render(Screen.Results, size, "advanced-expanded");
+                var results = Descendants(surface).OfType<GcmMonitor.App.Views.ResultsView>().Single();
+                var scroll = Descendants(results).OfType<ScrollViewer>().First();
+                var startup = Descendants(results).OfType<TextBlock>().Single(x => x.Text == "Inicialização · Programa fictício");
+                scroll.ScrollToVerticalOffset(scroll.VerticalOffset + startup.TransformToAncestor(scroll).Transform(new Point()).Y - 160);
+                Render(Screen.Results, sizes[0], "startup-demo");
                 if (Environment.GetEnvironmentVariable("GCM_CAPTURE_THERMAL_REVIEW") == "1")
                 {
                     var previousContext = SynchronizationContext.Current;
@@ -163,6 +169,7 @@ public sealed class WpfViewTests
             {
                 Measurements = samples.ToArray(), Statistics = accumulator.Snapshot(),
                 Records = [new(ModuleId.WindowsEvents, "fixture-event", "Evento fictício · ID 41", "Ocorrência sintética; nenhuma causa determinada.", session.StartedAt, "Fixture / Windows Event Log", DataQuality.Valid, true),
+                    new(ModuleId.WindowsEvents, "startup:fixture", "Inicialização · Programa fictício", "Cadastro encontrado. Estado de habilitação e execução não verificados.", session.StartedAt, "Fixture / Registro / Run", DataQuality.Valid, true),
                     new(ModuleId.Devices, "fixture-driver", "Dispositivo fictício", "Versão instalada fictícia 1.0. Sem alterações.", session.StartedAt, "Fixture / WMI", DataQuality.Valid, true),
                     new(ModuleId.Sensors, "fixture-sensor", "Sensor fictício indisponível", "Exemplo de ausência de leitura, sem valor zero.", session.StartedAt, "Fixture / sensor", DataQuality.Unavailable, true)],
                 Processes = [new(42, session.StartedAt, "processo-ficticio.exe", 2, 10, 10, 50.0 * 1024 * 1024 * 10, 10,

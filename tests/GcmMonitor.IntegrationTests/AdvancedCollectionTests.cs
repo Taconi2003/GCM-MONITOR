@@ -73,6 +73,12 @@ public sealed class AdvancedCollectionTests : IDisposable
         var restored = await repo.GetAsync(last.Id); Assert.NotNull(restored); Assert.NotEmpty(restored.Records);
         Assert.True(restored.Records.Length >= last.Records.Length);
         Assert.All(restored.Records, x => x.Validate());
+        var startup = restored.Records.Where(x => x.Key.StartsWith("startup:")).ToArray();
+        Assert.NotEmpty(startup);
+        Assert.All(startup, x => Assert.Equal(ModuleId.WindowsEvents, x.Module));
+        Assert.Contains(startup, x => x.Source == "Registro / Run" && x.Quality == DataQuality.Valid);
+        Assert.Contains(startup, x => x.Source == "Registro / RunOnce");
+        Assert.Contains(startup, x => x.Source == "Pasta Inicializar");
         await repo.SaveNotesAsync(last.Id, "Observação sintética do teste.");
         Assert.Equal("Observação sintética do teste.", (await repo.GetAsync(last.Id))!.Notes);
         Assert.DoesNotContain(restored.Findings, x => x.Severity == FindingSeverity.Normal);

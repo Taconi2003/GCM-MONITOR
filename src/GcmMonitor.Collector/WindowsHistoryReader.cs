@@ -10,6 +10,7 @@ public interface IWindowsHistoryReader
 {
     DiagnosticRecord[] ReadEvents(DateTimeOffset timestamp, CancellationToken ct);
     DiagnosticRecord[] ReadUpdates(DateTimeOffset timestamp, CancellationToken ct);
+    DiagnosticRecord[] ReadStartup(DateTimeOffset timestamp, CancellationToken ct);
 }
 
 public static class WindowsEventSelection
@@ -37,6 +38,8 @@ public static class WindowsEventSelection
 [SupportedOSPlatform("windows")]
 public sealed class WindowsHistoryReader : IWindowsHistoryReader
 {
+    public DiagnosticRecord[] ReadStartup(DateTimeOffset timestamp, CancellationToken ct) => WindowsStartupReader.Read(timestamp, ct);
+
     public DiagnosticRecord[] ReadEvents(DateTimeOffset timestamp, CancellationToken ct)
     {
         var records = new List<DiagnosticRecord>();

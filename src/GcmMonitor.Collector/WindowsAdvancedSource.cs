@@ -47,6 +47,7 @@ public sealed class WindowsAdvancedSource(IWindowsDiagnosticReader? reader = nul
                 {
                     case ModuleId.WindowsEvents:
                         records.AddRange(history.ReadEvents(timestamp, ct));
+                        records.AddRange(history.ReadStartup(timestamp, ct));
                         break;
                     case ModuleId.WindowsUpdate:
                         records.AddRange(history.ReadUpdates(timestamp, ct));

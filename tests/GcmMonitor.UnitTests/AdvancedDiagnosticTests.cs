@@ -210,6 +210,23 @@ public sealed class AdvancedDiagnosticTests
     }
 
     [Fact]
+    public void StartupRegistrationIsReadOnceWithWindowsEventsAndKeptSeparateFromEventEvidence()
+    {
+        var history = new History();
+        var source = new WindowsAdvancedSource(new Reader(), new Native(), history);
+        var update = source.Sample(new() { Modules = [ModuleId.WindowsUpdate] }, Time, default);
+        Assert.DoesNotContain(update.Records, record => record.Key.StartsWith("startup:"));
+        Assert.Equal(0, history.StartupReads);
+
+        var options = new DiagnosticOptions { Modules = [ModuleId.WindowsEvents] };
+        var first = source.Sample(options, Time, default);
+        Assert.Contains(first.Records, record => record.Key == "fixture:event");
+        Assert.Contains(first.Records, record => record.Key == "startup:fixture");
+        Assert.Empty(source.Sample(options, Time.AddMinutes(1), default).Records);
+        Assert.Equal(1, history.StartupReads);
+    }
+
+    [Fact]
     public async Task PunctualOnlySessionCompletesWithoutWaitingChosenFourHoursAndDoesNotRepeatQueries()
     {
         var source = new PunctualSource(); var clock = new Clock();
@@ -277,8 +294,15 @@ public sealed class AdvancedDiagnosticTests
     }
     private sealed class History : IWindowsHistoryReader
     {
-        public DiagnosticRecord[] ReadEvents(DateTimeOffset time, CancellationToken ct) => [];
+        public int StartupReads { get; private set; }
+        public DiagnosticRecord[] ReadEvents(DateTimeOffset time, CancellationToken ct) =>
+            [new(ModuleId.WindowsEvents, "fixture:event", "Evento fictício", "Amostra", time, "fixture", DataQuality.Valid)];
         public DiagnosticRecord[] ReadUpdates(DateTimeOffset time, CancellationToken ct) => [];
+        public DiagnosticRecord[] ReadStartup(DateTimeOffset time, CancellationToken ct)
+        {
+            StartupReads++;
+            return [new(ModuleId.WindowsEvents, "startup:fixture", "Cadastro fictício", "Estado desconhecido", time, "fixture", DataQuality.Valid)];
+        }
     }
     private sealed class Clock : ISessionClock
     {
