@@ -5,6 +5,7 @@ paginado, relatórios PDF e simulação térmica de laboratório. A prévia acre
 de cadastros de inicialização e melhora o tratamento de falhas de gravação.
 Fonte obrigatória: [Especificação Mestre v1.0](docs/ESPECIFICACAO_MESTRE_GCM_MONITOR_v1.0.md), seção 14.
 A ativação do estresse depende das provas térmicas e dos P0 em laboratório.
+Resultados da rodada local em [Prévia 7](docs/testes/V1.0-PREVIEW.7.md).
 
 ## Funcionalidades
 
