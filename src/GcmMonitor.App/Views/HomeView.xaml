@@ -109,10 +109,41 @@
               <ListBox Style="{StaticResource DurationPicker}" ItemsSource="{Binding Durations}" DisplayMemberPath="ShortLabel" SelectedItem="{Binding MonitoringDuration}" AutomationProperties.Name="Duração do monitoramento" />
               <Border BorderBrush="#2B415A" BorderThickness="0,1,0,1" Margin="0,10" Padding="0,8">
                 <StackPanel>
-                  <CheckBox Content="Estresse da CPU" IsChecked="False" IsEnabled="False" />
+                  <CheckBox x:Name="CpuStressOption" Content="Estresse da CPU" IsChecked="False" IsEnabled="False" />
                   <TextBlock Text="{Binding StressBlockReason}" Style="{StaticResource Muted}" FontSize="11" Margin="0,5,0,12" />
                   <ListBox Style="{StaticResource DurationPicker}" ItemsSource="{Binding Durations}" DisplayMemberPath="ShortLabel" SelectedItem="{Binding StressDuration}" IsEnabled="False" AutomationProperties.Name="Duração do estresse indisponível" />
                 </StackPanel>
+              </Border>
+              <Border x:Name="MonitoringGuidance" Style="{StaticResource Card}" Background="#102B3C" BorderBrush="#23536B" CornerRadius="8" Padding="10,8" Margin="0,0,0,10">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Left" Text="&#xE946;" FontFamily="Segoe MDL2 Assets" FontSize="16" Foreground="{StaticResource CyanBrush}" Margin="0,1,8,0" />
+                  <StackPanel>
+                    <TextBlock x:Name="MonitoringGuidanceTitle" FontWeight="SemiBold" Margin="0,0,0,4">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                          <Setter Property="Text" Value="Monitoramento passivo" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=CpuStressOption}" Value="True">
+                              <Setter Property="Text" Value="Segurança do teste de estresse" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock x:Name="MonitoringGuidanceText" FontSize="12" LineHeight="16">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                          <Setter Property="Text" Value="Durante o diagnóstico, você pode continuar utilizando o computador normalmente ou deixá-lo em repouso. O GCM Monitor registrará as informações dos módulos selecionados para análise posterior.&#10;&#10;Nenhuma carga artificial de CPU será executada enquanto o teste de estresse estiver desabilitado." />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsChecked, ElementName=CpuStressOption}" Value="True">
+                              <Setter Property="Text" Value="O teste exige autorização do técnico e condições de segurança validadas, incluindo os sensores essenciais. Condições críticas interrompem a carga automaticamente. Use “Parar estresse” para encerrar a carga e manter a coleta." />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                  </StackPanel>
+                </DockPanel>
               </Border>
               <TextBlock Text="Discos físicos para análise" Style="{StaticResource Muted}" />
               <ItemsControl ItemsSource="{Binding Disks}" IsEnabled="{Binding StorageEnabled}" Margin="0,4,0,7">

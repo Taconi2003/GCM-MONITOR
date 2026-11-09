@@ -39,12 +39,17 @@ public sealed class WpfViewTests
                 surface.DataContext = vm;
                 var versionFolder = ProductVersion.Value.Split('-', 2)[^1];
                 var artifacts = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "ui", versionFolder); Directory.CreateDirectory(artifacts);
-                void Render(Screen screen, Size size, string scenario)
+                void Render(Screen screen, Size size, string scenario, double scale = 1, Action? inspect = null)
                 {
                     vm.CurrentScreen = screen; window.Width = size.Width; window.Height = size.Height;
+                    var currentDpi = VisualTreeHelper.GetDpi(surface);
+                    if (currentDpi.DpiScaleX != scale || currentDpi.DpiScaleY != scale)
+                        VisualTreeHelper.SetRootDpi(surface, new DpiScale(scale, scale));
                     surface.Measure(size); surface.Arrange(new Rect(size)); surface.UpdateLayout();
                     window.Dispatcher.Invoke(() => { }, DispatcherPriority.ApplicationIdle);
-                    var bitmap = new RenderTargetBitmap((int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+                    inspect?.Invoke();
+                    var bitmap = new RenderTargetBitmap((int)(size.Width * scale), (int)(size.Height * scale),
+                        96 * scale, 96 * scale, PixelFormats.Pbgra32);
                     bitmap.Render(surface);
                     var pixel = new byte[4]; bitmap.CopyPixels(new Int32Rect(1, 1, 1, 1), pixel, 4, 0);
                     Assert.True(pixel[3] > 0, "A renderização deve conter pixels visíveis.");
@@ -54,6 +59,8 @@ public sealed class WpfViewTests
                 Size[] sizes = [new Size(1440, 810), new Size(1000, 700)];
                 foreach (var size in sizes)
                     foreach (var screen in Enum.GetValues<Screen>()) Render(screen, size, "empty");
+                Render(Screen.Home, sizes[0], "passive-guidance", inspect: () => VerifyHomeGuidance(1));
+                Render(Screen.Home, sizes[1], "passive-guidance-150pct", scale: 1.5, inspect: () => VerifyHomeGuidance(1.5));
                 vm.LoadExamplesCommand.ExecuteAsync(null).GetAwaiter().GetResult();
                 foreach (var row in vm.History.ToArray())
                 {
@@ -90,6 +97,37 @@ public sealed class WpfViewTests
                 }
                 window.Close(); Assert.Empty(bindingErrors.Errors);
                 completion.SetResult();
+
+                void VerifyHomeGuidance(double scale)
+                {
+                    var home = Descendants(surface).OfType<GcmMonitor.App.Views.HomeView>().Single();
+                    var card = (Border)home.FindName("MonitoringGuidance");
+                    var title = (TextBlock)home.FindName("MonitoringGuidanceTitle");
+                    var body = (TextBlock)home.FindName("MonitoringGuidanceText");
+                    var stress = (CheckBox)home.FindName("CpuStressOption");
+                    var scroll = Descendants(home).OfType<ScrollViewer>().First();
+                    const string passiveText = "Durante o diagnóstico, você pode continuar utilizando o computador normalmente ou deixá-lo em repouso. O GCM Monitor registrará as informações dos módulos selecionados para análise posterior.\n\nNenhuma carga artificial de CPU será executada enquanto o teste de estresse estiver desabilitado.";
+                    Assert.Equal(scale, VisualTreeHelper.GetDpi(body).DpiScaleX);
+                    Assert.False(stress.IsEnabled);
+                    Assert.False(stress.IsChecked);
+                    Assert.Equal("Monitoramento passivo", title.Text);
+                    Assert.Equal(passiveText, body.Text);
+
+                    // Exercita somente o gatilho visual. O controle de produção continua bloqueado.
+                    stress.IsChecked = true;
+                    Assert.Equal("Segurança do teste de estresse", title.Text);
+                    Assert.Contains("Condições críticas interrompem a carga automaticamente.", body.Text);
+                    Assert.Contains("Parar estresse", body.Text);
+                    Assert.False(vm.CreateOptions().StressEnabled);
+                    stress.IsChecked = false;
+                    Assert.Equal(passiveText, body.Text);
+                    card.BringIntoView();
+                    surface.UpdateLayout();
+                    var visible = card.TransformToAncestor(scroll).TransformBounds(new Rect(card.RenderSize));
+                    Assert.InRange(visible.Top, -1, scroll.ViewportHeight);
+                    Assert.InRange(visible.Bottom, visible.Top + 1, scroll.ViewportHeight + 1);
+                    Assert.InRange(visible.Right, 1, scroll.ViewportWidth + 1);
+                }
 
                 async Task CaptureThermalAsync()
                 {
