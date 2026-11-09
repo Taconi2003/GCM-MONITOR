@@ -39,7 +39,18 @@ alimentação ou usar **Suspender** no menu do Windows. Retome normalmente após
 Cada execução cria `.artifacts/validation/windows-observation-*/` com TRX, saída local e, se o
 supervisor reportou a parada, `result.json`. A prova exige saída confirmada e o motivo solicitado.
 Em uma mudança de energia, `WindowsCallbackObserved` distingue a notificação da leitura
-periódica que chegou primeiro. A prova de suspensão exige a notificação.
+periódica que chegou primeiro. No protocolo 4 do supervisor ocioso, a prova de suspensão
+exige `WindowsSuspension=Entering`. Uma notificação de retomada ainda dispara a parada,
+mas registra `Resuming` e deixa o ensaio sem aprovação. A confirmação de saída acompanha
+o resultado, junto com `ReadyAtUtc` e `WorkerExitedAtUtc`, horário de saída informado pelo
+Windows. No build 26200 deste notebook, o provedor `Microsoft-Windows-Kernel-Power`
+identifica a entrada e a saída do Modern Standby pelos eventos 506 e 507. Compare os
+horários desses eventos com a evidência da prova após retomar a sessão. Essa correlação
+registra a ordem dos eventos observáveis. O Windows pode pausar processos desktop durante
+o Modern Standby.
+[Aviso de entrada em suspensão](https://learn.microsoft.com/en-us/windows/win32/power/pbt-apmsuspend),
+[aviso de retomada](https://learn.microsoft.com/en-us/windows/win32/power/pbt-apmresumeautomatic)
+e [fases do Modern Standby](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/prepare-software-for-modern-standby).
 
 ## Testes executados
 
@@ -109,6 +120,31 @@ e a idade da leitura física ainda precisam ser determinadas. A amostra é explo
 não estabelece tolerância de precisão ou de proteção térmica. Os dados brutos ficaram no
 notebook. O teste e os resumos locais estão em `.artifacts/TestResults/thermal-protocol2/`
 e `.artifacts/thermal-validation/session-93de5c0a66164f1d9a8e5d5ba7e4117b/`.
+
+## Revisão sem intervenção física
+
+Na prévia 7, Windows 11 x64 build 26200, a solução compilou em Release com zero avisos
+e erros. Passaram 108 testes unitários e 64 de integração, com seis casos optativos fora
+da suíte padrão. As provas nativas adicionais usaram o protocolo 4 do supervisor.
+
+| Caso | Resultado local de 8 de novembro de 2026 |
+| --- | --- |
+| CT-052 e CT-053 · Alimentação estável | O supervisor confirmou o encerramento do filho ocioso em 4,029 s, com `DurationCompleted` e sem sinal de transição. |
+| CT-052 · Controle negativo de suspensão | Com o notebook acordado, o supervisor encerrou o filho ocioso em 15,011 s. O teste pediu `Suspended`, recebeu `DurationCompleted` e recusou a aprovação como previsto. |
+| CT-060 e CT-059 · Banco inacessível | Após o primeiro lote real de RAM, um bloqueio exclusivo no arquivo temporário provocou `SQLITE_CANTOPEN` (14). O motor encerrou. Liberado o arquivo, a recuperação reabriu a sessão como interrompida, preservou medições e estatísticas confirmadas e permitiu reabrir o PDF parcial. |
+| CT-022 · Comparação térmica | O roteiro passou em dez verificações fictícias e reproduziu os resultados anteriores com os registros locais. Agora também compara as extremidades das janelas registradas. Consulte o [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md). |
+| CT-054 · Sinal de proteção térmica do pacote | A sonda avulsa passou a oferecer leitura passiva opcional do registrador Intel. O teste sem elevação completou 30 ciclos, registrou zero tentativas de ler o registrador e explicou a falta de privilégios. A captura elevada segue pendente. Consulte o [roteiro da sonda](VALIDACAO_TERMICA_V0.4.md#sinal-térmico-atual-do-pacote-intel). |
+
+As duas provas ociosas escreveram em `.artifacts/validation/windows-observation-bdcac5d5f79844a98412239f722fb812/`
+e `.artifacts/validation/windows-observation-f3d9f6b0f61446c8a507a05e7f8fdc9e/`.
+Na primeira execução com o horário de saída, o teste encerrou sem resultado porque o
+controlador não tinha mantido aberto o identificador do processo. As duas provas foram
+repetidas após a correção e registraram o horário de saída informado pelo Windows.
+A sonda sem elevação gravou em `.artifacts/thermal-validation/20261109T025745Z-b78cf989332a4fd299c8520f04fd00e2/`.
+O teste `InaccessibleDatabaseStopsTheOwnedEngineAndRecoversCommittedReadings` está no TRX
+da suíte de integração em `.artifacts/TestResults/`. O ensaio cobre perda de acesso
+em coleta passiva. A falta real de espaço e o cenário sob carga seguem pendentes.
+[Código de resultado do SQLite](https://www.sqlite.org/rescode.html#cantopen).
 
 ## Escopo de aprovação
 

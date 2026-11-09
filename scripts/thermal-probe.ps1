@@ -1,7 +1,10 @@
-param([switch]$Elevated, [switch]$BuildOnly, [switch]$PrepareBridge)
+param([switch]$Elevated, [switch]$BuildOnly, [switch]$PrepareBridge, [switch]$PackageStatus)
 $ErrorActionPreference = 'Stop'
 if (([int]$Elevated.IsPresent + [int]$BuildOnly.IsPresent + [int]$PrepareBridge.IsPresent) -gt 1) {
     throw 'Escolha somente um modo: Elevated, BuildOnly ou PrepareBridge.'
+}
+if ($PackageStatus -and ($BuildOnly -or $PrepareBridge)) {
+    throw 'PackageStatus pertence à captura avulsa de laboratório.'
 }
 $projectRoot = Split-Path -Parent $PSScriptRoot
 Push-Location -LiteralPath $projectRoot
@@ -70,14 +73,15 @@ if ($PrepareBridge) {
 }
 $output = Join-Path $projectRoot ('.artifacts/thermal-validation/' + $runId)
 [System.IO.Directory]::CreateDirectory($output) | Out-Null
+$extraArguments = @(if ($PackageStatus) { '--package-status' })
 if ($Elevated) {
     # O usuário responde ao UAC normal. Não altera ACL do driver nem eleva o aplicativo principal.
-    $probeArguments = @(('"' + $probe + '"'), '--output', ('"' + $output + '"'))
+    $probeArguments = @(('"' + $probe + '"'), '--output', ('"' + $output + '"')) + $extraArguments
     $process = Start-Process -FilePath $dotnet -ArgumentList $probeArguments -Verb RunAs -WindowStyle Hidden -PassThru
     Write-Output "Prova passiva iniciada (processo $($process.Id)). Resultado local em $output"
 }
 else {
-    & $dotnet $probe --output $output
+    & $dotnet $probe --output $output @extraArguments
     if ($LASTEXITCODE -ne 0) { throw 'Prova falhou. Consulte o registro privado no diretório de saída.' }
     Get-Content -LiteralPath (Join-Path $output 'summary.json') -Raw
 }

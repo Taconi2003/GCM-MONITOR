@@ -77,6 +77,33 @@ mais próxima da outra série dentro da janela, uma vez por amostra. Com zero pa
 estatísticas de diferença ficam vazias. O relatório imprime somente contagens, diferenças e
 intervalos. Capturas e CSVs brutos permanecem locais.
 
+### Comparar janelas de leitura
+
+Quando a referência registra o começo e o fim de cada observação, use as colunas
+`StartUtc,EndUtc,Celsius` no lugar de `Timestamp,Celsius`. As janelas devem estar livres
+de sobreposição e ter fuso explícito. O parâmetro `-UseProbeQueryWindow` usa o intervalo
+entre o início da consulta na sonda e o recebimento do valor. Sem o parâmetro, o horário
+da sonda continua sendo o recebimento, para reproduzir as comparações anteriores.
+
+```powershell
+./scripts/compare-cpu-package.ps1 -ProbeCapture '<captura-local.json>' `
+  -ReferenceCsv '<janelas-da-referencia.csv>' -UseProbeQueryWindow -MaximumOffsetMilliseconds 1200
+```
+
+Um par só entra se a maior separação possível entre as extremidades das duas janelas
+caber no limite. A saída distingue `LargestObservedOffsetMs`, que compara os pontos
+médios, de `LargestConservativeOffsetMs`, que considera as extremidades. Uma janela de
+captura da tela delimita quando a leitura foi observada. Seu uso ainda deixa em aberto
+o momento de aquisição pelo programa de referência e a atualização do sensor físico.
+
+Em 8 de novembro, a revisão reproduziu as quatro comparações anteriores no modo original.
+Usando a janela da sonda, a comparação visual manteve 4 pares e 3,00 °C de diferença absoluta
+média. Os três cenários que estimam horários pelo arquivo mantiveram 30 pares cada e
+apresentaram médias de 2,53, 3,43 e 2,90 °C. São reanálises das mesmas séries, e os horários
+absolutos de aquisição do HWMonitor seguem sem comprovação. Dez verificações com dados
+fictícios cobriram a compatibilidade, os limites do pareamento e a rejeição de janelas
+ambíguas ou inválidas.
+
 ## Testes desta rodada
 
 - Suíte local em Release com 101 testes unitários e 62 de integração aprovados. Cinco

@@ -85,6 +85,30 @@ O comando elevado retorna após iniciar o processo, sem confirmar conclusão. Ap
 um minuto, confira `Completed`/`ErrorType` em `summary.json` no caminho informado. Chamadas nativas
 são síncronas; a ferramenta passiva **não é um watchdog de proteção**.
 
+### Sinal térmico atual do pacote Intel
+
+Com o técnico presente e o PawnIO revisado já instalado, execute a captura avulsa opcional.
+
+```powershell
+./scripts/thermal-probe.ps1 -Elevated -PackageStatus
+```
+
+A opção usa a operação de leitura da biblioteca já revisada para um único pacote Intel que
+anuncie gerenciamento térmico via CPUID. Consulta apenas `IA32_PACKAGE_THERM_STATUS`
+(`0x1B1`) para este sinal e aplica o mesmo indicador de validade usado pela biblioteca
+para a temperatura do pacote. O bit 0 informa se o sinal térmico do pacote estava ativo
+no instante da consulta. A captura registra início e fim da chamada e deixa o valor vazio
+quando a consulta falha. Um valor inativo descreve aquele instante. O relatório preserva
+separadamente o total de tentativas, leituras válidas e sinais ativos.
+[Manual Intel, gerenciamento térmico de pacote](https://cdrdv2-public.intel.com/874250/253669-090-sdm-vol-3b.pdf),
+[leitura do pacote no LibreHardwareMonitor 0.9.6](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/blob/v0.9.6/LibreHardwareMonitorLib/Hardware/Cpu/IntelCpu.cs)
+e [API de leitura](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/blob/v0.9.6/LibreHardwareMonitorLib/PawnIo/IntelMsr.cs).
+
+O comando sem `-Elevated` permite verificar o tratamento da ausência de privilégios. O
+resultado deve trazer `PackageStatusAttempts=0` e o motivo em `PackageStatusUnavailable`.
+Esta prova avulsa usa a mesma fonte de baixo nível da temperatura do GCM e deixa pendentes
+a comparação independente, a confirmação física do sinal e a qualificação de proteção.
+
 Saídas em `.artifacts/thermal-validation/<execução>/`, ignoradas pelo Git. `private-capture.json`
 contém leituras/nomes/IDs de sensores: não publicar. `summary.json` só tem contagens/intervalos/estados,
 mas exige revisão antes de publicação. Não há retomada/início automático de carga. A ferramenta não
