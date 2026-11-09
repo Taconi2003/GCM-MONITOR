@@ -53,6 +53,7 @@ public sealed class StressContainmentTests
         var stopped = await controller.ReadAsync();
         Assert.Equal("IdleProbeStopped", stopped.State); Assert.Equal(expected, stopped.Reason);
         Assert.True(stopped.IdleOnly); Assert.False(stopped.LoadExecuted);
+        Assert.Null(stopped.WindowsSuspension);
         Assert.True(worker.HasExited); // Confirmação terminal só pode ser enviada após a morte do filho.
     }
 
@@ -248,7 +249,11 @@ public sealed class StressContainmentTests
         Assert.True(stopped.WindowsObservationEnabled);
         if (stopped.WindowsSignalObserved)
             Assert.Contains(stopped.Reason, new SafetyStopReason?[] { SafetyStopReason.PowerChanged, SafetyStopReason.Suspended, SafetyStopReason.EnvironmentUnavailable });
-        else Assert.Equal(SafetyStopReason.DurationCompleted, stopped.Reason);
+        else
+        {
+            Assert.Equal(SafetyStopReason.DurationCompleted, stopped.Reason);
+            Assert.Null(stopped.WindowsSuspension);
+        }
         await SaveEnvironmentEvidenceAsync("native-environment.json", new
         {
             NativeRegistrationExercised = true, NativePowerBaselineReceived = true, stopped.WindowsSignalObserved, Reason = stopped.Reason.ToString(),
@@ -267,11 +272,14 @@ public sealed class StressContainmentTests
         Assert.Equal("IdleProbeRunning", started.State);
         Assert.True(started.WindowsObservationEnabled);
         using var worker = controller.OpenWorker();
+        _ = worker.SafeHandle; // Mantém acesso ao horário de saída após o encerramento do filho.
         using var heartbeats = new CancellationTokenSource();
         var sending = SendHeartbeatsAsync();
         SafetyProbeEvent stopped;
+        DateTimeOffset readyAtUtc;
         try
         {
+            readyAtUtc = DateTimeOffset.UtcNow;
             await File.WriteAllTextAsync(Path.Combine(output, "ready"), "idle-only");
             stopped = await controller.ReadAsync(TimeSpan.FromSeconds(25));
         }
@@ -284,15 +292,18 @@ public sealed class StressContainmentTests
         bool confirmed = worker.HasExited;
         bool passed = stopped.State == "IdleProbeStopped" && stopped.Reason == expected &&
             stopped.WindowsObservationEnabled && stopped.WindowsSignalObserved == requireTransition && confirmed &&
-            (expected != SafetyStopReason.Suspended || stopped.WindowsCallbackObserved);
+            (expected != SafetyStopReason.Suspended ||
+                stopped.WindowsCallbackObserved && stopped.WindowsSuspension == WindowsSuspensionNotification.Entering);
         await File.WriteAllTextAsync(Path.Combine(output, "result.json"), JsonSerializer.Serialize(new
         {
             WindowsBuild = Environment.OSVersion.Version.Build, TimestampUtc = DateTimeOffset.UtcNow,
-            Expected = expected.ToString(), Observed = stopped.Reason?.ToString(), stopped.WindowsSignalObserved, stopped.WindowsCallbackObserved,
+            ReadyAtUtc = readyAtUtc, WorkerExitedAtUtc = confirmed ? worker.ExitTime.ToUniversalTime() : (DateTime?)null,
+            Protocol = stopped.Version, Expected = expected.ToString(), Observed = stopped.Reason?.ToString(),
+            stopped.WindowsSignalObserved, stopped.WindowsCallbackObserved, WindowsSuspension = stopped.WindowsSuspension?.ToString(),
             stopped.WindowsObservationEnabled, WorkerExitConfirmed = confirmed, stopped.WorkerExitMilliseconds,
             stopped.IdleOnly, stopped.LoadExecuted, Passed = passed
         }));
-        Assert.True(passed, $"Evento esperado: {expected}. Encerramento observado: {stopped.Reason}.");
+        Assert.True(passed, $"Evento esperado: {expected}. Encerramento observado: {stopped.Reason}. Notificação de suspensão: {stopped.WindowsSuspension}.");
 
         async Task SendHeartbeatsAsync()
         {

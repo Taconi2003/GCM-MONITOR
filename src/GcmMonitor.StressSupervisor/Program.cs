@@ -29,8 +29,7 @@ using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(35));
 using var pipe = new NamedPipeClientStream(".", args[2], PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 OwnedProcessJob? worker = null;
 WindowsSafetyObservation? environment = null;
-bool windowsSignalObserved = false;
-bool windowsCallbackObserved = false;
+WindowsSafetySignal? windowsSignal = null;
 SafetyStopReason? reason = null;
 long sequence = 0;
 EngineChannel? channel = null;
@@ -68,10 +67,8 @@ try
     SafetyStopReason? WindowsSignal()
     {
         if (environment?.Signal.IsCompletedSuccessfully != true) return null;
-        windowsSignalObserved = true;
-        var signal = environment.Signal.Result;
-        windowsCallbackObserved = signal.Callback;
-        return signal.Reason;
+        windowsSignal = environment.Signal.Result;
+        return windowsSignal.Value.Reason;
     }
     reason = WindowsSignal();
     if (reason is null)
@@ -94,8 +91,8 @@ try
         using var writeTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         await channel.WriteAsync(new SafetyProbeEvent(SafetyProbeProtocol.Version, sessionId, ++sequence, state,
             worker?.ProcessId, worker?.StartedAt, stopped, WindowsObservationEnabled: environment is not null,
-            WindowsSignalObserved: windowsSignalObserved, WorkerExitMilliseconds: workerExitMilliseconds,
-            WindowsCallbackObserved: windowsCallbackObserved), writeTimeout.Token);
+            WindowsSignalObserved: windowsSignal.HasValue, WorkerExitMilliseconds: workerExitMilliseconds,
+            WindowsCallbackObserved: windowsSignal?.Callback == true, WindowsSuspension: windowsSignal?.Suspension), writeTimeout.Token);
     }
     // A espera de leitura pelo controlador não pode bloquear os prazos do filho.
     if (reason is null) runningNotice = Send("IdleProbeRunning");
@@ -183,7 +180,8 @@ catch (Exception ex) when (ex is IOException or InvalidDataException or JsonExce
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(1));
             await channel.WriteAsync(new SafetyProbeEvent(SafetyProbeProtocol.Version, sessionId, ++sequence,
                 "IdleProbeStopped", worker?.ProcessId, worker?.StartedAt, reason, WindowsObservationEnabled: environment is not null,
-                WindowsSignalObserved: windowsSignalObserved, WindowsCallbackObserved: windowsCallbackObserved), timeout.Token);
+                WindowsSignalObserved: windowsSignal.HasValue, WindowsCallbackObserved: windowsSignal?.Callback == true,
+                WindowsSuspension: windowsSignal?.Suspension), timeout.Token);
         }
         catch (Exception writeError) when (writeError is IOException or OperationCanceledException or ObjectDisposedException) { }
     }
