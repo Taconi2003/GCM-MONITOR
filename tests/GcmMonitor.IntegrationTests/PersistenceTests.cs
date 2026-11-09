@@ -67,6 +67,45 @@ public sealed class PersistenceTests : IDisposable
     }
 
     [Fact]
+    public async Task InaccessibleDatabaseStopsTheOwnedEngineAndRecoversCommittedReadings()
+    {
+        var repo = Repository;
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await using var client = new SessionEngineClient(EngineProcessTests.Executable("GcmMonitor.Engine"), repo.DatabasePath);
+        await using var snapshots = client.RunAsync(new() { Modules = [ModuleId.Memory] }, deadline.Token).GetAsyncEnumerator();
+        DiagnosticSession? committed = null;
+        while (await snapshots.MoveNextAsync())
+        {
+            if (snapshots.Current is not { State: SessionState.Running, Measurements.Length: > 0 } snapshot) continue;
+            committed = snapshot;
+            break;
+        }
+        Assert.NotNull(committed);
+        using var engine = System.Diagnostics.Process.GetProcessById(committed.EngineProcessId!.Value);
+        Assert.Equal(committed.EngineProcessStartedAt!.Value.UtcDateTime, engine.StartTime.ToUniversalTime());
+        using (File.Open(repo.DatabasePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+        {
+            var sqlite = await Assert.ThrowsAsync<SqliteException>(() => repo.GetAsync(committed.Id, deadline.Token));
+            Assert.Equal(14, sqlite.SqliteErrorCode); // SQLITE_CANTOPEN
+            await Assert.ThrowsAsync<EndOfStreamException>(async () => { await snapshots.MoveNextAsync(); });
+            Assert.True(engine.HasExited);
+        }
+
+        Assert.Equal(1, await repo.RecoverInterruptedAsync(deadline.Token));
+        var recovered = await repo.GetAsync(committed.Id, deadline.Token);
+        Assert.NotNull(recovered);
+        Assert.Equal(SessionState.Interrupted, recovered.State);
+        Assert.Equal(ModuleState.Partial, Assert.Single(recovered.Modules).State);
+        Assert.Equal(committed.Measurements, recovered.Measurements);
+        Assert.Equal(committed.Statistics, recovered.Statistics);
+        Assert.False(recovered.Stress!.LoadExecuted);
+        string pdfPath = Path.Combine(folder, "parcial.pdf");
+        Assert.True(await new PdfReportExporter().ExportAsync(recovered, pdfPath, false, deadline.Token) > 0);
+        using var pdf = PdfReader.Open(pdfPath, PdfDocumentOpenMode.Import);
+        Assert.True(pdf.PageCount > 0);
+    }
+
+    [Fact]
     public async Task HistoryPaginatesAcrossOldLimitAndRetentionKeepsActiveSessions()
     {
         var repo = Repository;
