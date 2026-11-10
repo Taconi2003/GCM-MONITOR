@@ -56,6 +56,10 @@ public sealed class StressContainmentTests
         Assert.Null(stopped.WindowsSuspension);
         Assert.Null(stopped.WindowsTiming);
         Assert.True(worker.HasExited); // Confirmação terminal só pode ser enviada após a morte do filho.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await controller.Supervisor.WaitForExitAsync(timeout.Token);
+        Assert.Equal(0, controller.Supervisor.ExitCode);
+        await Assert.ThrowsAsync<EndOfStreamException>(() => controller.Channel.ReadAsync<SafetyProbeEvent>(timeout.Token));
     }
 
     [Fact]

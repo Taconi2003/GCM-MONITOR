@@ -89,15 +89,19 @@ internal static class ReportCharts
             Marker(load, 174, 96, 22);
             Marker(recovery, 20, 128, 93);
             Point? previous = null;
+            DateTimeOffset previousTimestamp = default;
             foreach (var sample in samples)
             {
                 if (sample.Quality != DataQuality.Valid || sample.Value is not { } value) { previous = null; continue; }
                 double position = min == max ? .5 : (value / scale - min) / (max - min);
                 var point = new Point(left + (right - left) * (sample.Timestamp - samples[0].Timestamp).TotalSeconds / totalSeconds,
                     bottom - (bottom - top) * position);
-                if (previous is { } before) draw.DrawLine(line, before, point);
+                if (previous is { } before && (sample.IsDemo ||
+                    (sample.Timestamp - previousTimestamp).TotalSeconds <= SamplingContinuity.MaximumIntervalSeconds))
+                    draw.DrawLine(line, before, point);
                 draw.DrawEllipse(teal, null, point, 3, 3);
                 previous = point;
+                previousTimestamp = sample.Timestamp;
             }
             Label(samples[0].Timestamp.ToLocalTime().ToString("HH:mm:ss", Pt), left, bottom + 12);
             Label(samples[^1].Timestamp.ToLocalTime().ToString("HH:mm:ss", Pt), right - 60, bottom + 12);

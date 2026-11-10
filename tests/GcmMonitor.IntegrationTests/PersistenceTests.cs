@@ -196,6 +196,35 @@ public sealed class PersistenceTests : IDisposable
     }
 
     [Fact]
+    public async Task SamplingGapReopensFromSqliteAndExportsWithReadingsOnBothSides()
+    {
+        var repo = Repository;
+        await repo.InitializeAsync();
+        var start = new DateTimeOffset(2026, 11, 10, 12, 0, 0, TimeSpan.Zero);
+        var measurements = new[] { 0, 15, 31, 33 }.Select((seconds, index) => new Measurement(ModuleId.Memory,
+            "RAM", "Memória física", 40 + index, "%", start.AddSeconds(seconds), "Fixture de sessão passiva", DataQuality.Valid, false)).ToArray();
+        var issue = new CollectionIssue(start.AddSeconds(31), null, "Lacuna de amostragem simulada.");
+        var session = new DiagnosticSession
+        {
+            IsDemo = false, State = SessionState.Completed, StartedAt = start, ComputerName = "FIXTURE",
+            Options = new() { Modules = [ModuleId.Memory] }, Measurements = measurements, Issues = [issue]
+        };
+        await repo.SaveBatchAsync(session, new(measurements, [], [issue]));
+
+        string path = Path.Combine(folder, "lacuna-passiva-fixture.pdf");
+        var vm = new ShellViewModel(new ReportEngine(), Repository, new ReportDialogs(path), pdfExporter: new PdfReportExporter());
+        await vm.InitializeAsync();
+        await vm.OpenHistoryCommand.ExecuteAsync(Assert.Single(vm.History));
+        Assert.Contains(issue.Message, vm.CollectionIssues);
+        var chart = Assert.Single(vm.ResultMetricCards);
+        Assert.Equal(new[] { 40d, 41d, double.NaN, 42d, 43d }, chart.Values);
+        Assert.Equal(chart.Values.Length, chart.Labels.Length);
+        await vm.ExportPdfCommand.ExecuteAsync(null);
+        using var pdf = PdfReader.Open(path, PdfDocumentOpenMode.Import);
+        Assert.True(pdf.PageCount > 0);
+    }
+
+    [Fact]
     public async Task ExportRefusesActiveSessionAndPreservesExistingFileWithoutOverwrite()
     {
         Directory.CreateDirectory(folder);

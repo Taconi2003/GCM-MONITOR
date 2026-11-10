@@ -46,6 +46,11 @@ public interface IPassiveCollectionSource : IAsyncDisposable
         bool resetBaselines, CancellationToken cancellationToken);
 }
 
+public static class SamplingContinuity
+{
+    public const int MaximumIntervalSeconds = 15;
+}
+
 /// <summary>Média trapezoidal ponderada no tempo; lacunas não são interpoladas.</summary>
 public sealed class MetricAccumulator
 {
@@ -65,7 +70,7 @@ public sealed class MetricAccumulator
         if (previous.TryGetValue(key, out var last))
         {
             var delta = (reading.Timestamp - last.Timestamp).TotalSeconds;
-            if (delta > 0 && delta <= 15) { seconds = delta; area = (last.Value!.Value + reading.Value!.Value) / 2 * delta; }
+            if (delta is > 0 and <= SamplingContinuity.MaximumIntervalSeconds) { seconds = delta; area = (last.Value!.Value + reading.Value!.Value) / 2 * delta; }
         }
         statistics[key] = item with
         {
@@ -79,7 +84,10 @@ public sealed class MetricAccumulator
         previous[key] = reading;
     }
     public MetricStatistics[] Snapshot() => statistics.Values.ToArray();
-    public void ResetBaselines() => previous.Clear();
+    public void ResetBaselines(ModuleId module)
+    {
+        foreach (var key in previous.Keys.Where(key => key.Item1 == module).ToArray()) previous.Remove(key);
+    }
 }
 
 /// <summary>Mantém somente processos observados; os encerrados saem da memória após serem persistidos.</summary>
@@ -100,7 +108,7 @@ public sealed class ProcessAccumulator(int logicalProcessors)
                     observation.WorkingSetBytes ?? 0, observation.Timestamp, observation.Timestamp, false, 0);
             double seconds = value.Previous is not null ? (observation.Timestamp - value.Previous.Timestamp).TotalSeconds : 0;
             double cpu = 0, cpuSeconds = 0, memorySeconds = 0, memoryArea = 0;
-            if (!resetBaselines && value.Previous is not null && seconds is > 0 and <= 15)
+            if (!resetBaselines && value.Previous is not null && seconds is > 0 and <= SamplingContinuity.MaximumIntervalSeconds)
             {
                 if (observation.CpuTime is { } currentCpu && value.Previous.CpuTime is { } previousCpu && currentCpu >= previousCpu)
                 { cpu = (currentCpu - previousCpu).TotalSeconds; cpuSeconds = seconds; }

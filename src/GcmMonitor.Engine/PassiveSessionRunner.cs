@@ -40,6 +40,10 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
         var window = new List<Measurement>();
         var degraded = new HashSet<ModuleId>();
         var previous = new Dictionary<ModuleId, TimeSpan>();
+        bool HasGap(ModuleId module, TimeSpan at) => previous.TryGetValue(module, out var lastSample) &&
+            (at - lastSample).TotalSeconds > SamplingContinuity.MaximumIntervalSeconds;
+        CollectionIssue SamplingGap() => new(clock.UtcNow, null,
+            $"Lacuna de amostragem superior a {SamplingContinuity.MaximumIntervalSeconds} s. Possível suspensão ou atraso da coleta. Médias calculadas apenas nos intervalos observados.");
         async Task SaveAndPublish(CollectionBatch? batch = null)
         {
             session = session with { EffectiveDuration = clock.Elapsed - start };
@@ -49,7 +53,8 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
         async Task Collect(ModuleId module)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            bool gap = previous.TryGetValue(module, out var lastSample) && clock.Elapsed - lastSample > TimeSpan.FromSeconds(15);
+            var samplingStarted = clock.Elapsed;
+            bool gap = HasGap(module, samplingStarted);
             var batch = new CollectionBatch([], [], []);
             try
             {
@@ -64,8 +69,8 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
             }
             if (gap)
             {
-                accumulator.ResetBaselines();
-                batch = batch with { Issues = [.. batch.Issues, new(clock.UtcNow, null, "Lacuna de amostragem superior a 15 s, possível suspensão/atraso; médias não interpoladas nesse intervalo.")] };
+                accumulator.ResetBaselines(module);
+                batch = batch with { Issues = [.. batch.Issues, SamplingGap()] };
             }
             foreach (var reading in batch.Measurements) accumulator.Add(reading);
             window.AddRange(batch.Measurements);
@@ -97,7 +102,7 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
             session = candidate;
             if (batch.Processes.Length > 0) session = session with { Processes = await repository.ReadProcessRankingsAsync(id) };
             await SaveAndPublish();
-            previous[module] = clock.Elapsed;
+            previous[module] = samplingStarted;
         }
         await SaveAndPublish();
         try
@@ -135,7 +140,15 @@ public sealed class PassiveSessionRunner(ISessionRepository repository, IPassive
                 if (slowDue) nextSlow = clock.Elapsed + TimeSpan.FromSeconds(5);
             }
             session = session.TransitionTo(SessionState.Finalizing, "Consolidando estatísticas e limitações das fontes.", clock.UtcNow);
-            await SaveAndPublish();
+            var finalizingAt = clock.Elapsed;
+            CollectionBatch? finalBatch = null;
+            if (continuous.Any(module => HasGap(module, finalizingAt)))
+            {
+                var issue = SamplingGap();
+                session = session with { Issues = [.. session.Issues.TakeLast(63), issue] };
+                finalBatch = new([], [], [issue]);
+            }
+            await SaveAndPublish(finalBatch);
             cancellationToken.ThrowIfCancellationRequested();
             session = session.TransitionTo(SessionState.Completed, "Coleta passiva finalizada; consulte dados e limitações por módulo.", clock.UtcNow);
         }

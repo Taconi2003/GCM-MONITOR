@@ -46,11 +46,21 @@ public sealed partial class ShellViewModel
             var samples = group.OrderBy(x => x.Timestamp).TakeLast(32).ToArray();
             if (samples.Count(x => x.Quality == DataQuality.Valid) < 2) continue;
             var last = samples[^1];
+            var chartPoints = new List<(string Label, double Value)>(samples.Length);
+            for (int i = 0; i < samples.Length; i++)
+            {
+                var sample = samples[i];
+                if (!sample.IsDemo && i > 0 && sample.Quality == DataQuality.Valid && samples[i - 1].Quality == DataQuality.Valid &&
+                    (sample.Timestamp - samples[i - 1].Timestamp).TotalSeconds > SamplingContinuity.MaximumIntervalSeconds)
+                    chartPoints.Add(("", double.NaN));
+                chartPoints.Add((sample.Timestamp.ToLocalTime().ToString("HH:mm:ss"),
+                    sample.Quality == DataQuality.Valid ? sample.Value!.Value : double.NaN));
+            }
+            var visible = chartPoints.TakeLast(32).SkipWhile(point => point.Label.Length == 0).ToArray();
             cards.Add(new(last.Metric, last.Value?.ToString("0.##") ?? "—", last.Unit, last.Component,
                 (last.IsDemo ? "SINTÉTICO · " : "") + last.Source + " · " + last.Timestamp.ToLocalTime().ToString("HH:mm:ss") +
                 (last.Quality != DataQuality.Valid ? " · Indisponível: " + last.Reason : ""),
-                samples.Select(x => x.Timestamp.ToLocalTime().ToString("HH:mm:ss")).ToArray(),
-                samples.Select(x => x.Quality == DataQuality.Valid ? x.Value!.Value : double.NaN).ToArray(), last.IsDemo));
+                visible.Select(point => point.Label).ToArray(), visible.Select(point => point.Value).ToArray(), last.IsDemo));
         }
     }
 

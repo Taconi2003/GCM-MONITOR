@@ -104,17 +104,40 @@ public sealed class TelemetryTests
     [Fact]
     public async Task DelayedSamplingRecordsGapWithoutInterpolatingMissingInterval()
     {
-        var last = await new PassiveSessionRunner(new MemoryRepository(), new FakeSource(), new FastClock(true)).RunAsync(Guid.NewGuid(),
+        var last = await new PassiveSessionRunner(new MemoryRepository(), new FakeSource(), new FastClock(20)).RunAsync(Guid.NewGuid(),
             new() { Modules = [ModuleId.Memory], MonitoringMinutes = 5 }, _ => Task.CompletedTask, default);
         Assert.Contains(last.Issues, x => x.Message.Contains("Lacuna"));
         Assert.True(last.Statistics.Single().ObservedSeconds < 280);
     }
 
-    private sealed class FastClock(bool oversleep = false) : ISessionClock
+    [Fact]
+    public async Task WakingAfterTheDeadlinePersistsTheGapWithoutTakingAnotherSample()
+    {
+        var repository = new MemoryRepository();
+        var source = new FakeSource();
+        var result = await new PassiveSessionRunner(repository, source, new FastClock(330)).RunAsync(Guid.NewGuid(),
+            new() { Modules = [ModuleId.Memory], MonitoringMinutes = 5 }, _ => Task.CompletedTask, default);
+
+        Assert.Equal(SessionState.Completed, result.State);
+        Assert.Equal(1, source.Calls);
+        Assert.Equal(0, Assert.Single(result.Statistics).ObservedSeconds);
+        var reopened = await repository.GetAsync(result.Id);
+        Assert.NotNull(reopened);
+        Assert.Contains("Lacuna", Assert.Single(reopened.Issues).Message);
+        Assert.False(reopened.Stress!.LoadExecuted);
+    }
+
+    private sealed class FastClock(int extraFirstDelaySeconds = 0) : ISessionClock
     {
         public TimeSpan Elapsed { get; private set; }
         public DateTimeOffset UtcNow => Epoch + Elapsed;
-        public Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken) { cancellationToken.ThrowIfCancellationRequested(); Elapsed += delay; if (oversleep) { Elapsed += TimeSpan.FromSeconds(20); oversleep = false; } return Task.CompletedTask; }
+        public Task DelayAsync(TimeSpan delay, CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Elapsed += delay + TimeSpan.FromSeconds(extraFirstDelaySeconds);
+            extraFirstDelaySeconds = 0;
+            return Task.CompletedTask;
+        }
     }
     private sealed class FakeSource : IPassiveCollectionSource
     {
