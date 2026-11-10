@@ -104,13 +104,20 @@ separadamente o total de tentativas, leituras válidas e sinais ativos.
 [leitura do pacote no LibreHardwareMonitor 0.9.6](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/blob/v0.9.6/LibreHardwareMonitorLib/Hardware/Cpu/IntelCpu.cs)
 e [API de leitura](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/blob/v0.9.6/LibreHardwareMonitorLib/PawnIo/IntelMsr.cs).
 
+Na revisão Alder Lake U com assinatura CPUID `0x906A4`, a captura também consulta
+`TEMPERATURE_TARGET` (`0x1A2`) uma vez. `PackageThermalTarget` registra o TjMax,
+o deslocamento configurado do controle térmico, o alvo ajustado e se há média temporal.
+Um valor vazio indica leitura indisponível ou assinatura fora desta revisão. A
+interpretação serve ao laboratório. Os limiares de parada do GCM exigem qualificação própria.
+[Datasheet Intel, controle térmico adaptativo](https://cdrdv2-public.intel.com/655258/655258-011.pdf).
+
 O comando sem `-Elevated` permite verificar o tratamento da ausência de privilégios. O
 resultado deve trazer `PackageStatusAttempts=0` e o motivo em `PackageStatusUnavailable`.
 Esta prova avulsa usa a mesma fonte de baixo nível da temperatura do GCM e deixa pendentes
 a comparação independente, a confirmação física do sinal e a qualificação de proteção.
 
 Saídas em `.artifacts/thermal-validation/<execução>/`, ignoradas pelo Git. `private-capture.json`
-contém leituras/nomes/IDs de sensores: não publicar. `summary.json` só tem contagens/intervalos/estados,
+contém leituras/nomes/IDs de sensores: não publicar. `summary.json` contém apenas resultados técnicos agregados,
 mas exige revisão antes de publicação. Não há retomada/início automático de carga. A ferramenta não
 integra a distribuição instalada do GCM.
 

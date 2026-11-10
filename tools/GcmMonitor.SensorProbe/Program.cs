@@ -21,6 +21,7 @@ using var installedDriver = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsof
 string? driverVersion = installedDriver?.GetValue("DisplayVersion")?.ToString();
 string? errorType = null;
 IntelMsr? packageRegister = null;
+ProbeThermalTarget? thermalTarget = null;
 string? packageStatusUnavailable = null;
 var computer = new Computer
 {
@@ -40,7 +41,11 @@ try
                 !X86Base.IsSupported || X86Base.CpuId(0, 0).Eax < 6 || (X86Base.CpuId(6, 0).Eax & (1 << 6)) == 0
                 ? "A prova exige um único pacote Intel com gerenciamento térmico anunciado por CPUID."
                 : null;
-        if (packageStatusUnavailable is null) packageRegister = new IntelMsr();
+        if (packageStatusUnavailable is null)
+        {
+            packageRegister = new IntelMsr();
+            thermalTarget = ReadThermalTarget(packageRegister);
+        }
     }
     for (int index = 0; index < 30; index++)
     {
@@ -109,7 +114,8 @@ await SaveAsync("private-capture.json", new
     CompletedAt = DateTimeOffset.UtcNow, Source = "LibreHardwareMonitorLib 0.9.6 / CPU only",
     LibraryVersion = typeof(Computer).Assembly.GetName().Version?.ToString(), PawnIoInstalledVersion = driverVersion,
     TimestampMeaning = "Host receipt after Update; not firmware freshness or independent reference",
-    StressExecuted = false, SafetyQualified = false, PackageStatusRequested = packageStatusRequested, ErrorType = errorType, Frames = frames
+    StressExecuted = false, SafetyQualified = false, PackageStatusRequested = packageStatusRequested,
+    PackageThermalTarget = thermalTarget, ErrorType = errorType, Frames = frames
 });
 await SaveAsync("summary.json", new
 {
@@ -125,15 +131,34 @@ await SaveAsync("summary.json", new
     PackageStatusValidReadings = validPackageStatus,
     PackageStatusActiveReadings = frames.Count(f => f.PackageStatus?.ThermalProtectionActive == true),
     PackageStatusUnavailable = packageStatusUnavailable,
+    PackageThermalTarget = thermalTarget,
     MaximumReadMilliseconds = frames.Count == 0 ? 0 : frames.Max(f => f.ReadCompletedMilliseconds - f.ReadStartedMilliseconds),
     MaximumStartGapMilliseconds = frames.Zip(frames.Skip(1), (a, b) => b.ReadStartedMilliseconds - a.ReadStartedMilliseconds).DefaultIfEmpty(0).Max(),
     ErrorType = errorType
 });
 return errorType is null && frames.Count == 30 ? 0 : 3;
 
+static ProbeThermalTarget? ReadThermalTarget(IntelMsr register)
+{
+    // Mapeamento revisado para Alder Lake U, família 6, modelo 0x9A, revisão 4.
+    const int familyModelSteppingMask = 0x0FFF0FFF;
+    const int alderLakeU = 0x906A4;
+    const uint temperatureTarget = 0x1A2;
+    if ((X86Base.CpuId(1, 0).Eax & familyModelSteppingMask) != alderLakeU ||
+        !register.ReadMsr(temperatureTarget, out ulong value))
+        return null;
+    int tjMax = (int)((value >> 16) & 0xFF);
+    int offset = (int)((value >> 24) & 0x3F);
+    return tjMax > offset
+        ? new(DateTimeOffset.UtcNow, tjMax, offset, tjMax - offset, (value & 0x7F) != 0)
+        : null;
+}
+
 sealed record ProbeParameter(string Name, float? Value);
 sealed record ProbeSensor(string HardwareId, string SensorId, string Name, string Role, float? Value,
     string Unit, ProbeParameter[] Parameters, bool CandidateForFurtherValidation);
 sealed record ProbePackageStatus(DateTimeOffset QueryStartedAt, DateTimeOffset QueryCompletedAt, bool? ThermalProtectionActive);
+sealed record ProbeThermalTarget(DateTimeOffset ReadAtUtc, int TjMaxCelsius, int TccOffsetCelsius,
+    int TccAdjustedTargetCelsius, bool TccTimeAveragingEnabled);
 sealed record ProbeFrame(int Sequence, DateTimeOffset ReadStartedAt, DateTimeOffset ReceivedAt,
     double ReadStartedMilliseconds, double ReadCompletedMilliseconds, ProbeSensor[] Sensors, ProbePackageStatus? PackageStatus);
