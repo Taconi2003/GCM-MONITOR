@@ -271,6 +271,16 @@ concluiu com zero avisos e erros. O controle sem elevação completou 30 ciclos,
 com zero tentativas de ler o sinal e alvo térmico indisponível. O resultado está em
 `.artifacts/thermal-validation/target-unprivileged-eea62861e495441a81321be2c7a20f6d/`.
 
+## Ensaio ocioso na tomada
+
+Em 9 de novembro de 2026, o protocolo 5 aceitou a parada direta após o aviso
+`Entering`. O processo ocioso saiu 5,831 ms após o aviso. O SleepStudy confirmou
+a alimentação pela tomada e separou 319,660 ms de `Screen Off` de 30,793 s de `Sleep`.
+Na correlação com o evento 566, a marca de saída ficou 0,134 ms depois da marca de início
+de `Sleep`. Com essa diferença, a prova não confirma saída anterior à fase de baixo consumo.
+O resultado nativo, o TRX, a cronologia agregada e o SleepStudy privado ficam em
+`.artifacts/validation/windows-observation-10069fc8550e4727bf65fda219874ca3/`.
+
 ## Escopo de aprovação
 
 A leitura direta pelo canal 2 passou no notebook. A comparação de precisão do CPU Package
@@ -278,5 +288,5 @@ ainda precisa de uma série mais longa com horários de aquisição da referênc
 anteriores do HWMonitor estão no [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md).
 Houve três observações de parada ociosa durante `Screen Off` em bateria. Seguem
 pendentes a qualificação do frescor do sensor, os limites de segurança do GCM e a
-validação do comportamento em outras condições de alimentação e sob carga.
+confirmação de parada anterior a `Sleep` na tomada e sob carga.
 O estresse real permanece bloqueado.
