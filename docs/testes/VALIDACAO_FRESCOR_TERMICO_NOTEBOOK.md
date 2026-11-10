@@ -146,10 +146,43 @@ da suíte de integração em `.artifacts/TestResults/`. O ensaio cobre perda de 
 em coleta passiva. A falta real de espaço e o cenário sob carga seguem pendentes.
 [Código de resultado do SQLite](https://www.sqlite.org/rescode.html#cantopen).
 
+## Ensaios acompanhados de 9 de novembro de 2026
+
+Prévia 7, revisão `9c22e8e`, Windows 11 x64 build 26200 e protocolo 4 do supervisor.
+Os ensaios físicos de energia e suspensão usaram somente um processo ocioso.
+
+| Prova | Resultado neste notebook |
+| --- | --- |
+| CT-053 · Tomada para bateria | A primeira janela de 15 s terminou sem transição observada. Na repetição, o Windows notificou a troca e o supervisor confirmou a saída do filho em 2,681 s desde seu início, com motivo `PowerChanged`. O subcaso ocioso foi aprovado. |
+| CT-052 · Modern Standby S0, primeira tentativa | O evento 506 marcou a entrada em S0 14,864 s após a prontidão. O filho saiu 0,078 s depois desse evento, com motivo `DurationCompleted`. O teste não registrou a notificação de entrada. |
+| CT-052 · Modern Standby S0, segunda tentativa | O evento 506 ocorreu 4,614 s após a prontidão. O supervisor registrou `Suspended` com notificação `Entering` e confirmou a saída do filho. A saída ocorreu 39,159 s após o evento 506 e 0,287 s antes do evento 507 de retomada. |
+
+A segunda tentativa satisfez o critério de notificação e saída eventual do roteiro.
+A ordem dos eventos mostra que o processo ainda existia depois da entrada em S0.
+O subcaso de encerramento antes da entrada em suspensão fica reprovado neste notebook.
+O critério completo CT-052, que também inclui o comportamento da coleta e do estresse,
+continua bloqueado. Nenhuma carga artificial foi executada.
+
+Os arquivos `result.json` e TRX estão em `.artifacts/validation/windows-observation-7cb80ebd3a614f8fa1c3eaf3ea8d53fd/`
+para alimentação e em `.artifacts/validation/windows-observation-8a17bbfcb81643068c5b2fc40095baa3/`
+e `.artifacts/validation/windows-observation-85487851cac74d79b17ab0dcaa29cce3/` para suspensão.
+As duas pastas de suspensão também contêm `windows-events.json` com a cronologia agregada.
+
+### Sinal térmico do pacote Intel
+
+Após a confirmação normal do Windows, a sonda avulsa completou 30 ciclos passivos com
+LibreHardwareMonitorLib 0.9.6 e PawnIO 2.2.0.0. As 30 consultas do sinal térmico foram
+válidas e reportaram estado inativo no instante da leitura. Houve 30 temperaturas de
+CPU Package, com 14 valores distintos, e 330 leituras candidatas considerando pacote
+e núcleos. A maior duração observada da consulta específica do sinal foi 0,143 ms.
+O sinal ativo e a precisão contra uma referência com horários de aquisição continuam
+sem validação. A captura privada e o resumo ficam em
+`.artifacts/thermal-validation/20261110T010712Z-1e74c3a78f8c48979be8c15614717cd0/`.
+
 ## Escopo de aprovação
 
 A leitura direta pelo canal 2 passou no notebook. A comparação de precisão do CPU Package
 ainda precisa de uma série mais longa com horários de aquisição da referência. Os ensaios
 anteriores do HWMonitor estão no [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md).
-Seguem pendentes a qualificação do frescor do sensor, os limites por hardware e as transições
-físicas de alimentação e suspensão S0 com o técnico presente. O estresse real permanece bloqueado.
+Seguem pendentes a qualificação do frescor do sensor, os limites por hardware e o encerramento
+antes da entrada em S0. O estresse real permanece bloqueado.
