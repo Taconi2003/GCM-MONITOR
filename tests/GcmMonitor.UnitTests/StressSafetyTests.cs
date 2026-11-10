@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using GcmMonitor.Core;
 
 namespace GcmMonitor.UnitTests;
@@ -92,7 +93,7 @@ public sealed class StressSafetyTests
     }
 
     [Fact]
-    public void LateThermalFixtureCannotRenewAnExpiredWatch()
+    public void QueuedThermalFixtureKeepsOnlyItsRemainingQueryBudget()
     {
         var id = Guid.NewGuid();
         CpuThermalSensor[] sensors =
@@ -101,8 +102,16 @@ public sealed class StressSafetyTests
             new("/intelcpu/0", "/intelcpu/0/temperature/1", "Core #1", CpuThermalRole.Core, 60, 100)
         ];
         var frame = new CpuThermalFrame(CpuThermalProtocol.Version, id, 1, 0, 100, CpuThermalStatus.Reading, sensors);
-        var watch = new IdleThermalWatch(id, frame);
-        Assert.False(watch.Observe(frame with { Sequence = 2, ReadStartedMilliseconds = 6000, ReadCompletedMilliseconds = 6100 }, watch.Deadline));
-        Assert.False(watch.Observe(frame with { Sequence = 2, ReadStartedMilliseconds = 200, ReadCompletedMilliseconds = 300 }, TimeSpan.FromSeconds(1)));
+        static long Counter(long milliseconds) => Stopwatch.Frequency * (20000 + milliseconds) / 1000;
+        var watch = new IdleThermalWatch(id, new(frame, Counter(0), Counter(100)), Counter(4000));
+        Assert.Equal(TimeSpan.FromSeconds(2), watch.DeadlineFrom(Counter(4000)));
+
+        var next = frame with { Sequence = 2, ReadStartedMilliseconds = 1200, ReadCompletedMilliseconds = 1300 };
+        Assert.True(watch.Observe(new(next, Counter(1200), Counter(1300)), Counter(4500)));
+        Assert.Equal(TimeSpan.FromMilliseconds(2700), watch.DeadlineFrom(Counter(4500)));
+
+        var fresh = frame with { Sequence = 3, ReadStartedMilliseconds = 7100, ReadCompletedMilliseconds = 7150 };
+        Assert.False(watch.Observe(new(fresh, Counter(7100), Counter(7150)), Counter(7200)));
+        Assert.False(watch.Observe(new(fresh, Counter(7100), Counter(7150)), Counter(7199)));
     }
 }

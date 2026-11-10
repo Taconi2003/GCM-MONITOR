@@ -189,6 +189,30 @@ integração. Sete casos opt-in ficaram fora da suíte rápida, incluindo o novo
   parada e saída confirmada pelo kernel. Preservar os dados gravados e exigir que qualquer retomada
   registre a lacuna e nunca reinicie carga automaticamente.
 
+### Idade da consulta na prova térmica ociosa
+
+O protocolo 6 da prova ociosa transporta os horários monotônicos de início e fim de cada
+consulta sintética. O supervisor usa a mesma validação de sequência e janela do canal passivo.
+O prazo da prova vence seis segundos após o início da consulta, incluindo a espera antes da
+entrega. Uma fixture inicial vencida impede a criação do filho. Se o prazo expirar enquanto o
+filho ainda está suspenso na inicialização, o supervisor o encerra sem iniciar sua execução.
+Uma nova mensagem após o vencimento não reativa o watchdog.
+
+Esse prazo é um parâmetro da prova com dados sintéticos. A qualificação do frescor do sensor
+físico e a definição de um prazo de proteção para carga seguem separadas.
+
+Em 10 de novembro de 2026, uma consulta sintética com quatro segundos de idade no envio
+deixou 1,904 s de execução do filho ocioso. O processo saiu antes da confirmação terminal
+`SensorLost`. Uma consulta inicial com sete segundos foi recusada sem criação de processo.
+Os testes unitários verificaram que a renovação usa o tempo restante da nova consulta e que
+mensagens depois do vencimento não reabrem o prazo. O Release compilou sem avisos e erros.
+Passaram 110 testes unitários e 67 de integração, com sete casos opt-in fora da suíte rápida.
+
+A prova adicional `DurationCompleted`, com a observação nativa do Windows ligada e a alimentação
+estável, confirmou a saída do filho ocioso em 4,026 s. Evidências locais em
+`.artifacts/validation/thermal-queued-query.json` e
+`.artifacts/validation/windows-observation-5c779e4846dd46bdac71486b44375470/`.
+
 ### O que as provas de energia demonstraram
 
 | Cenário | Evidência e limite |

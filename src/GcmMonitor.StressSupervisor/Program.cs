@@ -50,9 +50,9 @@ try
     SafetyProbeProtocol.Validate(start.Version, start.SessionId, sessionId, start.Nonce, start.Nonce);
     if (start.Purpose != SafetyProbeProtocol.Purpose || start.DurationMilliseconds is < 100 or > 15000 || !start.Nonce.All(Uri.IsHexDigit))
         throw new InvalidDataException("Prova aceita somente contenção ociosa, com duração interna limitada.");
-    var thermal = start.InitialThermalFixture is { } initial ? new IdleThermalWatch(sessionId, initial) : null;
+    var thermal = start.InitialThermalFixture is { } initial ? new IdleThermalWatch(sessionId, initial, Stopwatch.GetTimestamp()) : null;
     if (start.CriticalFixtureCelsius is { } critical &&
-        (!double.IsFinite(critical) || thermal is null || start.InitialThermalFixture!.Sensors.Any(s => s.Celsius >= critical)))
+        (!double.IsFinite(critical) || thermal is null || start.InitialThermalFixture!.Frame.Sensors.Any(s => s.Celsius >= critical)))
         throw new InvalidDataException("Condição crítica inicial ou limiar inválido na prova ociosa.");
     if (start.ObserveWindows)
     {
@@ -70,22 +70,29 @@ try
         windowsSignal = observed;
         return observed.Reason;
     }
-    reason = WindowsSignal();
+    SafetyStopReason? StartupStop() => WindowsSignal() ??
+        (thermal?.DeadlineFrom(Stopwatch.GetTimestamp()) <= TimeSpan.Zero ? SafetyStopReason.SensorLost : null);
+    reason = StartupStop();
     if (reason is null)
     {
         worker = OwnedProcessJob.CreateSuspended(Environment.ProcessPath!, ["--idle-probe"]);
-        if (environment is null) worker.Resume();
-        else environment.ResumeUnlessSignaled(worker);
-        reason = WindowsSignal();
+        reason = StartupStop();
+        if (reason is null)
+        {
+            if (environment is null) worker.Resume();
+            else environment.ResumeUnlessSignaled(worker);
+            reason = WindowsSignal();
+        }
     }
-    var elapsed = Stopwatch.StartNew();
-    var lastHeartbeat = elapsed.Elapsed;
+    long runStarted = Stopwatch.GetTimestamp();
+    var lastHeartbeat = TimeSpan.Zero;
     var duration = TimeSpan.FromMilliseconds(start.DurationMilliseconds);
     (TimeSpan Due, SafetyStopReason Reason) NextDeadline()
     {
         var heartbeatDue = lastHeartbeat + SafetyProbeProtocol.HeartbeatTimeout;
         var deadline = duration <= heartbeatDue ? (duration, SafetyStopReason.DurationCompleted) : (heartbeatDue, SafetyStopReason.HeartbeatLost);
-        return thermal is not null && thermal.Deadline <= deadline.Item1 ? (thermal.Deadline, SafetyStopReason.SensorLost) : deadline;
+        var thermalDue = thermal?.DeadlineFrom(runStarted);
+        return thermalDue is { } due && due <= deadline.Item1 ? (due, SafetyStopReason.SensorLost) : deadline;
     }
     async Task Send(string state, SafetyStopReason? stopped = null)
     {
@@ -104,7 +111,7 @@ try
         if ((reason = WindowsSignal()) is not null) break;
         if (worker!.HasExited) { reason = WindowsSignal() ?? SafetyStopReason.WorkerExited; break; }
         var deadline = NextDeadline();
-        var remaining = deadline.Due - elapsed.Elapsed;
+        var remaining = deadline.Due - Stopwatch.GetElapsedTime(runStarted);
         if (remaining <= TimeSpan.Zero) { reason = deadline.Reason; break; }
         using var receive = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
         receive.CancelAfter(remaining);
@@ -119,17 +126,19 @@ try
                 break;
             }
             var command = await pending;
+            long received = Stopwatch.GetTimestamp();
             if ((reason = WindowsSignal()) is not null) break;
             // A renovação só vale se a mensagem inteira chegou antes do prazo.
-            if (elapsed.Elapsed >= deadline.Due) { reason = deadline.Reason; break; }
+            var elapsed = Stopwatch.GetElapsedTime(runStarted, received);
+            if (elapsed >= deadline.Due) { reason = deadline.Reason; break; }
             SafetyProbeProtocol.Validate(command.Version, command.SessionId, sessionId, command.Nonce, start.Nonce);
             if (command.Sequence != lastCommand + 1) throw new InvalidDataException("Sequência de comando inválida.");
             lastCommand = command.Sequence;
             if (command.Command == "thermal-fixture")
             {
                 if (thermal is null || command.ThermalFixture is null) throw new InvalidDataException("Fixture térmica não negociada.");
-                if (!thermal.Observe(command.ThermalFixture, elapsed.Elapsed)) reason = SafetyStopReason.SensorLost;
-                else if (start.CriticalFixtureCelsius is { } limit && command.ThermalFixture.Sensors.Any(s => s.Celsius >= limit))
+                if (!thermal.Observe(command.ThermalFixture, received)) reason = SafetyStopReason.SensorLost;
+                else if (start.CriticalFixtureCelsius is { } limit && command.ThermalFixture.Frame.Sensors.Any(s => s.Celsius >= limit))
                     reason = SafetyStopReason.CriticalTemperature;
                 continue;
             }
@@ -145,7 +154,7 @@ try
                 "persistence-failed" => SafetyStopReason.PersistenceFailed,
                 _ => throw new InvalidDataException("Comando não permitido na prova de contenção.")
             };
-            if (command.Command == "heartbeat") lastHeartbeat = elapsed.Elapsed;
+            if (command.Command == "heartbeat") lastHeartbeat = elapsed;
         }
         catch (OperationCanceledException) when (receive.IsCancellationRequested)
         {
@@ -157,7 +166,7 @@ try
     if (worker is not null)
     {
         await worker.StopAsync();
-        workerExitMilliseconds = elapsed.Elapsed.TotalMilliseconds;
+        workerExitMilliseconds = Stopwatch.GetElapsedTime(runStarted).TotalMilliseconds;
     }
     if (runningNotice is not null) await runningNotice;
     await Send("IdleProbeStopped", reason);

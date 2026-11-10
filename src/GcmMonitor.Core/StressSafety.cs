@@ -82,7 +82,7 @@ public enum WindowsSuspensionNotification { Entering, Resuming }
 /// <summary>Contrato exclusivo da prova ociosa de contenção. Não transporta autorização de carga.</summary>
 public static class SafetyProbeProtocol
 {
-    public const int Version = 5;
+    public const int Version = 6;
     public const int MaximumBytes = 16384;
     public static TimeSpan HeartbeatTimeout => TimeSpan.FromSeconds(3);
     public const string Purpose = "IdleContainmentProbe";
@@ -93,9 +93,9 @@ public static class SafetyProbeProtocol
     }
 }
 public sealed record SafetyProbeStart(int Version, Guid SessionId, string Nonce, string Purpose, int DurationMilliseconds,
-    bool ObserveWindows = false, CpuThermalFrame? InitialThermalFixture = null, double? CriticalFixtureCelsius = null);
+    bool ObserveWindows = false, CpuThermalTransfer? InitialThermalFixture = null, double? CriticalFixtureCelsius = null);
 public sealed record SafetyProbeCommand(int Version, Guid SessionId, string Nonce, long Sequence, string Command,
-    CpuThermalFrame? ThermalFixture = null);
+    CpuThermalTransfer? ThermalFixture = null);
 public sealed record WindowsStopTiming(DateTimeOffset SignalAtUtc, DateTimeOffset? DirectStopRequestedAtUtc = null,
     bool? DirectStopAccepted = null);
 public sealed record SafetyProbeEvent(int Version, Guid SessionId, long Sequence, string State,

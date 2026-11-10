@@ -227,10 +227,39 @@ public sealed class StressContainmentTests
         await using var controller = await Probe.ConnectAsync();
         var incomplete = Fixture(controller.Id, 1);
         await controller.Channel.WriteAsync(new SafetyProbeStart(SafetyProbeProtocol.Version, controller.Id, controller.Nonce,
-            SafetyProbeProtocol.Purpose, 4000, InitialThermalFixture: incomplete with { Sensors = [incomplete.Sensors[0]] }));
+            SafetyProbeProtocol.Purpose, 4000, InitialThermalFixture: Capture(incomplete with { Sensors = [incomplete.Sensors[0]] })));
         var stopped = await controller.ReadAsync();
         Assert.Equal(SafetyStopReason.InvalidProtocol, stopped.Reason);
         Assert.Null(stopped.WorkerPid);
+    }
+
+    [Fact]
+    public async Task ExpiredInitialThermalQueryIsRejectedBeforeWorkerCreation()
+    {
+        await using var controller = await Probe.ConnectAsync();
+        var stopped = await controller.SendStartAsync(10000, thermalFixture: true, fixtureAge: TimeSpan.FromSeconds(7));
+        Assert.Equal("IdleProbeStopped", stopped.State);
+        Assert.Equal(SafetyStopReason.InvalidProtocol, stopped.Reason);
+        Assert.Null(stopped.WorkerPid);
+    }
+
+    [Fact]
+    public async Task QueuedInitialThermalQueryExpiresBeforeTheHeartbeatDeadline()
+    {
+        await using var controller = await Probe.ConnectAsync();
+        var started = await controller.SendStartAsync(10000, thermalFixture: true, fixtureAge: TimeSpan.FromSeconds(4));
+        Assert.Equal("IdleProbeRunning", started.State);
+        using var worker = controller.OpenWorker();
+        var stopped = await controller.ReadAsync();
+        Assert.Equal(SafetyStopReason.SensorLost, stopped.Reason);
+        Assert.True(worker.HasExited);
+        await SaveEnvironmentEvidenceAsync("thermal-queued-query.json", new
+        {
+            Protocol = SafetyProbeProtocol.Version, FixtureAgeAtSendSeconds = 4,
+            ConfiguredThermalSeconds = CpuThermalProtocol.MaximumAge.TotalSeconds,
+            stopped.WorkerExitMilliseconds, Reason = stopped.Reason.ToString(), WorkerExitConfirmed = worker.HasExited,
+            stopped.IdleOnly, stopped.LoadExecuted, IdentifiersExcluded = true
+        });
     }
 
     [Fact]
@@ -392,6 +421,12 @@ public sealed class StressContainmentTests
             new("/intelcpu/0", "/intelcpu/0/temperature/1", "Core #1", CpuThermalRole.Core, 58, 100)
         ]);
 
+    private static CpuThermalTransfer Capture(CpuThermalFrame frame, TimeSpan age = default)
+    {
+        long captured = Stopwatch.GetTimestamp() - (long)(age.TotalSeconds * Stopwatch.Frequency);
+        return new(frame, captured, captured);
+    }
+
     private static async Task SaveEnvironmentEvidenceAsync(string name, object evidence)
     {
         string directory = Path.Combine(EngineProcessTests.FindRoot(), ".artifacts", "validation");
@@ -421,10 +456,10 @@ public sealed class StressContainmentTests
             catch { await probe.DisposeAsync(); throw; }
         }
         public async Task<SafetyProbeEvent> SendStartAsync(int duration, bool observeWindows = false, bool thermalFixture = false,
-            double? criticalFixtureCelsius = null)
+            double? criticalFixtureCelsius = null, TimeSpan fixtureAge = default)
         {
             await Channel.WriteAsync(new SafetyProbeStart(SafetyProbeProtocol.Version, Id, Nonce, SafetyProbeProtocol.Purpose,
-                duration, observeWindows, thermalFixture ? Fixture(Id, 1) : null, criticalFixtureCelsius));
+                duration, observeWindows, thermalFixture ? Capture(Fixture(Id, 1), fixtureAge) : null, criticalFixtureCelsius));
             return started = await ReadAsync();
         }
         public static async Task<Probe> ConnectAsync(bool wrongControllerStart = false)
@@ -450,7 +485,8 @@ public sealed class StressContainmentTests
             Assert.Equal(started.WorkerStartedAt!.Value.UtcDateTime, worker.StartTime.ToUniversalTime()); return worker;
         }
         public Task CommandAsync(string command, CpuThermalFrame? thermal = null, CancellationToken ct = default) =>
-            Channel.WriteAsync(new SafetyProbeCommand(SafetyProbeProtocol.Version, Id, Nonce, ++sequence, command, thermal), ct);
+            Channel.WriteAsync(new SafetyProbeCommand(SafetyProbeProtocol.Version, Id, Nonce, ++sequence, command,
+                thermal is null ? null : Capture(thermal)), ct);
         public async Task<SafetyProbeEvent> ReadAsync(TimeSpan? readTimeout = null)
         {
             using var timeout = new CancellationTokenSource(readTimeout ?? TimeSpan.FromSeconds(12));
