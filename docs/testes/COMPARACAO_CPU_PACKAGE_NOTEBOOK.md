@@ -122,3 +122,16 @@ observação para avaliar a concordância e a cadência. A qualificação para p
 também depende de conhecer a atualização do sensor, confirmar os sinais de limitação térmica e
 validar a parada por falha no equipamento. O relatório da [prévia 6](V1.0-PREVIEW.6.md) registra
 separadamente as evidências da simulação e do supervisor com processo ocioso.
+
+### Referência com horários no próprio CSV
+
+Em 9 de novembro, a edição portátil HWiNFO64 8.34-5870 foi obtida no
+repositório do autor e conferida localmente com assinatura Authenticode válida da
+REALiX. A janela de sensores exibiu `CPU Inteiro` no grupo Intel DTS. Para a
+comparação, selecione a coluna desse grupo, preserve os horários do CSV e converta
+apenas o valor atual para `Timestamp,Celsius`, com o fuso explícito. O formato
+RFC 3339/ISO 8601 está disponível na configuração de registro de sensores.
+O arquivo bruto fica em pasta local ignorada pelo Git.
+[Arquivo do autor](https://sourceforge.net/projects/hwinfo/files/Windows_Portable/hwi_834.zip/download),
+[formatos de horário do HWiNFO](https://www.hwinfo.com/version-history/) e
+[identidade do CPU Package DTS](https://www.hwinfo.com/forum/threads/hwinfo-cpu-temperature.5962/).
