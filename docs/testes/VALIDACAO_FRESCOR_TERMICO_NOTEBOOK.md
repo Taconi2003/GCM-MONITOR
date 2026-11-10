@@ -223,10 +223,60 @@ permanece ativo. O build final em Release concluiu com zero avisos e erros.
 A suíte final passou com 108 testes unitários e 64 de integração. Seis casos optativos
 ficaram fora da execução padrão, incluindo a prova física executada separadamente.
 
+## Repetibilidade em bateria e referências térmicas
+
+Ainda em 9 de novembro de 2026, foram executadas mais duas suspensões manuais em
+bateria, com a mesma revisão do supervisor e sem carga. Os dois filhos ociosos
+encerraram após a notificação de entrada e antes da fase `Sleep`. O evento 566 foi
+correlacionado com a duração de `Screen Off` no SleepStudy.
+
+| Ensaio | Saída após o aviso | Saída antes de `Sleep` |
+| --- | ---: | ---: |
+| Prova positiva anterior | 5,655 ms | 2,012 ms |
+| Primeira repetição | 5,586 ms | 1,402 ms |
+| Segunda repetição | 4,097 ms | 3,407 ms |
+
+As duas repetições mantiveram a ordem observada. As três margens são estreitas e
+foram observadas em um único notebook em bateria. O controle anterior que terminou
+pelo cronômetro continua registrado separadamente. O CT-052 integral exige
+evidência adicional sobre a coleta e as proteções sob carga.
+
+O TRX, o resultado e a cronologia agregada de cada repetição ficam em
+`.artifacts/validation/windows-observation-e899271154574489a1bdb6334e958f30/` e
+`.artifacts/validation/windows-observation-6138b05ef92f4e82988a42cf6d943fb1/`.
+A segunda pasta guarda o SleepStudy privado que abrange ambas.
+
+O Windows identificou a família Samsung Galaxy Book2 550XED e o Intel Core i5-1235U.
+A Intel publica 100 °C de temperatura máxima de junção para o processador. O datasheet
+da família descreve um ajuste de plataforma que pode reduzir o alvo do controle térmico
+e especifica erro de até ±5 °C do sensor digital na faixa operacional. Esse erro é uma
+especificação do sensor físico. A comparação do GCM inclui ainda o tempo da consulta,
+a idade da leitura e a incerteza da ferramenta de referência.
+[Família Galaxy Book2 na Samsung](https://www.samsung.com/br/support/model/NP550XED-KF2BR/),
+[especificação Intel i5-1235U](https://www.intel.com/content/www/us/en/products/sku/226261/intel-core-i51235u-processor-12m-cache-up-to-4-40-ghz/specifications.html)
+e [datasheet Intel, seção 4.1.3](https://cdrdv2-public.intel.com/655258/655258-011.pdf).
+
+A sonda avulsa, após confirmação do Windows, leu o registrador `TEMPERATURE_TARGET` uma
+vez na assinatura CPUID `0x906A4`. A leitura registrou TjMax de 100 °C, deslocamento de
+6 °C, alvo ajustado de 94 °C e janela de média térmica desativada. O CPU Package variou
+de 41 a 54 °C, com média de 42,77 °C em 30 pontos passivos. As 30 consultas do sinal
+térmico foram válidas e o sinal estava inativo em todas. O resumo fica em
+`.artifacts/thermal-validation/20261110T012550Z-d7edb26b826c4a15a3ee59cbc7e971d3/`.
+
+Os 94 °C descrevem a configuração observada do controle interno do processador.
+Para qualificar um limiar do GCM, ainda é preciso medir a concordância temporal e
+térmica com uma referência, o aquecimento entre amostras e o tempo de parada em
+condições representativas. A sonda permaneceu exclusivamente passiva e o build
+concluiu com zero avisos e erros. O controle sem elevação completou 30 ciclos,
+com zero tentativas de ler o sinal e alvo térmico indisponível. O resultado está em
+`.artifacts/thermal-validation/target-unprivileged-eea62861e495441a81321be2c7a20f6d/`.
+
 ## Escopo de aprovação
 
 A leitura direta pelo canal 2 passou no notebook. A comparação de precisão do CPU Package
 ainda precisa de uma série mais longa com horários de aquisição da referência. Os ensaios
 anteriores do HWMonitor estão no [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md).
-Seguem pendentes a qualificação do frescor do sensor, os limites por hardware e a
-repetibilidade da parada durante a transição para `Sleep`. O estresse real permanece bloqueado.
+Houve três observações de parada ociosa durante `Screen Off` em bateria. Seguem
+pendentes a qualificação do frescor do sensor, os limites de segurança do GCM e a
+validação do comportamento em outras condições de alimentação e sob carga.
+O estresse real permanece bloqueado.
