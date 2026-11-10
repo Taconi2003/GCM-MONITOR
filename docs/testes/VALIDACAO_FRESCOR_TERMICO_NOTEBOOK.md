@@ -39,7 +39,7 @@ alimentação ou usar **Suspender** no menu do Windows. Retome normalmente após
 Cada execução cria `.artifacts/validation/windows-observation-*/` com TRX, saída local e, se o
 supervisor reportou a parada, `result.json`. A prova exige saída confirmada e o motivo solicitado.
 Em uma mudança de energia, `WindowsCallbackObserved` distingue a notificação da leitura
-periódica que chegou primeiro. No protocolo 4 do supervisor ocioso, a prova de suspensão
+periódica que chegou primeiro. Desde o protocolo 4 do supervisor ocioso, a prova de suspensão
 exige `WindowsSuspension=Entering`. Uma notificação de retomada ainda dispara a parada,
 mas registra `Resuming` e deixa o ensaio sem aprovação. A confirmação de saída acompanha
 o resultado, junto com `ReadyAtUtc` e `WorkerExitedAtUtc`, horário de saída informado pelo
@@ -51,6 +51,14 @@ o Modern Standby.
 [Aviso de entrada em suspensão](https://learn.microsoft.com/en-us/windows/win32/power/pbt-apmsuspend),
 [aviso de retomada](https://learn.microsoft.com/en-us/windows/win32/power/pbt-apmresumeautomatic)
 e [fases do Modern Standby](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/prepare-software-for-modern-standby).
+
+No protocolo 5, o aviso de suspensão solicita o encerramento do Job diretamente, antes
+de despachar as tarefas de confirmação. O controlador continua verificando a saída do filho.
+`WindowsTiming` registra o recebimento do sinal, a tentativa de parada e seu retorno.
+O roteiro exige que a tentativa direta tenha sido aceita na prova de entrada em suspensão.
+Compare `WorkerExitedAtUtc`, informado pelo Windows, com os eventos independentes de energia.
+`WorkerExitMilliseconds` mede até a confirmação pelo supervisor, que pode ocorrer após a retomada.
+[Encerramento de Job Objects](https://learn.microsoft.com/en-us/windows/win32/api/jobapi2/nf-jobapi2-terminatejobobject).
 
 ## Testes executados
 
@@ -179,10 +187,46 @@ O sinal ativo e a precisão contra uma referência com horários de aquisição 
 sem validação. A captura privada e o resumo ficam em
 `.artifacts/thermal-validation/20261110T010712Z-1e74c3a78f8c48979be8c15614717cd0/`.
 
+## Repetição com parada direta no protocolo 5
+
+Em 9 de novembro de 2026, no mesmo notebook em bateria, a primeira repetição encerrou
+com `DurationCompleted` e sem notificação. O Windows registrou uma transição breve e
+uma segunda entrada no fim da janela. O resultado está em
+`.artifacts/validation/windows-observation-732c0d8401eb421693782148368942eb/`.
+
+Na segunda repetição, o aviso `Entering` disparou a parada direta e o teste confirmou
+a saída. O evento 506 marcou o início da sessão Modern Standby. O relatório SleepStudy
+classificou os primeiros 296,726 ms da transição como `Screen Off`. A duração coincidiu
+com a transição do evento 566 para `Sleep` neste notebook. A fase `Sleep` durou
+19,521 s. [Estados do Modern Standby](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/modern-standby-states)
+e [relatório SleepStudy](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/modern-standby-sleepstudy).
+
+| Medida da segunda repetição | Resultado |
+| --- | ---: |
+| Aviso recebido após o evento 506 | 288,255 ms |
+| Pedido direto após o aviso | 0,802 ms |
+| Saída do filho após o aviso | 5,655 ms |
+| Saída do filho antes do início da fase `Sleep`, por correlação com o evento 566 | 2,012 ms |
+| Saída do filho antes do evento 507 de retomada | 19,523 s |
+
+A prova confirma a resposta direta e o encerramento durante `Screen Off` nesta
+repetição ociosa. A margem observada foi estreita. O encerramento anterior ao evento 506
+segue sem comprovação, e o CT-052 integral continua bloqueado. O resultado, a cronologia
+agregada e o SleepStudy privado ficam em
+`.artifacts/validation/windows-observation-d4ea4fb052234d3bbffb9e3547e85a54/`.
+
+Na primeira execução da suíte, a verificação de isolamento falhou ao aguardar o filho
+por uma referência de processo que não mantinha o identificador de espera. O teste foi
+ajustado para confirmar a saída pelo identificador nativo mantido para o filho. O teste
+continua verificando que a segunda solicitação é ignorada e que o processo alheio
+permanece ativo. O build final em Release concluiu com zero avisos e erros.
+A suíte final passou com 108 testes unitários e 64 de integração. Seis casos optativos
+ficaram fora da execução padrão, incluindo a prova física executada separadamente.
+
 ## Escopo de aprovação
 
 A leitura direta pelo canal 2 passou no notebook. A comparação de precisão do CPU Package
 ainda precisa de uma série mais longa com horários de aquisição da referência. Os ensaios
 anteriores do HWMonitor estão no [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md).
-Seguem pendentes a qualificação do frescor do sensor, os limites por hardware e o encerramento
-antes da entrada em S0. O estresse real permanece bloqueado.
+Seguem pendentes a qualificação do frescor do sensor, os limites por hardware e a
+repetibilidade da parada durante a transição para `Sleep`. O estresse real permanece bloqueado.
