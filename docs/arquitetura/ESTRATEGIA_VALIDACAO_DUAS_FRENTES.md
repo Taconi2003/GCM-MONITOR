@@ -132,9 +132,44 @@ reaberto. A sessão ocorreu na tomada, em paralelo com o ensaio do instalador is
 base de teste foram temporários. Resumo sanitizado e TRX em
 `.artifacts/validation/notebook-e734c75f2b0a408cac29d6eafeda2887/`.
 
-Para completar a parte passiva do CT-052 no notebook, repetir sessões de cinco minutos com
-retomada antes e depois do prazo, registrar os horários da transição do Windows e conferir
-ocorrência, cobertura observada, Histórico e PDF. A retomada física ainda precisa dessa prova.
+### Roteiro do CT-052 passivo no Modern Standby
+
+O roteiro usa cinco minutos de CPU e RAM com o motor publicado, banco isolado, leitura do log
+Sistema e ação manual do técnico. Ele aguarda duas leituras válidas de RAM e anuncia a prontidão.
+O caso `BeforeDeadline` pede uma suspensão de cerca de 30 s. O caso `AfterDeadline` indica a hora
+local de retorno, 12 s depois do prazo. O controle `Awake` executa a coleta com o notebook acordado.
+
+```powershell
+./scripts/dev.ps1 Build -Configuration Release
+$engine = '<publicação>/engine/GcmMonitor.Engine.exe'
+./scripts/validate-passive-suspension.ps1 -Expected Awake -PublishedEngine $engine
+./scripts/validate-passive-suspension.ps1 -Expected BeforeDeadline -PublishedEngine $engine
+./scripts/validate-passive-suspension.ps1 -Expected AfterDeadline -PublishedEngine $engine
+```
+
+Os eventos Kernel-Power 506 e 507 devem compartilhar o `ScenarioInstanceIdV2`. O roteiro também
+exige o par de transições 566 para a mesma fase `Sleep`, com duração mínima de 20 s. Uma lacuna
+de amostragem sozinha, um evento sem par ou somente tela apagada não aprova suspensão. No retorno
+antes do prazo, a série de RAM deve ter amostras nos dois lados da fase `Sleep` e uma ocorrência
+correspondente. No retorno depois do prazo, a sessão deve terminar com a ocorrência e sem leitura
+adicional. O ensaio verifica a cobertura da média, Histórico, `quick_check` e reabertura do PDF.
+
+O banco e o PDF contêm inventário local e ficam na pasta ignorada `.artifacts/validation/` junto
+do TRX, dos eventos selecionados e dos resumos sem identificação. Os dois cenários de retorno
+dependem de ação presencial e permanecem pendentes de confirmação física.
+
+O controle `Awake` passou em 10 de novembro de 2026 com o motor `046b2c1` em Windows 11 build
+26200. A sessão levou 300,15 s e registrou 121 amostras válidas de RAM, com 298,50 s de cobertura.
+O log não registrou eventos de suspensão no intervalo, e o banco não tinha lacunas de RAM acima
+de 15 s. O Histórico reabriu a sessão, o `quick_check` retornou `ok` e o PDF de duas páginas foi
+reaberto. Evidências locais em
+`.artifacts/validation/passive-suspension-01a37ad0a73d4b69842dce4b4c85b1f2/`.
+
+Sete cenários sintéticos exercitaram a correlação, incluindo retorno antes e depois do prazo e
+rejeição de tela apagada, cenários diferentes, ausência de ocorrência e leitura após o prazo.
+A leitura do log também identificou a fase `Sleep` de 30,79 s da prova ociosa anterior na tomada,
+cruzada com dados simulados de coleta. A suíte Release passou com 110 testes unitários e 65 de
+integração. Sete casos opt-in ficaram fora da suíte rápida, incluindo o novo roteiro.
 
 ## B. Supervisão, alertas e recuperação térmica
 
