@@ -66,16 +66,17 @@ try
     }
     SafetyStopReason? WindowsSignal()
     {
-        if (environment?.Signal.IsCompletedSuccessfully != true) return null;
-        windowsSignal = environment.Signal.Result;
-        return windowsSignal.Value.Reason;
+        if (environment?.CurrentSignal is not { } observed) return null;
+        windowsSignal = observed;
+        return observed.Reason;
     }
     reason = WindowsSignal();
     if (reason is null)
     {
         worker = OwnedProcessJob.CreateSuspended(Environment.ProcessPath!, ["--idle-probe"]);
+        if (environment is null) worker.Resume();
+        else environment.ResumeUnlessSignaled(worker);
         reason = WindowsSignal();
-        if (reason is null) worker.Resume();
     }
     var elapsed = Stopwatch.StartNew();
     var lastHeartbeat = elapsed.Elapsed;
@@ -92,7 +93,8 @@ try
         await channel.WriteAsync(new SafetyProbeEvent(SafetyProbeProtocol.Version, sessionId, ++sequence, state,
             worker?.ProcessId, worker?.StartedAt, stopped, WindowsObservationEnabled: environment is not null,
             WindowsSignalObserved: windowsSignal.HasValue, WorkerExitMilliseconds: workerExitMilliseconds,
-            WindowsCallbackObserved: windowsSignal?.Callback == true, WindowsSuspension: windowsSignal?.Suspension), writeTimeout.Token);
+            WindowsCallbackObserved: windowsSignal?.Callback == true, WindowsSuspension: windowsSignal?.Suspension,
+            WindowsTiming: windowsSignal?.Timing), writeTimeout.Token);
     }
     // A espera de leitura pelo controlador não pode bloquear os prazos do filho.
     if (reason is null) runningNotice = Send("IdleProbeRunning");
@@ -100,7 +102,7 @@ try
     while (reason is null)
     {
         if ((reason = WindowsSignal()) is not null) break;
-        if (worker!.HasExited) { reason = SafetyStopReason.WorkerExited; break; }
+        if (worker!.HasExited) { reason = WindowsSignal() ?? SafetyStopReason.WorkerExited; break; }
         var deadline = NextDeadline();
         var remaining = deadline.Due - elapsed.Elapsed;
         if (remaining <= TimeSpan.Zero) { reason = deadline.Reason; break; }
@@ -181,7 +183,7 @@ catch (Exception ex) when (ex is IOException or InvalidDataException or JsonExce
             await channel.WriteAsync(new SafetyProbeEvent(SafetyProbeProtocol.Version, sessionId, ++sequence,
                 "IdleProbeStopped", worker?.ProcessId, worker?.StartedAt, reason, WindowsObservationEnabled: environment is not null,
                 WindowsSignalObserved: windowsSignal.HasValue, WindowsCallbackObserved: windowsSignal?.Callback == true,
-                WindowsSuspension: windowsSignal?.Suspension), timeout.Token);
+                WindowsSuspension: windowsSignal?.Suspension, WindowsTiming: windowsSignal?.Timing), timeout.Token);
         }
         catch (Exception writeError) when (writeError is IOException or OperationCanceledException or ObjectDisposedException) { }
     }
@@ -190,6 +192,10 @@ catch (Exception ex) when (ex is IOException or InvalidDataException or JsonExce
 }
 finally
 {
-    try { worker?.Dispose(); }
+    try
+    {
+        environment?.DetachWorker();
+        worker?.Dispose();
+    }
     finally { if (environment is not null) await environment.DisposeAsync(); }
 }

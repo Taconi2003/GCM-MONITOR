@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using GcmMonitor.Core;
+using GcmMonitor.Execution;
 
 namespace GcmMonitor.StressSupervisor;
 
@@ -20,13 +21,22 @@ internal sealed class WindowsSafetyObservation : IAsyncDisposable
     private readonly CancellationTokenSource shutdown = new();
     private readonly TaskCompletionSource<WindowsSafetySignal> signal = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource initialPower = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly object gate = new();
     private readonly byte baseline;
     private readonly nint cookie;
     private readonly nint suspendHandle;
     private readonly nint powerHandle;
     private readonly Task polling;
+    private OwnedProcessJob? worker;
     public Task<WindowsSafetySignal> Signal => signal.Task;
     public Task InitialPower => initialPower.Task;
+    public WindowsSafetySignal? CurrentSignal
+    {
+        get
+        {
+            lock (gate) return signal.Task.IsCompletedSuccessfully ? signal.Task.Result : null;
+        }
+    }
 
     public WindowsSafetyObservation()
     {
@@ -57,14 +67,53 @@ internal sealed class WindowsSafetyObservation : IAsyncDisposable
             do
             {
                 byte? ac = ReadAc();
-                if (!ac.HasValue) signal.TrySetResult(new(SafetyStopReason.EnvironmentUnavailable, false));
-                else if (ac.Value != baseline) signal.TrySetResult(new(SafetyStopReason.PowerChanged, false));
+                if (!ac.HasValue) ObserveSignal(SafetyStopReason.EnvironmentUnavailable, false);
+                else if (ac.Value != baseline) ObserveSignal(SafetyStopReason.PowerChanged, false);
             } while (!signal.Task.IsCompleted && await timer.WaitForNextTickAsync(ct));
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
     }
 
     private static byte? ReadAc() => GetSystemPowerStatus(out var status) && status.Ac <= 1 ? status.Ac : null;
+
+    public void ResumeUnlessSignaled(OwnedProcessJob candidate)
+    {
+        lock (gate)
+        {
+            if (signal.Task.IsCompleted) return;
+            worker = candidate;
+            candidate.Resume();
+        }
+    }
+
+    public void DetachWorker()
+    {
+        lock (gate) worker = null;
+    }
+
+    private void ObserveSignal(SafetyStopReason reason, bool callback, WindowsSuspensionNotification? suspension = null)
+    {
+        var timing = new WindowsStopTiming(DateTimeOffset.UtcNow);
+        lock (gate)
+        {
+            if (signal.Task.IsCompleted) return;
+            if (suspension.HasValue && worker is not null)
+            {
+                // Solicita a parada no próprio aviso do Windows, antes de ceder o controle ao pool.
+                timing = timing with { DirectStopRequestedAtUtc = DateTimeOffset.UtcNow };
+                try
+                {
+                    timing = timing with { DirectStopAccepted = worker.RequestStop() };
+                }
+                catch (Win32Exception)
+                {
+                    // A rotina principal repete a solicitação e o fechamento do Job continua sendo a última proteção.
+                    timing = timing with { DirectStopAccepted = false };
+                }
+            }
+            signal.TrySetResult(new(reason, callback, suspension, timing));
+        }
+    }
 
     private static uint OnNotification(nint context, uint type, nint setting)
     {
@@ -73,7 +122,7 @@ internal sealed class WindowsSafetyObservation : IAsyncDisposable
         if (type is suspend or resumeSuspend or resumeAutomatic)
         {
             var notification = type == suspend ? WindowsSuspensionNotification.Entering : WindowsSuspensionNotification.Resuming;
-            observer.signal.TrySetResult(new(SafetyStopReason.Suspended, true, notification));
+            observer.ObserveSignal(SafetyStopReason.Suspended, true, notification);
         }
         if (type == PowerSettingChanged) observer.ObservePower(setting);
         return 0;
@@ -83,7 +132,7 @@ internal sealed class WindowsSafetyObservation : IAsyncDisposable
     {
         if (setting == 0 || Marshal.PtrToStructure<Guid>(setting) != AcDcPowerSource || Marshal.ReadInt32(setting, 16) != sizeof(uint))
         {
-            signal.TrySetResult(new(SafetyStopReason.EnvironmentUnavailable, true));
+            ObserveSignal(SafetyStopReason.EnvironmentUnavailable, true);
             return;
         }
         // SYSTEM_POWER_CONDITION usa a ordem inversa de SYSTEM_POWER_STATUS para AC/bateria.
@@ -94,10 +143,10 @@ internal sealed class WindowsSafetyObservation : IAsyncDisposable
                 initialPower.TrySetResult();
                 break;
             case 0 or 1 or 2:
-                signal.TrySetResult(new(SafetyStopReason.PowerChanged, true));
+                ObserveSignal(SafetyStopReason.PowerChanged, true);
                 break;
             default:
-                signal.TrySetResult(new(SafetyStopReason.EnvironmentUnavailable, true));
+                ObserveSignal(SafetyStopReason.EnvironmentUnavailable, true);
                 break;
         }
     }
@@ -148,4 +197,4 @@ internal sealed class WindowsSafetyObservation : IAsyncDisposable
 }
 
 internal readonly record struct WindowsSafetySignal(SafetyStopReason Reason, bool Callback,
-    WindowsSuspensionNotification? Suspension = null);
+    WindowsSuspensionNotification? Suspension, WindowsStopTiming Timing);

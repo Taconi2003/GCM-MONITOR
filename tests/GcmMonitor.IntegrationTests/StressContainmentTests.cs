@@ -54,6 +54,7 @@ public sealed class StressContainmentTests
         Assert.Equal("IdleProbeStopped", stopped.State); Assert.Equal(expected, stopped.Reason);
         Assert.True(stopped.IdleOnly); Assert.False(stopped.LoadExecuted);
         Assert.Null(stopped.WindowsSuspension);
+        Assert.Null(stopped.WindowsTiming);
         Assert.True(worker.HasExited); // Confirmação terminal só pode ser enviada após a morte do filho.
     }
 
@@ -253,6 +254,7 @@ public sealed class StressContainmentTests
         {
             Assert.Equal(SafetyStopReason.DurationCompleted, stopped.Reason);
             Assert.Null(stopped.WindowsSuspension);
+            Assert.Null(stopped.WindowsTiming);
         }
         await SaveEnvironmentEvidenceAsync("native-environment.json", new
         {
@@ -293,13 +295,15 @@ public sealed class StressContainmentTests
         bool passed = stopped.State == "IdleProbeStopped" && stopped.Reason == expected &&
             stopped.WindowsObservationEnabled && stopped.WindowsSignalObserved == requireTransition && confirmed &&
             (expected != SafetyStopReason.Suspended ||
-                stopped.WindowsCallbackObserved && stopped.WindowsSuspension == WindowsSuspensionNotification.Entering);
+                stopped.WindowsCallbackObserved && stopped.WindowsSuspension == WindowsSuspensionNotification.Entering &&
+                stopped.WindowsTiming is { DirectStopAccepted: true, DirectStopRequestedAtUtc: not null });
         await File.WriteAllTextAsync(Path.Combine(output, "result.json"), JsonSerializer.Serialize(new
         {
             WindowsBuild = Environment.OSVersion.Version.Build, TimestampUtc = DateTimeOffset.UtcNow,
             ReadyAtUtc = readyAtUtc, WorkerExitedAtUtc = confirmed ? worker.ExitTime.ToUniversalTime() : (DateTime?)null,
             Protocol = stopped.Version, Expected = expected.ToString(), Observed = stopped.Reason?.ToString(),
             stopped.WindowsSignalObserved, stopped.WindowsCallbackObserved, WindowsSuspension = stopped.WindowsSuspension?.ToString(),
+            stopped.WindowsTiming,
             stopped.WindowsObservationEnabled, WorkerExitConfirmed = confirmed, stopped.WorkerExitMilliseconds,
             stopped.IdleOnly, stopped.LoadExecuted, Passed = passed
         }));
@@ -349,7 +353,10 @@ public sealed class StressContainmentTests
         try
         {
             using var job = OwnedProcessJob.CreateSuspended(Executable, ["--idle-probe"]); job.Resume();
-            await job.StopAsync(); Assert.True(job.HasExited); Assert.False(unrelated.HasExited);
+            Assert.True(job.RequestStop());
+            Assert.False(job.RequestStop());
+            await job.StopAsync();
+            Assert.True(job.HasExited); Assert.False(unrelated.HasExited);
         }
         finally { if (!unrelated.HasExited) unrelated.Kill(entireProcessTree: true); await unrelated.WaitForExitAsync(); }
     }
