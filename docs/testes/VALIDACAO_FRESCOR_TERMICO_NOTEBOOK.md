@@ -291,3 +291,6 @@ Houve três observações de parada ociosa durante `Screen Off` em bateria. Segu
 pendentes a qualificação do frescor do sensor, os limites de segurança do GCM e a
 confirmação de parada anterior a `Sleep` na tomada e sob carga.
 O estresse real permanece bloqueado.
+
+A rodada seguinte aprovou quatro horas de coleta passiva na prévia 7. O resultado e as
+condições de uso em laboratório estão na [estratégia de validação em duas frentes](../arquitetura/ESTRATEGIA_VALIDACAO_DUAS_FRENTES.md#quatro-horas-na-prévia-7).

@@ -16,6 +16,9 @@ versão, a configuração e o cenário ensaiados. A liberação final para clien
   disponível e manter a lacuna na série. A cobertura pode crescer por fonte, API ou família de
   sensores, sem cadastro manual de cada modelo de CPU. A disponibilidade depende da capacidade
   detectada e da qualidade do sinal, com avaliação separada da qualificação para proteção.
+  Na matriz de compatibilidade, incluir ventoinha sem RPM, armazenamento sem SMART acessível,
+  desktop sem bateria e versão de Windows ainda sem evidência. Preservar respectivamente a ausência
+  de valor, a limitação de acesso, o motivo de não aplicação e o escopo de suporte declarado.
 - Usar o CT-022 para verificar identidade, unidade, horário e valor, além da consistência da
   apresentação. Comparar o mesmo sensor em janelas alinhadas e registrar idade da consulta,
   lacunas, dispersão e valores discrepantes. Ampliar a referência em repouso e uso normal, com
@@ -66,7 +69,37 @@ versão, a configuração e o cenário ensaiados. A liberação final para clien
   ocioso, decisões de atenção, parada crítica, recuperação simulada e tratamento de amostras
   atrasadas na troca de fases. TRX em `.artifacts/TestResults/duas-frentes-release/`.
   A coleta longa mantinha arquivos de teste em uso. A recompilação e a suíte rápida passaram em
-  saída Release separada, preservando o executável e o processo da prova em andamento.
+  saída Release separada, preservando o executável e o processo da prova em andamento. Após o
+  ensaio, `scripts/dev.ps1 Build` e `scripts/dev.ps1 Test` em Release confirmaram os mesmos
+  resultados na saída padrão. TRX da repetição em `.artifacts/TestResults/`.
+
+### Quatro horas na prévia 7
+
+Ensaio aprovado no notebook com Windows 11 build 26200, na noite de 9 a 10 de novembro de 2026.
+O motor foi o da publicação `13fd8eb` indicada acima. A sessão começou na tomada e usou os
+onze módulos em uma base separada, com as configurações de energia vigentes no Windows. Os
+testes rápidos e do instalador isolado também foram executados no notebook no início da coleta.
+
+| Medida | Resultado |
+| --- | ---: |
+| Tempo observado | 14.400,52 s |
+| Duração efetiva da sessão | 14.400,03 s |
+| Medições persistidas | 181.514 |
+| Registros reabertos | 429 |
+| Consultas ao Histórico durante a gravação | 237 |
+| Atualizações do motor | 33.625 |
+| Maior snapshot enviado à interface | 512 amostras |
+| Maior intervalo entre leituras válidas de RAM | 9,70 s |
+| Pico amostrado de memória privada do motor | 41,99 MiB |
+| Tamanho final da base | 65,80 MiB |
+| Verificação de integridade do SQLite | `PRAGMA quick_check` retornou `ok` |
+| PDF exportado e reaberto | 13 páginas |
+
+CPU, RAM, dispositivos e energia ficaram completos. Armazenamento, eventos, bateria, Windows
+Update, sensores, processos e Wi-Fi ficaram parciais na configuração ensaiada. Os estados por
+módulo foram preservados. O estresse permaneceu bloqueado durante o ensaio. A base e o PDF de
+teste foram temporários. O TRX, os checkpoints e o resumo sem identificadores ficaram em
+`.artifacts/validation/notebook-34b3045c118b4b4584c6086afe196e9f/`.
 
 ## B. Supervisão, alertas e recuperação térmica
 
@@ -113,6 +146,12 @@ caracterizadas, perda ou congelamento detectáveis, margem de parada demonstrada
 verificável. A janela de 6 s do canal passivo verifica a idade da consulta por software. A
 conversão do DTS e o alvo observado de 94 °C no notebook (`TjMax` de 100 °C com offset de 6 °C)
 contextualizam o sensor. Nenhum desses números está aprovado como limiar de proteção do GCM.
+
+| Requisito | Dependência e prova |
+| --- | --- |
+| Consentimento, padrão desligado, prazo, isolamento, heartbeat, cancelamento, registro e bloqueio de retomada | A lógica independe do modelo da CPU. Exercitar com testes de contrato e filho ocioso. A confirmação de encerramento e recuperação depende também do ambiente Windows e dos casos físicos aplicáveis. |
+| Detecção da fonte essencial, perda, atraso, repetição e condição crítica | Injetar dados sintéticos para provar a resposta da lógica. Caracterizar em hardware a identidade, o comportamento e a atualização física da fonte que a proteção utilizará. |
+| Limites, margem térmica e parada em transições | Dependem do conjunto sensor, hardware, firmware e Windows. Um perfil pode cobrir uma família quando o equipamento confirmar os parâmetros e capacidades de que ele depende e houver prova representativa. O nome comercial da CPU é insuficiente para aplicar um perfil. |
 
 ### Avaliação de estresse com acompanhamento do técnico
 
