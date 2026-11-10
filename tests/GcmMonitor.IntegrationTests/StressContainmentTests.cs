@@ -327,9 +327,9 @@ public sealed class StressContainmentTests
         bool confirmed = worker.HasExited;
         bool passed = stopped.State == "IdleProbeStopped" && stopped.Reason == expected &&
             stopped.WindowsObservationEnabled && stopped.WindowsSignalObserved == requireTransition && confirmed &&
+            (!requireTransition || stopped.WindowsTiming is { DirectStopAccepted: true, DirectStopRequestedAtUtc: not null }) &&
             (expected != SafetyStopReason.Suspended ||
-                stopped.WindowsCallbackObserved && stopped.WindowsSuspension == WindowsSuspensionNotification.Entering &&
-                stopped.WindowsTiming is { DirectStopAccepted: true, DirectStopRequestedAtUtc: not null });
+                stopped.WindowsCallbackObserved && stopped.WindowsSuspension == WindowsSuspensionNotification.Entering);
         await File.WriteAllTextAsync(Path.Combine(output, "result.json"), JsonSerializer.Serialize(new
         {
             WindowsBuild = Environment.OSVersion.Version.Build, TimestampUtc = DateTimeOffset.UtcNow,
@@ -377,6 +377,17 @@ public sealed class StressContainmentTests
             Assert.Equal(SessionState.Cancelled, snapshots.Current.State);
         }
         finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+    }
+
+    [Fact]
+    public async Task StopAsyncRequestsTerminationBeforeReturningTheConfirmationTask()
+    {
+        using var job = OwnedProcessJob.CreateSuspended(Executable, ["--idle-probe"]);
+        Assert.False(job.HasExited);
+        var confirmation = job.StopAsync();
+        Assert.False(job.RequestStop());
+        await confirmation;
+        Assert.True(job.HasExited);
     }
 
     [Fact]

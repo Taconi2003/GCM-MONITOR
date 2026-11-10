@@ -98,11 +98,14 @@ public sealed class OwnedProcessJob : IDisposable
         }
     }
 
-    public Task StopAsync() => Task.Run(() =>
+    public async Task StopAsync()
     {
         RequestStop();
-        if (WaitForSingleObject(process, 5000) != 0) throw new IOException("Encerramento do processo próprio não confirmado em cinco segundos.");
-    });
+        await Task.Run(() =>
+        {
+            if (WaitForSingleObject(process, 5000) != 0) throw new IOException("Encerramento do processo próprio não confirmado em cinco segundos.");
+        });
+    }
 
     public void Dispose()
     {

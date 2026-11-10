@@ -213,6 +213,24 @@ estável, confirmou a saída do filho ocioso em 4,026 s. Evidências locais em
 `.artifacts/validation/thermal-queued-query.json` e
 `.artifacts/validation/windows-observation-5c779e4846dd46bdac71486b44375470/`.
 
+### Pedido de parada antes da confirmação de saída
+
+Quando o filho já está associado ao observador, o primeiro sinal de suspensão, mudança de
+alimentação ou indisponibilidade solicita a parada ali mesmo. Se a energia mudar antes do
+aviso de suspensão, o motivo registrado continua sendo o primeiro sinal e o pedido de parada já
+foi feito. O pedido geral de parada também ocorre antes de agendar a espera assíncrona pela
+saída. O encerramento continua confirmado pelo processo antes da mensagem terminal.
+
+O teste de integração usa um filho criado suspenso e confere que a parada já foi solicitada
+quando a tarefa de confirmação é devolvida ao chamador. O roteiro de transição nativa agora
+exige evidência do pedido direto tanto para suspensão quanto para mudança de alimentação.
+A repetição física das duas transições no notebook é necessária para medir o efeito na margem.
+
+O Release compilou sem avisos e erros. Passaram 110 testes unitários e 68 de integração, com
+sete casos opt-in fora da suíte rápida. A prova adicional com o Windows sob observação e
+alimentação estável confirmou a saída do filho ocioso em 4,013 s pelo prazo configurado.
+Evidências em `.artifacts/validation/windows-observation-5f860fdecfaa40c0be3b50973847a9cf/`.
+
 ### O que as provas de energia demonstraram
 
 | Cenário | Evidência e limite |

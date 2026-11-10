@@ -97,9 +97,9 @@ internal sealed class WindowsSafetyObservation : IAsyncDisposable
         lock (gate)
         {
             if (signal.Task.IsCompleted) return;
-            if (suspension.HasValue && worker is not null)
+            if (worker is not null)
             {
-                // Solicita a parada no próprio aviso do Windows, antes de ceder o controle ao pool.
+                // O primeiro sinal ambiental já pede a parada, mesmo quando antecede um aviso de suspensão.
                 timing = timing with { DirectStopRequestedAtUtc = DateTimeOffset.UtcNow };
                 try
                 {
