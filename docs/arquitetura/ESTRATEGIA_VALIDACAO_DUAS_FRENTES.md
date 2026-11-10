@@ -171,6 +171,15 @@ A leitura do log também identificou a fase `Sleep` de 30,79 s da prova ociosa a
 cruzada com dados simulados de coleta. A suíte Release passou com 110 testes unitários e 65 de
 integração. Sete casos opt-in ficaram fora da suíte rápida, incluindo o novo roteiro.
 
+Na primeira tentativa física de retomada antes do prazo, em 10 de novembro de 2026, o notebook
+estava na tomada. O log registrou cinco sessões de Modern Standby durante a intervenção do
+técnico. Quatro entraram em `Sleep` por 0,763 s, 1,029 s, 1,033 s e 1,013 s. A última saiu de
+`Screen Off` sem entrada em `Sleep`. A coleta terminou em 300,17 s, com 118 leituras válidas de
+RAM e cobertura de 295,59 s. Nenhum intervalo de RAM passou de 15 s. Histórico, `quick_check`
+e PDF de duas páginas passaram. O cenário `BeforeDeadline` ficou **inconclusivo**, pois não houve
+uma fase `Sleep` sustentada nem uma lacuna correspondente. Evidências locais em
+`.artifacts/validation/passive-suspension-ca03d8e6b040483cafb0cb6b80d9146b/`.
+
 ## B. Supervisão, alertas e recuperação térmica
 
 - Manter o estresse físico bloqueado. O pacote padrão fica sem supervisor de laboratório, auxiliar
