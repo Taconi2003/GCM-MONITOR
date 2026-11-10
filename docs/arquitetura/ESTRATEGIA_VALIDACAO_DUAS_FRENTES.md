@@ -101,6 +101,41 @@ módulo foram preservados. O estresse permaneceu bloqueado durante o ensaio. A b
 teste foram temporários. O TRX, os checkpoints e o resumo sem identificadores ficaram em
 `.artifacts/validation/notebook-34b3045c118b4b4584c6086afe196e9f/`.
 
+### Lacunas na retomada da coleta passiva
+
+A revisão `046b2c1` registra uma ocorrência também quando uma lacuna de amostragem superior a
+15 s alcança o fim da sessão. Ao voltar a amostrar, o módulo recalcula deltas a partir de uma nova
+referência e preserva os períodos já contabilizados. Os gráficos em Monitoramento, Resultados e
+PDF interrompem a linha quando o intervalo entre duas leituras válidas excede o mesmo limite.
+A interface deriva a separação dos horários salvos e pode mostrá-la em sessões anteriores quando
+os dois pontos estão na janela.
+
+O Release compilou com zero avisos e erros. Passaram **110 testes unitários e 65 de integração**,
+com seis casos opt-in separados. Um relógio simulado exercitou a retomada após o prazo e verificou
+que a ocorrência foi salva sem uma leitura adicional. Uma sessão de teste com lacuna foi reaberta
+do SQLite pelo Histórico. O gráfico preservou os pontos nos dois lados e o PDF foi exportado e
+reaberto. Os casos de parada do supervisor, inclusive `suspend` simulado, confirmaram saída do
+filho ocioso, término do supervisor e fechamento do canal da prova.
+
+O instalador padrão local da revisão é
+`.artifacts/installer/1.0.0-preview.7-3ac284564bbb4ad4a87923df9f4b3528/GCMMonitor-Setup.exe`.
+SHA-256 `2C8FDDA9179C29DEB18FF7C314D6AF0916B934F52E8967F65E1A8ECDA0858834`.
+A variante isolada de laboratório passou nos três testes de atualização da prévia 6 para a 7.
+O ensaio verificou histórico, preferências, runtime incluído e desinstalação com preservação e
+remoção seletiva de dados. Evidências em
+`.artifacts/installer/upgrade-c090a29e9d1344eeb7acdeea2d0e2ca7/`.
+
+Em 10 de novembro de 2026, o motor publicado dessa revisão passou em cinco minutos no notebook
+com os onze módulos, em banco temporário. Foram 3.715 medições, 427 registros reabertos,
+512 amostras no maior snapshot, SQLite com `quick_check` igual a `ok` e PDF de 12 páginas
+reaberto. A sessão ocorreu na tomada, em paralelo com o ensaio do instalador isolado. O PDF e a
+base de teste foram temporários. Resumo sanitizado e TRX em
+`.artifacts/validation/notebook-e734c75f2b0a408cac29d6eafeda2887/`.
+
+Para completar a parte passiva do CT-052 no notebook, repetir sessões de cinco minutos com
+retomada antes e depois do prazo, registrar os horários da transição do Windows e conferir
+ocorrência, cobertura observada, Histórico e PDF. A retomada física ainda precisa dessa prova.
+
 ## B. Supervisão, alertas e recuperação térmica
 
 - Manter o estresse físico bloqueado. O pacote padrão fica sem supervisor de laboratório, auxiliar
