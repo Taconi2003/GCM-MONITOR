@@ -127,7 +127,7 @@ separadamente as evidências da simulação e do supervisor com processo ocioso.
 
 Em 9 de novembro, a edição portátil HWiNFO64 8.34-5870 foi obtida no
 repositório do autor e conferida localmente com assinatura Authenticode válida da
-REALiX. A janela de sensores exibiu `CPU Inteiro` no grupo Intel DTS. Para a
+REALiX. A janela de sensores exibiu `CPU Inteira` no grupo Intel DTS. Para a
 comparação, selecione a coluna desse grupo, preserve os horários do CSV e converta
 apenas o valor atual para `Timestamp,Celsius`, com o fuso explícito. O formato
 RFC 3339/ISO 8601 está disponível na configuração de registro de sensores.
@@ -135,3 +135,43 @@ O arquivo bruto fica em pasta local ignorada pelo Git.
 [Arquivo do autor](https://sourceforge.net/projects/hwinfo/files/Windows_Portable/hwi_834.zip/download),
 [formatos de horário do HWiNFO](https://www.hwinfo.com/version-history/) e
 [identidade do CPU Package DTS](https://www.hwinfo.com/forum/threads/hwinfo-cpu-temperature.5962/).
+
+O registro paralelo desta rodada trouxe 67 amostras da referência, com 31 no
+intervalo da sonda. A sonda concluiu 30 ciclos passivos. O rodapé do CSV distingue
+as duas colunas com o mesmo rótulo `CPU Inteira [°C]`. O conversor selecionou apenas
+a coluna do grupo Intel DTS e aplicou o fuso local verificado no Windows. Os horários
+da referência vieram das colunas `Date` e `Time`. A janela do GCM vai do início da
+consulta ao recebimento da leitura.
+
+| Janela máxima de pareamento | Pares | Maior separação conservadora | Diferença absoluta média | Diferença absoluta máxima |
+| --- | ---: | ---: | ---: | ---: |
+| 1.200 ms | 30 | 1.085,1 ms | 3,73 °C | 11 °C |
+| 750 ms | 20 | 749,5 ms | 3,65 °C | 11 °C |
+| 500 ms | 14 | 486,7 ms | 4,21 °C | 11 °C |
+| 250 ms | 6 | 212,6 ms | 2,50 °C | 11 °C |
+
+Os horários do CSV são do registro de sensores da ferramenta. A aquisição exata
+do registrador e a idade física de cada leitura dentro da varredura continuam
+desconhecidas. A divergência máxima persistiu na janela mais estreita, com poucos
+pares. A rodada fornece horários comparáveis de software e ainda deixa em aberto
+a tolerância de precisão e a margem de parada.
+
+No formato `Date,Time` do arquivo desta rodada, execute a normalização antes de comparar.
+Use o grupo e o fuso da máquina que gerou o registro.
+
+```powershell
+./scripts/convert-hwinfo-package.ps1 -HwInfoCsv '<csv-local>' `
+  -CpuGroup 'CPU [#0]: Intel Core i5-1235U: DTS' -TemperatureColumn 'CPU Inteira [°C]' `
+  -TimeZoneId 'E. South America Standard Time' |
+  Set-Content '<csv-normalizado>'
+
+./scripts/compare-cpu-package.ps1 -ProbeCapture '<captura-local.json>' `
+  -ReferenceCsv '<csv-normalizado>' -UseProbeQueryWindow -MaximumOffsetMilliseconds 1200
+```
+
+O conversor passou em sete verificações sintéticas, incluindo nomes repetidos,
+horários sem zero à esquerda, rejeição de rodapé incompleto e de horário ambíguo.
+A captura do GCM fica em
+`.artifacts/thermal-validation/20261110T014356Z-a3ef033caf434f8087bf7e74d0b79126/`.
+O CSV e o resumo agregado ficam em
+`.artifacts/thermal-validation/hwinfo-reference-20261109/`. Nenhum estresse foi executado.

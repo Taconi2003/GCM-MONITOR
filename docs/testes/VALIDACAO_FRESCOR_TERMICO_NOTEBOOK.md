@@ -283,9 +283,10 @@ O resultado nativo, o TRX, a cronologia agregada e o SleepStudy privado ficam em
 
 ## Escopo de aprovação
 
-A leitura direta pelo canal 2 passou no notebook. A comparação de precisão do CPU Package
-ainda precisa de uma série mais longa com horários de aquisição da referência. Os ensaios
-anteriores do HWMonitor estão no [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md).
+A leitura direta pelo canal 2 passou no notebook. O registro paralelo do HWiNFO
+forneceu horários de software para comparar 30 leituras de CPU Package. A
+divergência máxima de 11 °C e a idade efetiva de aquisição ainda precisam ser
+investigadas. Os ensaios estão no [relatório de comparação](COMPARACAO_CPU_PACKAGE_NOTEBOOK.md).
 Houve três observações de parada ociosa durante `Screen Off` em bateria. Seguem
 pendentes a qualificação do frescor do sensor, os limites de segurança do GCM e a
 confirmação de parada anterior a `Sleep` na tomada e sob carga.
