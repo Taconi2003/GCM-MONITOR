@@ -119,6 +119,8 @@ Cada duração é executada de forma sequencial, em tempo real, com um banco tem
 Os checkpoints e resultados ficam em `.artifacts/validation/notebook-<id>`. O caso aparece como
 ignorado na suíte rápida.
 Veja a [validação passiva de laboratório neste notebook](docs/testes/VALIDACAO_LABORATORIO_NOTEBOOK.md).
+Consulte a [estratégia de validação em duas frentes](docs/arquitetura/ESTRATEGIA_VALIDACAO_DUAS_FRENTES.md)
+para o escopo de uso passivo em laboratório e os critérios de proteção que mantêm a carga bloqueada.
 Evidências: [relatório v0.4](docs/testes/RELATORIO_V0.4.md) e
 [rastreabilidade dos 77 CT](docs/testes/RASTREABILIDADE_V0.4.md).
 TRX/capturas ficam em `.artifacts/`. O CI publica apenas resultados de testes, imagens sintéticas
