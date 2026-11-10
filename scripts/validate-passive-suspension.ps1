@@ -73,7 +73,7 @@ function Compare-StandbyCollection($Events, $Ready, $Collection) {
     [pscustomobject]@{ Observed = $outcome; SleepSeconds = $sleepSeconds; RamGap = $matchingGap }
 }
 
-$readySeconds = switch ($Expected) { 'BeforeDeadline' { '220' }; 'AfterDeadline' { '270' }; 'Awake' { '0' } }
+$readySeconds = switch ($Expected) { 'BeforeDeadline' { '150' }; 'AfterDeadline' { '180' }; 'Awake' { '0' } }
 $environment = @{
     DOTNET_ROOT = Split-Path -Parent $dotnet
     DOTNET_CLI_HOME = Join-Path $repo '.tools/home'
@@ -99,12 +99,18 @@ try {
     while (!$test.HasExited -and !(Test-Path -LiteralPath $readyFile)) { Start-Sleep -Milliseconds 200 }
     $ready = if (Test-Path -LiteralPath $readyFile) { Get-Content -LiteralPath $readyFile -Raw | ConvertFrom-Json }
     if (!$test.HasExited -and $ready) {
+        $deadline = ([DateTimeOffset]$ready.DeadlineUtc).ToLocalTime()
         switch ($Expected) {
             'Awake' { Write-Host 'Sessão pronta. Mantenha o computador acordado até a conclusão.' }
-            'BeforeDeadline' { Write-Host 'Sessão pronta. Use Suspender no menu do Windows e retome em cerca de 30 segundos.' }
+            'BeforeDeadline' {
+                $suspend = $deadline.AddSeconds(-75).ToString('HH:mm:ss')
+                $resume = $deadline.AddSeconds(-35).ToString('HH:mm:ss')
+                Write-Host "Sessão pronta. Use Suspender às $suspend e retome às $resume (horário local)."
+            }
             'AfterDeadline' {
-                $resume = ([DateTimeOffset]$ready.DeadlineUtc).ToLocalTime().AddSeconds(12).ToString('HH:mm:ss')
-                Write-Host "Sessão pronta. Use Suspender no menu do Windows e retome às $resume (horário local)."
+                $suspend = $deadline.AddSeconds(-30).ToString('HH:mm:ss')
+                $resume = $deadline.AddSeconds(12).ToString('HH:mm:ss')
+                Write-Host "Sessão pronta. Use Suspender às $suspend e retome às $resume (horário local)."
             }
         }
     }

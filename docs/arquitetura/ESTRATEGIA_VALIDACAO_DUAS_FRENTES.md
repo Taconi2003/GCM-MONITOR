@@ -136,8 +136,10 @@ base de teste foram temporários. Resumo sanitizado e TRX em
 
 O roteiro usa cinco minutos de CPU e RAM com o motor publicado, banco isolado, leitura do log
 Sistema e ação manual do técnico. Ele aguarda duas leituras válidas de RAM e anuncia a prontidão.
-O caso `BeforeDeadline` pede uma suspensão de cerca de 30 s. O caso `AfterDeadline` indica a hora
-local de retorno, 12 s depois do prazo. O controle `Awake` executa a coleta com o notebook acordado.
+O caso `BeforeDeadline` indica suspensão 75 s antes do prazo e retorno 35 s antes do prazo.
+No caso `AfterDeadline`, a suspensão é prevista 30 s antes do prazo e o retorno, 12 s depois.
+Os horários são informados com antecedência. O controle `Awake` executa a coleta com o notebook
+acordado.
 
 ```powershell
 ./scripts/dev.ps1 Build -Configuration Release
@@ -156,7 +158,7 @@ adicional. O ensaio verifica a cobertura da média, Histórico, `quick_check` e 
 
 O banco e o PDF contêm inventário local e ficam na pasta ignorada `.artifacts/validation/` junto
 do TRX, dos eventos selecionados e dos resumos sem identificação. Os dois cenários de retorno
-dependem de ação presencial e permanecem pendentes de confirmação física.
+dependem de ação presencial.
 
 O controle `Awake` passou em 10 de novembro de 2026 com o motor `046b2c1` em Windows 11 build
 26200. A sessão levou 300,15 s e registrou 121 amostras válidas de RAM, com 298,50 s de cobertura.
@@ -179,6 +181,32 @@ RAM e cobertura de 295,59 s. Nenhum intervalo de RAM passou de 15 s. Histórico,
 e PDF de duas páginas passaram. O cenário `BeforeDeadline` ficou **inconclusivo**, pois não houve
 uma fase `Sleep` sustentada nem uma lacuna correspondente. Evidências locais em
 `.artifacts/validation/passive-suspension-ca03d8e6b040483cafb0cb6b80d9146b/`.
+
+Na primeira tentativa de retorno após o prazo, em bateria, a sessão terminou às 19h51min51s.
+O Windows registrou a entrada em `Sleep` às 19h52min00,788s e a saída às 19h52min56,530s,
+totalizando 55,742 s. A coleta já havia terminado, com 120 leituras válidas de RAM, `quick_check`
+igual a `ok` e PDF de duas páginas reaberto. A prova de retomada ficou fora da janela da coleta.
+O aviso original saía a 30 s do fim. O roteiro passou a informar os dois horários com 90 s
+de antecedência em relação ao momento previsto para suspender. Evidências da coleta em
+`.artifacts/validation/passive-suspension-57ce8c3e36a34ee5bc08cb42cf541793/`.
+
+A repetição de `AfterDeadline` na bateria passou. O Windows registrou 52,217 s em `Sleep`.
+A última medição ocorreu às 20h03min56,772s, antes da entrada na fase de baixo consumo.
+Após o retorno, o GCM registrou a lacuna às 20h04min50,875s e encerrou a sessão, sem gravar
+outra medição. Foram reabertos o Histórico, 112 amostras válidas de RAM e um PDF de duas páginas.
+O `quick_check` retornou `ok`. Evidências em
+`.artifacts/validation/passive-suspension-828bb81e4d8943b3b933fa75d29f109f/`.
+
+A repetição de `BeforeDeadline` na bateria também passou. O Windows registrou 47,129 s em
+`Sleep`. As amostras de RAM imediatamente antes e depois da suspensão ficaram separadas
+por 51,145 s. O GCM registrou a lacuna, retomou a coleta e encerrou a sessão em 300,17 s.
+Foram preservadas 101 leituras válidas de RAM e 246,37 s de cobertura da média. O Histórico,
+o `quick_check` e a reabertura do PDF de duas páginas passaram. Evidências em
+`.artifacts/validation/passive-suspension-6ec6748316384e31a956a20e9d321c49/`.
+
+As duas provas confirmam a parte passiva do CT-052 neste notebook em bateria, com o motor
+publicado `046b2c1`. A primeira tentativa na tomada segue inconclusiva. A validação integral
+do CT-052 depende também da prova de contenção e retomada do supervisor.
 
 ## B. Supervisão, alertas e recuperação térmica
 
