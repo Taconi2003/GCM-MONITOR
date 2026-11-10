@@ -76,7 +76,9 @@ public static class ThermalRecoveryAnalyzer
         for (int i = 0; i < series.Length; i++)
         {
             var point = series[i];
-            if (!point.HasFreshTemperature || point.CapturedAt <= previousCapture)
+            var phaseStart = point.ObservedAt >= trace.LoadEndedAt ? trace.LoadEndedAt :
+                point.ObservedAt >= trace.LoadStartedAt ? trace.LoadStartedAt : trace.StartedAt;
+            if (!point.HasFreshTemperature || point.CapturedAt <= previousCapture || point.CapturedAt < phaseStart)
                 series[i] = point with { Celsius = null };
             else
                 previousCapture = point.CapturedAt;
@@ -90,7 +92,7 @@ public static class ThermalRecoveryAnalyzer
         var limitations = new List<string>();
         var ordered = TemperatureSeries(trace);
         var valid = ordered.Where(p => p.HasFreshTemperature).ToArray();
-        if (ordered.Length != valid.Length) limitations.Add("Há lacunas, leituras inválidas ou capturas repetidas.");
+        if (ordered.Length != valid.Length) limitations.Add("Há lacunas, leituras inválidas, capturas repetidas ou de outra fase.");
         var baseline = valid.Where(p => trace.LoadStartedAt is null || p.ObservedAt < trace.LoadStartedAt).ToArray();
         var load = valid.Where(p => p.ObservedAt >= trace.LoadStartedAt &&
             (trace.LoadEndedAt is null || p.ObservedAt < trace.LoadEndedAt)).ToArray();

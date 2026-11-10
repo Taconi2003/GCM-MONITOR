@@ -41,6 +41,25 @@ public sealed class ThermalRecoveryTests
     }
 
     [Fact]
+    public void AReadingFromThePreviousPhaseDoesNotDescribeTheNextPhase()
+    {
+        var trace = Trace(55);
+        var points = trace.Points.ToArray();
+        foreach (int boundary in new[] { 0, 6, 8 })
+            points[boundary] = points[boundary] with { CapturedAt = points[boundary].ObservedAt.AddSeconds(-1) };
+        trace = trace with { Points = points };
+
+        var series = ThermalRecoveryAnalyzer.TemperatureSeries(trace);
+        Assert.Null(series[0].Celsius);
+        Assert.Null(series[6].Celsius);
+        Assert.Null(series[8].Celsius);
+        var review = ThermalRecoveryAnalyzer.Analyze(trace, Plan);
+        Assert.Equal(points[7].Celsius, review.Load.First);
+        Assert.Equal(points[9].Celsius, review.AtLoadEnd);
+        Assert.Contains(review.Limitations, reason => reason.Contains("outra fase", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void OmitsPercentageWithoutComparableBaselineOrPositiveIncrease()
     {
         var trace = Trace(47, atStop: 50);

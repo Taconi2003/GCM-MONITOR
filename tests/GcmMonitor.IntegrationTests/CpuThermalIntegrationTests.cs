@@ -41,8 +41,11 @@ public sealed class CpuThermalIntegrationTests
         await using var feed = new CpuThermalBridge(Guid.NewGuid(), "C:\\gcm-fixture-missing\\missing.dll", "C:\\gcm-fixture-missing\\dotnet.exe");
         var missing = await feed.ReadAsync(default); Assert.False(missing.Available); Assert.Null(missing.Frame);
         await using var source = new WindowsPassiveSource(feed);
-        var ram = await source.SampleAsync(new() { Modules = [ModuleId.Memory] }, DateTimeOffset.UtcNow, false, false, default);
-        Assert.Contains(ram.Measurements, x => x.Metric == "RAM" && x.Quality == DataQuality.Valid);
+        var batch = await source.SampleAsync(new() { Modules = [ModuleId.Memory, ModuleId.Sensors] }, DateTimeOffset.UtcNow, false, false, default);
+        Assert.Contains(batch.Measurements, x => x.Metric == "RAM" && x.Quality == DataQuality.Valid);
+        var direct = Assert.Single(batch.Records, x => x.Module == ModuleId.Sensors && x.Key == "cpu-direct");
+        Assert.Equal(DataQuality.Unavailable, direct.Quality);
+        Assert.DoesNotContain(batch.Measurements, x => x.Source == CpuThermalCollection.Source);
     }
 
     [ThermalValidationFact]
